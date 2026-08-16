@@ -1,4 +1,13 @@
-from app.models.governance import (\n    BusinessDayClosure, ClosingStatus, FinancialReversal, PurgeRequest, PurgeStatus, RecordTombstone, ReversalType,\n)\nfrom app.models.audit_log import AuditLog
+from app.models.governance import (
+    BusinessDayClosure,
+    ClosingStatus,
+    FinancialReversal,
+    PurgeRequest,
+    PurgeStatus,
+    RecordTombstone,
+    ReversalType,
+)
+from app.models.audit_log import AuditLog
 from app.models.branch import Branch
 from app.models.business_settings import (
     BusinessGroup,
