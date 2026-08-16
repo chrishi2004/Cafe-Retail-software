@@ -297,6 +297,10 @@ def _cafe_dashboard(db: Session, scope: ScopeContext, filters: P9DashboardFilter
 
 
 def get_cafe_dashboard(db: Session, *, scope: ScopeContext, filters: P9DashboardFilters) -> P9DashboardRead:
+    if scope.company_id is not None:
+        company = db.get(Company, scope.company_id)
+        if company is None or company.business_type != BusinessType.CAFE:
+            raise_forbidden("Cafe reporting is available only for a Cafe venture.")
     return _cafe_dashboard(db, scope, filters)
 
 
