@@ -205,9 +205,11 @@ def _cafe_dashboard(db: Session, scope: ScopeContext, filters: P9DashboardFilter
         Decimal("0.00"),
     )
     cancelled_value = sum(
-        (order.estimated_total or Decimal("0.00") for order in orders)
-        if order.status == CafeOrderStatus.CANCELLED and order.billed_invoice_id is None
-        else Decimal("0.00")
+        (
+            order.estimated_total or Decimal("0.00")
+            if order.status == CafeOrderStatus.CANCELLED and order.billed_invoice_id is None
+            else Decimal("0.00")
+        )
         for order in orders
     )
     eligible_orders = [order for order in orders if order.status not in {CafeOrderStatus.REJECTED, CafeOrderStatus.CANCELLED}]
