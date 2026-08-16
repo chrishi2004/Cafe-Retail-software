@@ -34,6 +34,7 @@ def seed_p9(factory: sessionmaker[Session]) -> dict[str, int]:
         db.flush()
         session = TableSession(
             company_id=2, branch_id=ids["cafe_branch"], table_id=table.id,
+            public_id="p9-session-1",
             session_type=TableSessionType.DINE_IN, status=TableSessionStatus.OPEN,
             opened_at=now,
         )
