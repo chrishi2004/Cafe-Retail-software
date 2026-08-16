@@ -1,0 +1,17 @@
+INFO:     127.0.0.1:53785 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53785 - "POST /api/ai/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53825 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53826 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53825 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53826 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53826 - "OPTIONS /api/ai/sessions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53825 - "OPTIONS /api/ai/sessions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53826 - "GET /api/ai/sessions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53825 - "GET /api/ai/sessions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53827 - "OPTIONS /api/ai/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53827 - "POST /api/ai/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53827 - "GET /api/ai/sessions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54801 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54802 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54802 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54802 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized

@@ -1,0 +1,109 @@
+name: P8 Cafe Billing Verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hybrid_retail_bi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hybrid_retail_bi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+      - name: Apply Local Hub migrations through current head
+        working-directory: backend
+        env:
+          DEPLOYMENT_MODE: local_hub
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          SECRET_KEY: github-actions-p8-only
+        run: alembic -c alembic.ini upgrade head
+      - name: Verify P8 remains in history and migration histories stay separate
+        working-directory: backend
+        run: |
+          alembic -c alembic.ini history | grep -q "20260814_0015"
+          alembic -c alembic_cloud.ini history | grep -q "20260813_cloud_0001"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
+      - name: Run P8 release-blocking tests
+        working-directory: backend
+        run: >-
+          python -m pytest -q --disable-warnings
+          tests/test_cafe_billing.py
+          tests/test_cafe_billing_idempotency.py
+          tests/test_cafe_billing_stock.py
+          tests/test_cafe_payments.py
+          tests/test_cafe_non_gst_bills.py
+      - name: Run shared Retail financial regressions
+        working-directory: backend
+        run: >-
+          python -m pytest -q --disable-warnings
+          tests/test_invoices.py
+          tests/test_pos_checkout.py
+          tests/test_invoice_tax.py
+          tests/test_inventory.py
+          tests/test_sales.py
+          tests/test_dashboard.py
+          tests/test_customer_ledger.py
+      - name: Run complete backend regression
+        working-directory: backend
+        run: python -m pytest -q --disable-warnings
+      - name: Compile backend
+        working-directory: backend
+        run: python -m compileall -q app server.py scripts
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Verify P8 billing boundary
+        run: |
+          grep -q 'CafeBillingPage' frontend/src/portals/CafePortal.tsx
+          grep -q 'quoteCafeTableSession' frontend/src/pages/CafeBillingPage.tsx
+          grep -q 'checkoutKey' frontend/src/pages/CafeBillingPage.tsx
+          grep -q 'Idempotency-Key' frontend/src/api/cafeBilling.ts
+          grep -q 'window.print()' frontend/src/pages/CafeBillingPage.tsx
+          ! grep -R -q 'dangerouslySetInnerHTML' frontend/src/pages/CafeBillingPage.tsx
+      - name: Verify authenticated portal boundaries
+        working-directory: frontend
+        run: node scripts/verify-portals.mjs
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_OPERATIONAL_API_BASE_URL: https://ops-api.example.invalid/api
+        run: npm run build

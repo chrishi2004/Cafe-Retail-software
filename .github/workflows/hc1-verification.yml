@@ -1,0 +1,83 @@
+name: HC1 Verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hybrid_retail_bi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hybrid_retail_bi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+      - name: Apply local Alembic migrations
+        working-directory: backend
+        env:
+          DEPLOYMENT_MODE: local_hub
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          SECRET_KEY: github-actions-hc1-only
+        run: alembic -c alembic.ini upgrade head
+      - name: Verify migration heads remain separated
+        working-directory: backend
+        env:
+          DEPLOYMENT_MODE: local_hub
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+          SECRET_KEY: github-actions-hc1-only
+        run: |
+          alembic -c alembic.ini heads
+          alembic -c alembic_cloud.ini heads
+      - name: Run HC1 targeted tests
+        working-directory: backend
+        run: python -m pytest -q --disable-warnings tests/test_sync_foundation.py tests/test_deployment_modes.py
+      - name: Run complete backend regression
+        working-directory: backend
+        run: python -m pytest -q --disable-warnings
+      - name: Compile backend
+        working-directory: backend
+        run: python -m compileall -q app server.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build

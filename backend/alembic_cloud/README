@@ -1,0 +1,5 @@
+Independent Alembic environment for the Supabase coordination database.
+
+HC0 creates the migration boundary only. Do not add operational Retail, Cafe,
+inventory, invoice, payment, ledger, or audit tables to this migration history.
+

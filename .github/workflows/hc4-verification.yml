@@ -1,0 +1,139 @@
+name: HC4 Automatic Continuity Verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hybrid_retail_bi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hybrid_retail_bi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DEPLOYMENT_MODE: local_hub
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+      LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
+      HC4_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
+      HC3_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
+      HC2_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
+      SECRET_KEY: github-actions-hc4-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+      - name: Create isolated cloud coordination database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_cloud_coordination;"
+      - name: Apply Local Hub migrations through HC4
+        working-directory: backend
+        run: alembic -c alembic.ini upgrade head
+      - name: Apply cloud coordination migrations through HC4
+        working-directory: backend
+        env:
+          CLOUD_RUNTIME_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
+          CLOUD_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
+        run: alembic -c alembic_cloud.ini upgrade head
+      - name: Verify HC4 migration heads remain independent
+        working-directory: backend
+        run: |
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260814_0016"
+          test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260814_cloud_0002"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
+      - name: Run HC4 release-blocking continuity tests
+        working-directory: backend
+        run: >-
+          python -m pytest -q --disable-warnings
+          tests/test_hc4_heartbeat_lease.py
+          tests/test_hc4_recovery.py
+          tests/test_hc4_reconciliation.py
+      - name: Run inherited outage idempotency and financial safety tests
+        working-directory: backend
+        run: >-
+          python -m pytest -q --disable-warnings
+          tests/test_sync_foundation.py
+          tests/test_sync_transaction_boundary.py
+          tests/test_hc3_worker_restart.py
+          tests/test_hc3_cloud_order_convergence.py
+          tests/test_order_idempotency.py
+          tests/test_cafe_billing_idempotency.py
+          tests/test_cafe_billing_stock.py
+      - name: Run complete backend regression
+        working-directory: backend
+        run: python -m pytest -q --disable-warnings
+      - name: Compile backend and scripts
+        working-directory: backend
+        run: python -m compileall -q app server.py scripts
+      - name: Seed HC4 backup proof rows
+        working-directory: backend
+        run: python scripts/verify_hc4_backup_restore.py seed
+      - name: Dump Local Hub with pending continuity state
+        env:
+          PGPASSWORD: postgres
+        run: pg_dump -h localhost -U postgres -d hybrid_retail_bi --format=custom --file=/tmp/hc4-local-hub.dump
+      - name: Restore Local Hub backup into fresh database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi_restore;"
+          pg_restore -h localhost -U postgres -d hybrid_retail_bi_restore --no-owner --no-privileges /tmp/hc4-local-hub.dump
+      - name: Verify queue checkpoint device and reconciliation survived restore
+        working-directory: backend
+        env:
+          HC4_BACKUP_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi_restore
+        run: python scripts/verify_hc4_backup_restore.py verify
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Verify HC4 continuity UI boundary
+        working-directory: frontend
+        run: node scripts/verify-hc4-continuity.mjs
+      - name: Verify authenticated portal boundaries
+        working-directory: frontend
+        run: node scripts/verify-portals.mjs
+      - name: Verify browser contains no server-only cloud credentials
+        run: >-
+          ! grep -R -E
+          'SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|CLOUD_RUNTIME_DATABASE_URL|CLOUD_MIGRATION_DATABASE_URL|SYNC_DEVICE_SECRET|X-Device-Proof'
+          frontend/src frontend/.env.example
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_CLOUD_API_BASE_URL: https://cloud-api.example.invalid/api
+          VITE_OPERATIONAL_API_BASE_URL: https://ops-api.example.invalid/api
+        run: npm run build
