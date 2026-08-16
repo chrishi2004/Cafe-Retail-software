@@ -394,7 +394,7 @@ def cafe_ai_tool(db: Session, *, scope: ScopeContext, question: str) -> tuple[st
         return "get_cafe_payment_reconciliation", "Recorded Cafe invoice payments for the current scope.", {"scope": dashboard.scope, "collections": dashboard.kpis.collections, "payment_mode_mix": dashboard.payment_mode_mix}
     if "compare" in lowered or "retail" in lowered:
         if scope.role.value != "super_admin":
-            return "cafe_scope_denied", "Cafe AI cannot compare or disclose Retail data.", {"scope": dashboard.scope, "allowed": False}
+            return "cafe_scope_denied", "Cafe AI cannot compare or disclose data outside the current Cafe scope.", {"scope": dashboard.scope, "allowed": False}
         consolidated = get_consolidated_dashboard(db, scope=scope, filters=P9DashboardFilters())
         return "get_venture_comparison", "Super Admin-only venture comparison.", {"scope": consolidated.scope, "ventures": [row.model_dump() for row in consolidated.venture_summaries]}
     return "get_cafe_sales_summary", "Cafe billed, collected, outstanding, and ordered metrics.", {"scope": dashboard.scope, "kpis": dashboard.kpis.model_dump()}
