@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import BranchScope
 from app.api.errors import raise_forbidden, raise_not_found
 from app.core.config import settings
+from app.core.scope import ScopeContext
 from app.models import (
     AIChatMessage,
     AIChatSession,
@@ -39,6 +40,7 @@ from app.services.dashboard import (
 from app.services.forecasting import run_forecast
 from app.services.purchase_orders import PurchaseOrderFilters, query_purchase_orders
 from app.services.reorder import ReorderFilters, query_reorder_recommendations
+from app.services.p9_reporting import cafe_ai_tool
 
 OPEN_ORDER_STATUSES = [
     PurchaseOrderStatus.DRAFT,
@@ -762,12 +764,51 @@ def format_with_openai(*, user_message: str, deterministic_answer: str, tool_res
         return None
 
 
+def is_p9_cafe_question(message: str) -> bool:
+    lowered = message.lower()
+    return any(
+        term in lowered
+        for term in ("cafe", "table", "menu item", "open session", "billed sales", "cafe payment")
+    )
+
+
+def p9_cafe_result(db: Session, *, message: str, scope: ScopeContext) -> IntentResult:
+    name, description, data = cafe_ai_tool(db, scope=scope, question=message)
+    tool = AIToolResult(name=name, description=description, data=safe_data(data))
+    if name == "cafe_scope_denied":
+        response = "Cafe AI cannot disclose or compare Retail data outside the Cafe scope."
+    elif name == "get_open_table_sessions":
+        response = f"Open Cafe table sessions in the active scope: {data.get('open_unbilled_sessions', 0)}."
+    elif name == "get_cafe_top_items":
+        response = f"Cafe top items for the active scope: {len(data.get('items', []))} item rows."
+    elif name == "get_cafe_cancelled_items":
+        response = f"Cancelled, unbilled Cafe order value in the active scope: {money(data.get('cancelled_value'))}."
+    elif name == "get_cafe_payment_reconciliation":
+        response = f"Cafe collections in the active scope: {money(data.get('collections'))}."
+    elif name == "get_venture_comparison":
+        response = "Super Admin venture comparison is based on the scoped database-backed summaries."
+    else:
+        kpis = data.get("kpis", {})
+        response = (
+            f"Cafe billed revenue is {money(kpis.get('billed_revenue'))}; "
+            f"collections are {money(kpis.get('collections'))}; "
+            f"outstanding is {money(kpis.get('outstanding'))}."
+        )
+    return IntentResult(
+        intent=name,
+        response=response,
+        tool_results=[tool],
+        requires_confirmation=False,
+    )
+
+
 def run_ai_chat(
     db: Session,
     *,
     payload: AIChatRequest,
     user: User,
     branch_scope: BranchScope,
+    scope: ScopeContext | None = None,
 ) -> AIChatResponse:
     session = get_or_create_session(db, payload=payload, user=user)
     user_message = AIChatMessage(
@@ -779,7 +820,11 @@ def run_ai_chat(
     db.add(user_message)
     db.flush()
 
-    result = deterministic_result(db, message=payload.message, branch_scope=branch_scope)
+    result = (
+        p9_cafe_result(db, message=payload.message, scope=scope)
+        if scope is not None and is_p9_cafe_question(payload.message)
+        else deterministic_result(db, message=payload.message, branch_scope=branch_scope)
+    )
     provider_response = format_with_openai(
         user_message=payload.message,
         deterministic_answer=result.response,
