@@ -388,3 +388,9 @@ Built a cost-optimized full-stack retail management system with local PostgreSQL
 ## Current MVP Status
 
 The MVP is implemented across backend, frontend, database migrations, seed data, dashboards, forecasting, AI, Power BI exports, remote access docs, backup docs, and QA hardening. Remaining optional enhancements include frontend end-to-end tests, a polished Power BI `.pbix` file with screenshots, a production reverse proxy configuration, and advanced forecasting models.
+
+## P11 Security and Release Gate
+
+The application adds uniform security headers, production checks for explicit CORS and API-doc protection, and application-level throttling for login and step-up requests. Public Cafe QR/order/bill endpoints retain their database-backed rate limits and idempotency keys.
+
+Before any public admin exposure, complete the release evidence in [docs/MULTI_VENTURE_FINAL_VERIFICATION.md](docs/MULTI_VENTURE_FINAL_VERIFICATION.md) and [docs/PHASE_P11_REPORT.md](docs/PHASE_P11_REPORT.md). MFA/TOTP, PostgreSQL migration evidence, browser E2E, and backup/restore remain explicit release gates.

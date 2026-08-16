@@ -3,6 +3,8 @@ from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.core.security_hardening import SecurityHardeningMiddleware, validate_production_security_settings
+
 from app.api.routes.health import router as health_router
 from app.core.config import DeploymentMode, Settings, settings
 from app.db.scoping import ScopeViolationError
@@ -90,7 +92,13 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         redoc_url="/redoc" if docs_enabled else None,
         openapi_url="/openapi.json" if docs_enabled else None,
     )
+    validate_production_security_settings(resolved_settings)
     app.state.settings = resolved_settings
+
+    app.add_middleware(
+        SecurityHardeningMiddleware,
+        settings=resolved_settings,
+    )
 
     app.add_middleware(
         CORSMiddleware,

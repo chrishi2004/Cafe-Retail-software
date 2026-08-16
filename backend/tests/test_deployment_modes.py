@@ -112,7 +112,7 @@ def test_cloud_migration_url_is_explicit_and_separate() -> None:
 
 
 def test_production_disables_api_docs_by_default() -> None:
-    app = create_app(build_settings(environment="production", api_docs_enabled=None))
+    app = create_app(build_settings(environment="production", api_docs_enabled=None, secret_key="test-production-secret"))
     paths = route_paths(app)
 
     assert "/docs" not in paths

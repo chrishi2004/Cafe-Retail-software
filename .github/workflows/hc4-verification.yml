@@ -59,7 +59,7 @@ jobs:
       - name: Verify HC4 migration heads remain independent
         working-directory: backend
         run: |
-          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260814_0016"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260817_0018"
           test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260814_cloud_0002"
           test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
       - name: Run HC4 release-blocking continuity tests
