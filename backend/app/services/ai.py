@@ -776,7 +776,7 @@ def p9_cafe_result(db: Session, *, message: str, scope: ScopeContext) -> IntentR
     name, description, data = cafe_ai_tool(db, scope=scope, question=message)
     tool = AIToolResult(name=name, description=description, data=safe_data(data))
     if name == "cafe_scope_denied":
-        response = "Cafe AI cannot disclose or compare Retail data outside the Cafe scope."
+        response = "Cafe AI cannot disclose or compare data outside the active Cafe scope."
     elif name == "get_open_table_sessions":
         response = f"Open Cafe table sessions in the active scope: {data.get('open_unbilled_sessions', 0)}."
     elif name == "get_cafe_top_items":
