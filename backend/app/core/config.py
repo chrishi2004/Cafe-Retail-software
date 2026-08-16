@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="change-me-in-development")
     access_token_expire_minutes: int = 60
     openai_api_key: str | None = None
+    security_headers_enabled: bool = True
     openai_model: str = "gpt-4.1-mini"
 
     # Durable Local Hub synchronization and HC2-HC4 cloud coordination.
