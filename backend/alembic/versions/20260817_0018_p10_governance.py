@@ -14,6 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.add_column("audit_logs", sa.Column("branch_id", sa.Integer(), sa.ForeignKey("branches.id"), nullable=True))
+    op.create_index("ix_audit_logs_branch_id", "audit_logs", ["branch_id"])
     op.create_table(
         "business_day_closures",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -100,6 +102,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_audit_logs_branch_id", table_name="audit_logs")
+    op.drop_column("audit_logs", "branch_id")
     op.drop_table("record_tombstones")
     op.drop_table("record_purge_requests")
     op.drop_table("financial_reversals")
