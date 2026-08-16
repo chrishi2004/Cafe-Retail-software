@@ -35,8 +35,8 @@ export function allowedCafeSections(role: ServerUserRole): string[] {
   if (role === "order_taker") return ["orders", "pos", "billing"];
   if (role === "analyst") return ["dashboard", "reports"];
   if (role === "staff") return ["orders", "pos", "tables"];
-  if (role === "store_manager") return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports"];
-  return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "staff", "settings"];
+  if (role === "store_manager") return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "closing"];
+  return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "staff", "settings", "closing"];
 }
 
 export function safePathForUser(user: AuthUser, pathname: string): string {

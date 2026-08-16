@@ -23,6 +23,7 @@ def include_local_hub_routes(app: FastAPI, app_settings: Settings) -> None:
     from app.api.routes.dashboard import router as dashboard_router
     from app.api.routes.exports import router as exports_router
     from app.api.routes.forecasts import router as forecasts_router
+    from app.api.routes.governance import router as governance_router
     from app.api.routes.inventory import router as inventory_router
     from app.api.routes.invoices import router as invoices_router
     from app.api.routes.products import router as products_router
@@ -57,6 +58,7 @@ def include_local_hub_routes(app: FastAPI, app_settings: Settings) -> None:
         dashboard_router,
         purchase_orders_router,
         forecasts_router,
+        governance_router,
         exports_router,
         ai_router,
     ):
