@@ -3,9 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, require_reporting_access
+from app.api.deps import BranchScope, get_branch_scope, get_scope_context, require_reporting_access
 from app.db.session import get_db
 from app.models import User
+from app.core.scope import ScopeContext
 from app.schemas.ai import AIChatRequest, AIChatResponse, AIChatSessionDetailRead, AIChatSessionRead
 from app.services.ai import get_chat_session_detail, query_chat_sessions, run_ai_chat
 
@@ -17,9 +18,10 @@ def chat(
     payload: AIChatRequest,
     current_user: Annotated[User, Depends(require_reporting_access)],
     branch_scope: Annotated[BranchScope, Depends(get_branch_scope)],
+    scope: Annotated[ScopeContext, Depends(get_scope_context)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AIChatResponse:
-    return run_ai_chat(db, payload=payload, user=current_user, branch_scope=branch_scope)
+    return run_ai_chat(db, payload=payload, user=current_user, branch_scope=branch_scope, scope=scope)
 
 
 @router.get("/sessions", response_model=list[AIChatSessionRead])

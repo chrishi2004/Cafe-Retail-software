@@ -2,6 +2,7 @@ import type { AuthUser } from "../auth/types";
 import { TaxOperationPanel } from "../components/TaxOperationPanel";
 import { CafeBillingPage } from "../pages/CafeBillingPage";
 import { CafeContinuityPage } from "../pages/CafeContinuityPage";
+import { CafeDashboardPage } from "../pages/CafeDashboardPage";
 import { CafeKitchenPage } from "../pages/CafeKitchenPage";
 import { CafeLiveOrdersPage } from "../pages/CafeLiveOrdersPage";
 import { CafeMenuPage } from "../pages/CafeMenuPage";
@@ -56,7 +57,7 @@ export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalP
   const active = sections.includes(requested) ? requested : sections[0] ?? "dashboard";
 
   let content;
-  if (active === "dashboard") content = <CafeContinuityPage />;
+  if (active === "dashboard") content = <CafeDashboardPage />;
   else if (active === "orders") content = <CafeLiveOrdersPage />;
   else if (active === "pos") content = <CafeNewOrderPage />;
   else if (active === "billing") content = <CafeBillingPage />;
