@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { activeVentureStorage, apiRequest } from "../api/client";
 import { getCombinedTurnover, type CombinedTurnover } from "../api/taxOperation";
+import { ConsolidatedDashboardPage } from "../pages/ConsolidatedDashboardPage";
 import type { AuthUser, BusinessType } from "../auth/types";
 import { PortalFrame } from "./PortalFrame";
 
@@ -40,7 +41,7 @@ function money(value: string): string {
 }
 
 export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }: SuperAdminPortalProps) {
-  const active = pathname.includes("/users") ? "users" : "ventures";
+  const active = pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : "ventures";
   const [ventures, setVentures] = useState<Venture[]>([]);
   const [users, setUsers] = useState<VentureUser[]>([]);
   const [turnover, setTurnover] = useState<CombinedTurnover | null>(null);
@@ -77,7 +78,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
       title="Super Admin"
       subtitle="Business group control plane"
       user={user}
-      items={[{ key: "ventures", label: "Ventures" }, { key: "users", label: "Users" }]}
+      items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "users", label: "Users" }]}
       activeKey={active}
       onNavigate={(key) => onNavigate(`/super-admin/${key}`)}
       onLogout={onLogout}
@@ -91,7 +92,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
           </div>
         </div>
         {error ? <article className="panel"><p>{error}</p></article> : null}
-        {active === "ventures" ? (
+        {active === "dashboard" ? <ConsolidatedDashboardPage /> : active === "ventures" ? (
           <>
             {turnover ? (
               <>
