@@ -259,7 +259,7 @@ def test_publication_replay_is_idempotent_and_safe(cloud_client, cloud_factory) 
 
     qr = cloud_client.post("/api/cloud/public/cafe/qr/resolve", json={"opaque_token": opaque_qr})
     assert qr.status_code == 200
-    assert qr.json()["ordering_enabled"] is False
+    assert qr.json()["ordering_enabled"] is True
     assert "company_id" not in qr.json()
 
 

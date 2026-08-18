@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { PublicCafeApiError, type PublicMenu, type PublicOrder } from "../api/publicCafeClient";
-import { openPublicCafeSession, type PublicCafeSession } from "../api/publicCafeSession";
+import { openCloudCafeSession, openPublicCafeSession, type PublicCafeSession } from "../api/publicCafeSession";
 
-export type CafeSessionState = "loading" | "ready" | "invalid" | "offline";
+export type CafeSessionState = "loading" | "ready" | "cloud_continuity" | "invalid" | "offline";
 
 export function useCafeSession(qrToken: string) {
   const [state, setState] = useState<CafeSessionState>("loading");
@@ -29,15 +29,25 @@ export function useCafeSession(qrToken: string) {
         await refresh(active);
         if (!cancelled) setState("ready");
       })
-      .catch((error: unknown) => {
+      .catch(async (operationalError: unknown) => {
         if (cancelled) return;
-        setState(error instanceof PublicCafeApiError && [400, 401, 404, 422].includes(error.status) ? "invalid" : "offline");
+        try {
+          const cloudSession = await openCloudCafeSession(qrToken);
+          if (cancelled) return;
+          setSession(cloudSession);
+          await refresh(cloudSession);
+          if (!cancelled) setState("cloud_continuity");
+        } catch (cloudError: unknown) {
+          if (cancelled) return;
+          const error = cloudError instanceof PublicCafeApiError ? cloudError : operationalError;
+          setState(error instanceof PublicCafeApiError && [400, 401, 404, 422].includes(error.status) ? "invalid" : "offline");
+        }
       });
     return () => { cancelled = true; };
   }, [qrToken]);
 
   useEffect(() => {
-    if (!session || state !== "ready") return;
+    if (!session || !["ready", "cloud_continuity"].includes(state)) return;
     let timer: number | undefined;
     const poll = async () => {
       if (document.visibilityState !== "visible") return;

@@ -37,7 +37,8 @@ export function CustomerMenu({ qrToken }: { qrToken: string }) {
     return <main className="login-shell"><section className="login-card"><h1>Menu temporarily unavailable</h1><p className="page-description">The Cafe service could not be reached. Reopen the QR when the connection is available.</p></section></main>;
   }
 
-  const acceptingItems = cafe.sessionStatus === "open";
+  const inCloudContinuity = cafe.state === "cloud_continuity" || cafe.session?.continuityMode === "cloud";
+  const acceptingItems = inCloudContinuity || cafe.sessionStatus === "open";
   return (
     <main style={{ minHeight: "100vh", padding: 16, background: "#f4f6f8" }}>
       <div className="page-stack" style={{ maxWidth: 760, margin: "0 auto" }}>
@@ -45,12 +46,13 @@ export function CustomerMenu({ qrToken }: { qrToken: string }) {
           <div><p className="eyebrow">{cafe.menu.cafe_name}</p><h1>{cafe.menu.table_display_name}</h1><p className="page-description">Table {cafe.menu.table_code} · {cafe.sessionStatus.replace(/_/g, " ")}</p></div>
           <span className={`status-badge ${acceptingItems ? "ok" : "warning"}`}>{acceptingItems ? "Ordering open" : "Ordering paused"}</span>
         </header>
+        {inCloudContinuity ? <div className="state-panel" role="status"><strong>Cloud continuity mode</strong><p>The Local Hub is temporarily unreachable. Your order will be queued safely for Cafe reconciliation; billing and stock remain local-authoritative.</p></div> : null}
         {cart.message ? <div className="success-banner" role="status">{cart.message}</div> : null}
         {cart.error ? <div className="state-panel" role="alert"><p>{cart.error}</p></div> : null}
         {!acceptingItems ? <div className="state-panel"><p>New items are disabled for this session. Existing order status is still available.</p></div> : null}
         <CafeMenuList menu={cafe.menu} acceptingItems={acceptingItems} quantity={cart.quantity} changeQuantity={cart.changeQuantity} />
         <CafeCartPanel lines={cart.lines} total={cart.total} customerNotes={cart.customerNotes} pendingRetry={Boolean(cart.pendingKey)} busy={cart.busy} acceptingItems={acceptingItems} changeLineNote={cart.changeLineNote} changeCustomerNotes={cart.changeCustomerNotes} submit={cart.submit} />
-        <CafeOrderStatus orders={cafe.orders} sessionStatus={cafe.sessionStatus} busy={cart.busy} requestBill={requestBill} />
+        <CafeOrderStatus orders={cafe.orders} sessionStatus={cafe.sessionStatus} busy={cart.busy} requestBill={requestBill} continuityMode={inCloudContinuity ? "cloud" : "local"} />
       </div>
     </main>
   );

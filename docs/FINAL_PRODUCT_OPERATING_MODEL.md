@@ -15,7 +15,7 @@ codebase.
 | Owner control centre | `/super-admin/*` | Business owner | Required | Operational Local Hub |
 | Retail workspace | `/retail/*` | Retail admin, manager, staff, analyst | Required | Operational Local Hub |
 | Cafe workspace | `/cafe/*` | Cafe admin, manager, order taker, kitchen, analyst | Required | Operational Local Hub |
-| Customer table menu | `/order/:qr-token` | Cafe customer | QR-scoped guest access | Operational API when online; cloud continuity when enabled |
+| Customer table menu | `/order/:qr-token` | Cafe customer | QR-scoped guest access | Operational API first; automatic cloud continuity fallback |
 
 The customer menu never renders staff navigation, owner dashboards, user
 management, inventory, invoices, or administrative settings. Internal users
@@ -43,7 +43,7 @@ a second unrestricted operational backend.
 | --- | --- | --- | --- |
 | Local Hub and internet online | Full operation | Full operation through secure tunnel | Full operation |
 | Internet unavailable, Local Hub online | Full local operation | Unavailable until connectivity returns | Local-network ordering only |
-| Local Hub unavailable, cloud continuity healthy | Unavailable | Sanitized cloud status only | Cloud intake/continuity according to the active HC policy |
+| Local Hub unavailable, cloud continuity healthy | Unavailable | Sanitized cloud status only | Cloud menu and order intake; billing waits for Local Hub reconciliation |
 | Both Local Hub and cloud unavailable | Offline procedures | Unavailable | Clear temporary-unavailable message |
 
 Cloud events are reconciled into the Local Hub when it returns. Idempotency,
@@ -71,6 +71,7 @@ a real browser:
 2. Retail manager bills a sale and sees stock and reporting update inside the assigned branch.
 3. Cafe order taker opens a table order, kitchen progresses it, and billing closes it.
 4. Customer scans a QR code, sees only the menu, places an idempotent order, follows status, and requests the bill.
+   If the Local Hub is unavailable, the same QR page visibly enters cloud continuity; it never performs cloud billing or stock writes.
 5. Analyst can read dashboards and export reports but cannot perform operational writes.
 6. Local Hub interruption and recovery reconcile cloud events without duplicate financial or stock effects.
 7. Backup and restore, MFA, security headers, rate limits, and private-database checks pass.
