@@ -43,7 +43,7 @@ export function PublicCloudQrStatus({ token }: { token: string }) {
         {resolution.table_display_name} · {resolution.table_code}
       </p>
       <p className="page-description">
-        Cloud snapshot: {freshnessLabel(resolution.stale_age_seconds)}. Customer ordering remains disabled until the P6 gate.
+        Cloud snapshot: {freshnessLabel(resolution.stale_age_seconds)}. Customer ordering is available in continuity mode when the Local Hub cannot be reached.
       </p>
     </div>
   );

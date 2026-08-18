@@ -13,11 +13,13 @@ export function CafeOrderStatus({
   sessionStatus,
   busy,
   requestBill,
+  continuityMode = "local",
 }: {
   orders: PublicOrder[];
   sessionStatus: string;
   busy: boolean;
   requestBill: () => Promise<void>;
+  continuityMode?: "local" | "cloud";
 }) {
   return (
     <section className="panel page-stack" aria-label="Order status">
@@ -31,7 +33,8 @@ export function CafeOrderStatus({
           </div>
         </article>
       ))}
-      {orders.length > 0 && !["closed", "cancelled"].includes(sessionStatus) ? <button type="button" className="action-button secondary" disabled={busy || sessionStatus === "bill_requested"} onClick={() => void requestBill()}>{sessionStatus === "bill_requested" ? "Bill requested" : busy ? "Requesting…" : "Request bill"}</button> : null}
+      {continuityMode === "cloud" ? <p className="page-description" style={{ fontSize: ".8rem" }}>Cloud continuity accepts the order while the Local Hub is unavailable. Cafe staff will reconcile it before billing.</p> : null}
+      {continuityMode === "local" && orders.length > 0 && !["closed", "cancelled"].includes(sessionStatus) ? <button type="button" className="action-button secondary" disabled={busy || sessionStatus === "bill_requested"} onClick={() => void requestBill()}>{sessionStatus === "bill_requested" ? "Bill requested" : busy ? "Requesting…" : "Request bill"}</button> : null}
       <p className="page-description" style={{ fontSize: ".8rem" }}>Payment is completed with Cafe staff. This page cannot mark payment complete or close the table.</p>
     </section>
   );

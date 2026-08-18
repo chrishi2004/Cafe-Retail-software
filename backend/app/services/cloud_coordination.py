@@ -312,5 +312,5 @@ def resolve_published_table(db: Session, opaque_value: str) -> dict[str, object]
         "table_display_name": row["table_display_name"],
         "snapshot_at": snapshot_at,
         "stale_age_seconds": max(0, int((datetime.now(UTC) - snapshot_at).total_seconds())),
-        "ordering_enabled": False,
+        "ordering_enabled": True,
     }
