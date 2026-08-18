@@ -28,6 +28,25 @@ http://localhost:8000/api/health
 
 The response includes `deployment_mode=local_hub`.
 
+## Operational hosted deployment
+
+`server.py` is reserved for the restricted Vercel cloud gateway and must remain
+configured with `DEPLOYMENT_MODE=cloud_gateway`. It does not expose login or
+the full operational API by design.
+
+For a full hosted dashboard/API deployment, use `operational_server:app` (or
+`app.main:app`) on a host that supports a persistent FastAPI service:
+
+```powershell
+uvicorn operational_server:app --host 0.0.0.0 --port $env:PORT
+```
+
+Configure that service with `DEPLOYMENT_MODE=local_hub`, a private operational
+PostgreSQL URL, a production `SECRET_KEY`, and the deployed frontend origin.
+Point the frontend's `VITE_API_BASE_URL` at this operational service. Keep the
+Vercel cloud gateway separately configured with `DEPLOYMENT_MODE=cloud_gateway`
+for HC2-HC4 coordination routes.
+
 ## Migration Boundaries
 
 Existing Local Hub migrations:

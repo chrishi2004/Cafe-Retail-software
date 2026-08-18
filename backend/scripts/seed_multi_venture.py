@@ -221,24 +221,25 @@ def create_branches(db: Session, retail: Company, cafe: Company) -> tuple[list[B
 def create_retail_business_settings(db: Session, company: Company, branches: list[Branch]) -> None:
     primary_branch = next(branch for branch in branches if branch.name == "Central Market")
     primary_gst = legacy.BRANCH_GST_DETAILS[primary_branch.name]
-    db.add(
-        BusinessProfile(
-            company_id=company.id,
-            legal_name=company.legal_name,
-            trade_name=company.trade_name,
-            pan=company.pan,
-            email="admin@hybridretail.test",
-            phone="080-4000-2026",
-            address=primary_branch.address,
-            city=primary_branch.city,
-            state=primary_gst["state"],
-            state_code=primary_gst["state_code"],
-            pincode=primary_gst["pincode"],
-            default_tax_mode=TaxMode.GST,
-            default_currency="INR",
-            terms_and_conditions="Demo Retail settings. Phase 4 introduces guarded Non-GST defaults.",
+    if db.scalar(select(BusinessProfile).where(BusinessProfile.company_id == company.id)) is None:
+        db.add(
+            BusinessProfile(
+                company_id=company.id,
+                legal_name=company.legal_name,
+                trade_name=company.trade_name,
+                pan=company.pan,
+                email="admin@hybridretail.test",
+                phone="080-4000-2026",
+                address=primary_branch.address,
+                city=primary_branch.city,
+                state=primary_gst["state"],
+                state_code=primary_gst["state_code"],
+                pincode=primary_gst["pincode"],
+                default_tax_mode=TaxMode.GST,
+                default_currency="INR",
+                terms_and_conditions="Demo Retail settings. Phase 4 introduces guarded Non-GST defaults.",
+            )
         )
-    )
 
     for branch in branches:
         gst_details = legacy.BRANCH_GST_DETAILS[branch.name]
