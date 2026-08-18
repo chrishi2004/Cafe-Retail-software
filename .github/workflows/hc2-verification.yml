@@ -104,7 +104,7 @@ jobs:
         run: |
           grep -q "VITE_CLOUD_API_BASE_URL" frontend/src/api/cloudClient.ts
           grep -q "stale_age_seconds" frontend/src/components/PublicCloudQrStatus.tsx
-          grep -q "ordering remains disabled until the P6 gate" frontend/src/components/PublicCloudQrStatus.tsx
+          grep -q "Customer ordering is available in continuity mode" frontend/src/components/PublicCloudQrStatus.tsx
       - name: Verify portal boundaries
         working-directory: frontend
         run: node scripts/verify-portals.mjs

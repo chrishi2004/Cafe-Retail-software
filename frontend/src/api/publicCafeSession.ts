@@ -44,7 +44,7 @@ function cloudOrderStorageKey(qrValue: string): string {
 
 function readCloudOrderIds(qrValue: string): string[] {
   try {
-    const value = JSON.parse(window.localStorage.getItem(cloudOrderStorageKey(qrValue)) ?? "[]");
+    const value = JSON.parse(window.sessionStorage.getItem(cloudOrderStorageKey(qrValue)) ?? "[]");
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(-20) : [];
   } catch {
     return [];
@@ -54,7 +54,7 @@ function readCloudOrderIds(qrValue: string): string[] {
 function rememberCloudOrder(qrValue: string, publicId: string): void {
   const next = [...readCloudOrderIds(qrValue).filter((item) => item !== publicId), publicId].slice(-20);
   try {
-    window.localStorage.setItem(cloudOrderStorageKey(qrValue), JSON.stringify(next));
+    window.sessionStorage.setItem(cloudOrderStorageKey(qrValue), JSON.stringify(next));
   } catch {
     // Order status remains available for the current page even if storage is blocked.
   }
