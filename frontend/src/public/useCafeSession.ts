@@ -31,7 +31,7 @@ export function useCafeSession(qrToken: string) {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setState(error instanceof PublicCafeApiError && [401, 404].includes(error.status) ? "invalid" : "offline");
+        setState(error instanceof PublicCafeApiError && [400, 401, 404, 422].includes(error.status) ? "invalid" : "offline");
       });
     return () => { cancelled = true; };
   }, [qrToken]);

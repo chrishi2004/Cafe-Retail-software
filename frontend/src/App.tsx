@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "./auth/AuthContext";
+import { activeVentureStorage } from "./api/client";
 import { AppLayout } from "./components/AppLayout";
 import { ErrorState, LoadingState } from "./components/ui";
 import { canAccessRoute, getDefaultRoute } from "./navigation";
@@ -84,11 +85,22 @@ function App() {
     }
   }, [logout]);
 
+  const handleSwitchVenture = useCallback(() => {
+    activeVentureStorage.clear();
+    window.location.assign("/super-admin/ventures");
+  }, []);
+
   if (status === "checking") return <LoadingState label="Checking session" />;
   if (status === "unauthenticated" || !user) return <LoginPage />;
 
   return (
-    <AppLayout activeRoute={availableRoute} onLogout={handleLogout} onNavigate={navigate} user={user}>
+    <AppLayout
+      activeRoute={availableRoute}
+      onLogout={handleLogout}
+      onNavigate={navigate}
+      onSwitchVenture={user.server_role === "super_admin" ? handleSwitchVenture : undefined}
+      user={user}
+    >
       {logoutError ? <ErrorState message={logoutError} title="Logout failed" /> : null}
       {isMasterDataRoute(availableRoute) ? (
         <MasterDataPage routeKey={availableRoute} />

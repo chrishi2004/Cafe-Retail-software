@@ -32,19 +32,19 @@ export function LoginPage() {
     <main className="login-page">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand">
-          <div className="brand-mark">HR</div>
+          <div className="brand-mark">KV</div>
           <div>
-            <p className="brand-name">Hybrid Retail BI</p>
-            <p className="brand-subtitle">Local-first retail operations</p>
+            <p className="brand-name">Kalpvrik Business Suite</p>
+            <p className="brand-subtitle">Retail and Cafe operations</p>
           </div>
         </div>
 
         <div className="login-copy">
-          <p className="eyebrow">Authenticated dashboard</p>
-          <h1 id="login-title">Sign in to the operations console</h1>
+          <p className="eyebrow">Secure team access</p>
+          <h1 id="login-title">Sign in to your workspace</h1>
           <p>
-            Access is routed through the backend API so branch scope and role permissions stay
-            enforced server-side.
+            Owners choose a business after login. Retail and Cafe team members open directly in
+            the workspace allowed for their role and branch.
           </p>
         </div>
 

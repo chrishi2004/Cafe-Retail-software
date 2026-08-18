@@ -10,13 +10,19 @@ RetailDemo@123
 
 ## Users
 
-| Role | Email | Branch Scope |
-|---|---|---|
-| Admin | admin@hybridretail.test | All branches |
-| Store Manager | manager.central@hybridretail.test | Central Market |
-| Staff | staff.north@hybridretail.test | Northside Express |
-| Staff | staff.lakeside@hybridretail.test | Lakeside Daily |
-| Analyst | analyst@hybridretail.test | Read-only reporting |
+| Workspace | Role | Email | Branch Scope |
+|---|---|---|---|
+| Owner | Business Owner | owner@hybridretail.test | All businesses |
+| Retail | Admin | admin@hybridretail.test | All Retail branches |
+| Retail | Store Manager | manager.central@hybridretail.test | Central Market |
+| Retail | Staff | staff.north@hybridretail.test | Northside Express |
+| Retail | Staff | staff.lakeside@hybridretail.test | Lakeside Daily |
+| Retail | Analyst | analyst@hybridretail.test | Read-only reporting |
+| Cafe | Admin | cafe.admin@example.com | All Cafe branches |
+| Cafe | Store Manager | cafe.manager@example.com | Kalpvrik Cafe Bengaluru |
+| Cafe | Order Taker | cafe.orders@example.com | Kalpvrik Cafe Bengaluru |
+| Cafe | Kitchen | cafe.kitchen@example.com | Kalpvrik Cafe Bengaluru |
+| Cafe | Analyst | cafe.analyst@example.com | Read-only Cafe reporting |
 
 Change or remove these credentials before using the app outside a local demo environment.
 

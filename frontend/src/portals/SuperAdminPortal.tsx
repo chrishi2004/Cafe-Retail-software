@@ -4,7 +4,7 @@ import { activeVentureStorage, apiRequest } from "../api/client";
 import { getCombinedTurnover, type CombinedTurnover } from "../api/taxOperation";
 import { ConsolidatedDashboardPage } from "../pages/ConsolidatedDashboardPage";
 import { PurgeReviewPage } from "../pages/PurgeReviewPage";
-import type { AuthUser, BusinessType } from "../auth/types";
+import { SERVER_ROLE_LABELS, type AuthUser, type BusinessType, type ServerUserRole } from "../auth/types";
 import { PortalFrame } from "./PortalFrame";
 
 type Venture = {
@@ -40,6 +40,13 @@ type SuperAdminPortalProps = {
 function money(value: string): string {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value) || 0);
 }
+
+const PAGE_TITLES = {
+  ventures: "Choose a business workspace",
+  dashboard: "Consolidated business dashboard",
+  purge: "Protected data removal review",
+  users: "Team access and roles",
+} as const;
 
 export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }: SuperAdminPortalProps) {
   const active = pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : pathname.includes("/purge") ? "purge" : "ventures";
@@ -77,7 +84,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
   return (
     <PortalFrame
       title="Super Admin"
-      subtitle="Business group control plane"
+      subtitle="Owner control centre"
       user={user}
       items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "purge", label: "Purge Review" }, { key: "users", label: "Users" }]}
       activeKey={active}
@@ -87,9 +94,12 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
       <section className="page-stack">
         <div className="page-header">
           <div>
-            <p className="eyebrow">All Ventures</p>
-            <h2>{active === "users" ? "Venture Users" : "Venture Selector"}</h2>
-            <p className="page-description">Only Super Admin receives this global business-group view.</p>
+            <p className="eyebrow">Owner workspace · All businesses</p>
+            <h2>{PAGE_TITLES[active]}</h2>
+            <p className="page-description">
+              Start here to open Retail or Cafe operations. Team members skip this screen and
+              enter only the workspace allowed by their assigned role and branch.
+            </p>
           </div>
         </div>
         {error ? <article className="panel"><p>{error}</p></article> : null}
@@ -120,11 +130,15 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
             <section className="content-grid">
               {ventures.map((venture) => (
                 <article className="panel" key={venture.id}>
-                  <p className="eyebrow">{venture.business_type}</p>
+                  <p className="eyebrow">{venture.business_type === "cafe" ? "Cafe business" : "Retail business"}</p>
                   <h3>{venture.name}</h3>
-                  <p className="page-description">{venture.legal_name}</p>
-                  <button className="logout-button" type="button" onClick={() => enterVenture(venture)}>
-                    Open {venture.business_type === "cafe" ? "Cafe" : "Retail"} portal
+                  <p className="page-description">
+                    {venture.business_type === "cafe"
+                      ? "Manage tables, QR ordering, live orders, kitchen, billing, closing and Cafe reports."
+                      : "Manage POS billing, products, customers, stock, purchases, forecasting and Retail reports."}
+                  </p>
+                  <button className="action-button primary" type="button" onClick={() => enterVenture(venture)}>
+                    Open {venture.business_type === "cafe" ? "Cafe" : "Retail"} workspace
                   </button>
                 </article>
               ))}
@@ -132,14 +146,18 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
           </>
         ) : (
           <article className="panel wide">
-            <div className="panel-header"><h3>Business group users</h3></div>
+            <div className="panel-header"><div><h3>Business group users</h3><p className="page-description">Each team member receives a separate login and opens directly in the assigned workspace.</p></div></div>
             <div className="data-table-shell">
               <table>
                 <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Status</th></tr></thead>
                 <tbody>
                   {users.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.name}</td><td>{item.email}</td><td>{item.role}</td><td>{item.company_id ?? "All"}</td><td>{item.is_active ? "Active" : "Inactive"}</td>
+                      <td>{item.name}</td>
+                      <td>{item.email}</td>
+                      <td>{SERVER_ROLE_LABELS[item.role as ServerUserRole] ?? item.role}</td>
+                      <td>{ventures.find((venture) => venture.id === item.company_id)?.name ?? "All businesses"}</td>
+                      <td>{item.is_active ? "Active" : "Inactive"}</td>
                     </tr>
                   ))}
                 </tbody>

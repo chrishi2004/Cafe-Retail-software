@@ -18,7 +18,7 @@ from app.api.errors import raise_unauthorized
 from app.core.scope import BRANCH_REQUIRED_ROLES, ScopeContext, scope_context_for_user
 from app.core.security import create_access_token, invalidate_access_token, verify_password
 from app.db.session import get_db
-from app.models import Branch, BusinessGroup, Company, User, UserRole
+from app.models import Branch, BusinessGroup, BusinessType, Company, User, UserRole
 from app.schemas.auth import BranchScopeResponse, LoginRequest, MessageResponse, StepUpRequest, TokenResponse, UserRead
 from app.services.audit import write_audit_log
 
@@ -55,6 +55,13 @@ def _account_scope_is_active(db: Session, user: User) -> bool:
         return False
     company = db.get(Company, user.company_id, execution_options={"scope_bypass": True})
     if company is None or not company.is_active or company.business_group_id != user.business_group_id:
+        return False
+    allowed_roles = (
+        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
+        if company.business_type == BusinessType.CAFE
+        else {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ANALYST}
+    )
+    if user.role not in allowed_roles:
         return False
     if user.role in BRANCH_REQUIRED_ROLES and user.branch_id is None:
         return False

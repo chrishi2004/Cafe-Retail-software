@@ -1,6 +1,6 @@
-import { API_BASE_URL, ApiError } from "./client";
+import { API_BASE_URL, activeVentureStorage, ApiError } from "./client";
 
-export type ExportKind = "sales" | "inventory" | "purchase-orders" | "forecasts";
+export type ExportKind = "sales" | "inventory" | "purchase-orders" | "forecasts" | "cafe" | "consolidated";
 
 export type ExportDownloadOptions = {
   branchId?: number;
@@ -19,6 +19,8 @@ const EXPORT_FILES: Record<ExportKind, string> = {
   inventory: "inventory_export.csv",
   "purchase-orders": "purchase_orders_export.csv",
   forecasts: "forecasts_export.csv",
+  cafe: "cafe_report.csv",
+  consolidated: "consolidated_report.csv",
 };
 
 function queryString(params: Record<string, string | number | boolean | undefined>): string {
@@ -75,11 +77,10 @@ export async function downloadExport(
     start_date: options.startDate,
     end_date: options.endDate,
   });
-  const response = await fetch(`${API_BASE_URL}/exports/${kind}${query}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const headers = new Headers({ Authorization: `Bearer ${token}` });
+  const activeVentureId = activeVentureStorage.get();
+  if (activeVentureId !== null) headers.set("X-Venture-Id", String(activeVentureId));
+  const response = await fetch(`${API_BASE_URL}/exports/${kind}${query}`, { headers });
 
   if (!response.ok) {
     throw await parseDownloadError(response);
