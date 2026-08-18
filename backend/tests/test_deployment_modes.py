@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import DeploymentMode, Settings
+from app.api.routes.cloud_gateway import cloud_readiness_snapshot
 from app.main import create_app
 
 
@@ -109,6 +110,60 @@ def test_cloud_migration_url_is_explicit_and_separate() -> None:
     without_cloud_migration = build_settings()
     with pytest.raises(RuntimeError, match="CLOUD_MIGRATION_DATABASE_URL is required"):
         _ = without_cloud_migration.required_cloud_migration_database_url
+
+
+def test_cloud_readiness_reports_required_and_recommended_configuration() -> None:
+    settings = build_settings(
+        deployment_mode=DeploymentMode.CLOUD_GATEWAY,
+        cloud_runtime_database_url=CLOUD_RUNTIME_URL,
+        cloud_migration_database_url=CLOUD_MIGRATION_URL,
+        cloud_gateway_base_url="https://cloud-gateway.example.com/api",
+        sync_device_id="hub-demo",
+        sync_device_secret="device-secret",
+    )
+
+    snapshot = cloud_readiness_snapshot(settings, database_ready=True)
+
+    assert snapshot["status"] == "ready"
+    assert snapshot["checks"] == {
+        "required": {
+            "runtime_database_configured": True,
+            "migration_database_configured": True,
+        },
+        "recommended": {
+            "gateway_url_configured": True,
+            "sync_device_id_configured": True,
+            "sync_device_secret_configured": True,
+        },
+    }
+
+
+def test_cloud_readiness_identifies_missing_migration_configuration() -> None:
+    settings = build_settings(
+        deployment_mode=DeploymentMode.CLOUD_GATEWAY,
+        cloud_runtime_database_url=CLOUD_RUNTIME_URL,
+    )
+
+    snapshot = cloud_readiness_snapshot(settings, database_ready=True)
+
+    assert snapshot["status"] == "configuration_required"
+    assert snapshot["checks"]["required"]["runtime_database_configured"] is True
+    assert snapshot["checks"]["required"]["migration_database_configured"] is False
+
+
+def test_cloud_readiness_never_returns_secret_values() -> None:
+    secret = "device-secret-that-must-not-leak"
+    settings = build_settings(
+        deployment_mode=DeploymentMode.CLOUD_GATEWAY,
+        cloud_runtime_database_url=CLOUD_RUNTIME_URL,
+        cloud_migration_database_url=CLOUD_MIGRATION_URL,
+        sync_device_secret=secret,
+    )
+
+    serialized = str(cloud_readiness_snapshot(settings, database_ready=True))
+
+    assert secret not in serialized
+    assert "supabase.invalid" not in serialized
 
 
 def test_production_disables_api_docs_by_default() -> None:

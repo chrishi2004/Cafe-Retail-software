@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy import delete, insert, select, text, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.errors import raise_conflict, raise_forbidden, raise_unauthorized
@@ -22,6 +22,35 @@ from app.services.cloud_coordination import get_safe_menu, publish_menu_snapshot
 
 router = APIRouter(prefix="/cloud", tags=["cloud-gateway"])
 Database = Annotated[Session, Depends(get_db)]
+
+
+def cloud_readiness_snapshot(settings, *, database_ready: bool) -> dict[str, object]:
+    """Return safe deployment diagnostics without exposing connection secrets."""
+    required_checks = {
+        "runtime_database_configured": bool(settings.cloud_runtime_database_url),
+        "migration_database_configured": bool(settings.cloud_migration_database_url),
+    }
+    recommended_checks = {
+        "gateway_url_configured": bool(settings.cloud_gateway_base_url),
+        "sync_device_id_configured": bool(settings.sync_device_id),
+        "sync_device_secret_configured": settings.sync_device_secret is not None,
+    }
+    if not database_ready:
+        status = "not_ready"
+    elif not all(required_checks.values()):
+        status = "configuration_required"
+    else:
+        status = "ready"
+    return {
+        "status": status,
+        "deployment_mode": settings.deployment_mode.value,
+        "database_ready": database_ready,
+        "cloud_schema_revision": "20260814_cloud_0002",
+        "checks": {
+            "required": required_checks,
+            "recommended": recommended_checks,
+        },
+    }
 
 
 def _active_device(db: Session, *, device_id: str, proof: str, purpose: str):
@@ -113,13 +142,11 @@ def _lease_read(row) -> WriterLeaseRead | None:
 
 @router.get("/readiness")
 def readiness(db: Database, request: Request) -> dict[str, object]:
-    db.execute(text("SELECT 1"))
-    return {
-        "status": "ready",
-        "deployment_mode": request.app.state.settings.deployment_mode.value,
-        "database_ready": True,
-        "cloud_schema_revision": "20260814_cloud_0002",
-    }
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return cloud_readiness_snapshot(request.app.state.settings, database_ready=False)
+    return cloud_readiness_snapshot(request.app.state.settings, database_ready=True)
 
 
 @router.post("/devices/heartbeat", response_model=SignedHeartbeatRead)
