@@ -11,7 +11,7 @@ from app.api.errors import raise_bad_request, raise_conflict, raise_not_found
 from app.core.scope import BRANCH_REQUIRED_ROLES, ScopeContext
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models import Branch, Company, User, UserRole
+from app.models import Branch, BusinessType, Company, User, UserRole
 from app.schemas.ventures import VentureRead, VentureUserCreate, VentureUserRead, VentureUserUpdate
 from app.services.audit import write_audit_log
 
@@ -35,7 +35,14 @@ def _validate_assignment(db: Session, *, role: UserRole, company_id: int | None,
         return
     if company_id is None:
         raise_bad_request("A venture assignment is required for this role.")
-    _load_company(db, company_id)
+    company = _load_company(db, company_id)
+    allowed_roles = (
+        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
+        if company.business_type == BusinessType.CAFE
+        else {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ANALYST}
+    )
+    if role not in allowed_roles:
+        raise_bad_request("The selected role is not supported by this venture type.")
 
     if role in BRANCH_REQUIRED_ROLES and branch_id is None:
         raise_bad_request("This operational role requires a branch assignment.")

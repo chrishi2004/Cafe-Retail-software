@@ -8,6 +8,16 @@ export type ServerUserRole =
   | "order_taker"
   | "kitchen";
 
+export const SERVER_ROLE_LABELS: Record<ServerUserRole, string> = {
+  super_admin: "Business Owner",
+  admin: "Venture Admin",
+  store_manager: "Store Manager",
+  staff: "Staff",
+  analyst: "Analyst",
+  order_taker: "Order Taker",
+  kitchen: "Kitchen",
+};
+
 export type ServerAuthUser = {
   id: number;
   business_group_id: number;

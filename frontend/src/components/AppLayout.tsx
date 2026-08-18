@@ -1,4 +1,4 @@
-import { LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { Building2, LogOut, Menu, ShieldCheck, X } from "lucide-react";
 import { type PropsWithChildren, useMemo, useState } from "react";
 
 import type { AuthUser } from "../auth/types";
@@ -10,6 +10,7 @@ type AppLayoutProps = PropsWithChildren<{
   onNavigate: (route: RouteKey) => void;
   user: AuthUser;
   onLogout: () => void;
+  onSwitchVenture?: () => void;
 }>;
 
 export function AppLayout({
@@ -17,6 +18,7 @@ export function AppLayout({
   onNavigate,
   user,
   onLogout,
+  onSwitchVenture,
   children,
 }: AppLayoutProps) {
   const [navOpen, setNavOpen] = useState(false);
@@ -31,10 +33,10 @@ export function AppLayout({
     <main className="app-shell">
       <aside className={navOpen ? "sidebar open" : "sidebar"} aria-label="Main navigation">
         <div className="brand-block">
-          <div className="brand-mark">HR</div>
+          <div className="brand-mark">KR</div>
           <div>
-            <p className="brand-name">Hybrid Retail BI</p>
-            <p className="brand-subtitle">Operations console</p>
+            <p className="brand-name">Kalpvrik Retail</p>
+            <p className="brand-subtitle">Retail operations portal</p>
           </div>
           <button
             aria-label="Close navigation"
@@ -88,8 +90,8 @@ export function AppLayout({
               <Menu aria-hidden="true" size={19} />
             </button>
             <div>
-              <p className="eyebrow">Secure local-first dashboard</p>
-              <h1>Remote retail operations</h1>
+              <p className="eyebrow">Retail workspace</p>
+              <h1>{user.company_name ?? "Retail operations"}</h1>
             </div>
           </div>
 
@@ -101,6 +103,12 @@ export function AppLayout({
                 <span>{ROLE_LABELS[user.role]}</span>
               </div>
             </div>
+            {onSwitchVenture ? (
+              <button className="logout-button" onClick={onSwitchVenture} type="button">
+                <Building2 aria-hidden="true" size={17} />
+                <span>Switch business</span>
+              </button>
+            ) : null}
             <button className="logout-button" onClick={onLogout} type="button">
               <LogOut aria-hidden="true" size={17} />
               <span>Logout</span>

@@ -331,7 +331,14 @@ def create_retail_business_settings(db: Session, company: Company, branches: lis
     db.flush()
 
 
-def create_users(db: Session, group: BusinessGroup, retail: Company, branches: list[Branch]) -> dict[str, User]:
+def create_users(
+    db: Session,
+    group: BusinessGroup,
+    retail: Company,
+    cafe: Company,
+    retail_branches: list[Branch],
+    cafe_branch: Branch,
+) -> dict[str, User]:
     password_hash = hash_password(legacy.DEMO_PASSWORD)
     users = {
         # Keep the deterministic Retail generator wired to a company-scoped
@@ -362,7 +369,7 @@ def create_users(db: Session, group: BusinessGroup, retail: Company, branches: l
             email="manager.central@hybridretail.test",
             password_hash=password_hash,
             role=UserRole.STORE_MANAGER,
-            branch_id=branches[0].id,
+            branch_id=retail_branches[0].id,
         ),
         "north_staff": User(
             business_group_id=group.id,
@@ -371,7 +378,7 @@ def create_users(db: Session, group: BusinessGroup, retail: Company, branches: l
             email="staff.north@hybridretail.test",
             password_hash=password_hash,
             role=UserRole.STAFF,
-            branch_id=branches[1].id,
+            branch_id=retail_branches[1].id,
         ),
         "lakeside_staff": User(
             business_group_id=group.id,
@@ -380,13 +387,58 @@ def create_users(db: Session, group: BusinessGroup, retail: Company, branches: l
             email="staff.lakeside@hybridretail.test",
             password_hash=password_hash,
             role=UserRole.STAFF,
-            branch_id=branches[2].id,
+            branch_id=retail_branches[2].id,
         ),
         "analyst": User(
             business_group_id=group.id,
             company_id=retail.id,
             name="Nisha Kapoor",
             email="analyst@hybridretail.test",
+            password_hash=password_hash,
+            role=UserRole.ANALYST,
+        ),
+        "cafe_admin": User(
+            business_group_id=group.id,
+            company_id=cafe.id,
+            branch_id=None,
+            name="Meera Cafe Admin",
+            email="cafe.admin@example.com",
+            password_hash=password_hash,
+            role=UserRole.ADMIN,
+        ),
+        "cafe_manager": User(
+            business_group_id=group.id,
+            company_id=cafe.id,
+            branch_id=cafe_branch.id,
+            name="Arjun Cafe Manager",
+            email="cafe.manager@example.com",
+            password_hash=password_hash,
+            role=UserRole.STORE_MANAGER,
+        ),
+        "cafe_order_taker": User(
+            business_group_id=group.id,
+            company_id=cafe.id,
+            branch_id=cafe_branch.id,
+            name="Rohan Order Taker",
+            email="cafe.orders@example.com",
+            password_hash=password_hash,
+            role=UserRole.ORDER_TAKER,
+        ),
+        "cafe_kitchen": User(
+            business_group_id=group.id,
+            company_id=cafe.id,
+            branch_id=cafe_branch.id,
+            name="Isha Kitchen",
+            email="cafe.kitchen@example.com",
+            password_hash=password_hash,
+            role=UserRole.KITCHEN,
+        ),
+        "cafe_analyst": User(
+            business_group_id=group.id,
+            company_id=cafe.id,
+            branch_id=None,
+            name="Nila Cafe Analyst",
+            email="cafe.analyst@example.com",
             password_hash=password_hash,
             role=UserRole.ANALYST,
         ),
@@ -406,7 +458,7 @@ def seed_database(reset: bool) -> dict[str, int | str]:
         legacy.create_product_units(db)
         categories = legacy.create_categories(db)
         suppliers = legacy.create_suppliers(db)
-        users = create_users(db, group, retail, retail_branches)
+        users = create_users(db, group, retail, cafe, retail_branches, cafe_branch)
         legacy.create_customers(db, retail_branches, users)
         products = legacy.create_products(db, categories, suppliers)
         legacy.create_inventory(db, retail_branches, products)

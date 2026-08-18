@@ -1,7 +1,7 @@
-import { LogOut, ShieldCheck } from "lucide-react";
+import { Building2, LogOut, ShieldCheck } from "lucide-react";
 import type { PropsWithChildren } from "react";
 
-import type { AuthUser } from "../auth/types";
+import { SERVER_ROLE_LABELS, type AuthUser } from "../auth/types";
 
 type PortalFrameProps = PropsWithChildren<{
   title: string;
@@ -11,9 +11,10 @@ type PortalFrameProps = PropsWithChildren<{
   activeKey: string;
   onNavigate: (key: string) => void;
   onLogout: () => void;
+  onSwitchVenture?: () => void;
 }>;
 
-export function PortalFrame({ title, subtitle, user, items, activeKey, onNavigate, onLogout, children }: PortalFrameProps) {
+export function PortalFrame({ title, subtitle, user, items, activeKey, onNavigate, onLogout, onSwitchVenture, children }: PortalFrameProps) {
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label={`${title} navigation`}>
@@ -49,9 +50,15 @@ export function PortalFrame({ title, subtitle, user, items, activeKey, onNavigat
               <ShieldCheck aria-hidden="true" size={17} />
               <div>
                 <strong>{user.name}</strong>
-                <span>{user.company_name ?? "All Ventures"}</span>
+                <span>{SERVER_ROLE_LABELS[user.server_role]} · {user.company_name ?? "All Ventures"}</span>
               </div>
             </div>
+            {onSwitchVenture ? (
+              <button className="logout-button" onClick={onSwitchVenture} type="button">
+                <Building2 aria-hidden="true" size={17} />
+                <span>Switch business</span>
+              </button>
+            ) : null}
             <button className="logout-button" onClick={onLogout} type="button">
               <LogOut aria-hidden="true" size={17} />
               <span>Logout</span>
