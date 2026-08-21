@@ -15,25 +15,29 @@ def apply_cloud_bill_request(db: Session, event: EventEnvelope) -> dict[str, obj
 
     The cloud command only moves the Local Hub table session to BILL_REQUESTED.
     Invoice/payment/ledger/stock work remains exclusively in the normal Local Hub
-    billing transaction.
+    billing transaction. Bill requests use their own aggregate so they cannot
+    collide with Cafe order import/status aggregate versions.
     """
 
-    if event.event_type != "cafe.bill.requested" or event.aggregate_type != "cafe_order":
+    if event.event_type != "cafe.bill.requested" or event.aggregate_type != "cafe_bill_request":
         raise PermanentSyncError("Unsupported Cafe cloud bill request event.", code="unsupported_event")
     if event.source != EventSource.CLOUD_GATEWAY:
         raise PermanentSyncError("Cafe cloud bill request has an invalid source.", code="invalid_source")
+
+    cloud_order_public_id = str(event.payload.get("cloud_order_public_id") or "")
+    if not cloud_order_public_id:
+        raise PermanentSyncError("Cloud bill request is missing its order reference.", code="order_reference_missing")
 
     link = db.scalar(
         select(CloudRecordLink).where(
             CloudRecordLink.provider == "cloud_gateway",
             CloudRecordLink.aggregate_type == "cafe_order",
-            CloudRecordLink.cloud_record_id == event.aggregate_id,
+            CloudRecordLink.cloud_record_id == cloud_order_public_id,
         )
     )
     if link is None:
-        # The order command and bill-request command are durable and ordered by
-        # cloud recorded_at. If order import has not committed yet, retry rather
-        # than turning a valid customer request into a permanent failure.
+        # The bill request has an independent aggregate and can safely retry
+        # until the associated order import has committed its identity link.
         raise RetryableSyncError(
             "Cloud Cafe order has not been imported locally yet.",
             code="order_import_pending",
