@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     openai_api_key: str | None = None
     security_headers_enabled: bool = True
+    require_privileged_mfa: bool | None = None
     openai_model: str = "gpt-4.1-mini"
 
     # Durable Local Hub synchronization and HC2-HC4 cloud coordination.
@@ -115,6 +116,12 @@ class Settings(BaseSettings):
         if self.api_docs_enabled is not None:
             return self.api_docs_enabled
         return self.environment.lower() not in {"production", "prod"}
+
+    @property
+    def resolved_require_privileged_mfa(self) -> bool:
+        if self.require_privileged_mfa is not None:
+            return self.require_privileged_mfa
+        return self.environment.lower() in {"production", "prod"}
 
     @property
     def cors_origins(self) -> list[str]:

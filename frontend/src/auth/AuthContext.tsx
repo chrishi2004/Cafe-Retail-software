@@ -23,7 +23,7 @@ type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, totpCode?: string, recoveryCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
 };
@@ -64,8 +64,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void refreshCurrentUser();
   }, [refreshCurrentUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const response = await loginRequest(email, password);
+  const login = useCallback(async (email: string, password: string, totpCode?: string, recoveryCode?: string) => {
+    const response = await loginRequest(email, password, totpCode, recoveryCode);
     activeVentureStorage.clear();
     authTokenStorage.set(response.access_token);
     setToken(response.access_token);

@@ -45,7 +45,7 @@ def cloud_readiness_snapshot(settings, *, database_ready: bool) -> dict[str, obj
         "status": status,
         "deployment_mode": settings.deployment_mode.value,
         "database_ready": database_ready,
-        "cloud_schema_revision": "20260814_cloud_0002",
+        "cloud_schema_revision": "20260821_cloud_0003",
         "checks": {
             "required": required_checks,
             "recommended": recommended_checks,

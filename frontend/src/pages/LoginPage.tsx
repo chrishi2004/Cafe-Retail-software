@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { LockKeyhole, LogIn, Server } from "lucide-react";
+import { KeyRound, LockKeyhole, LogIn, Server } from "lucide-react";
 
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -8,6 +8,9 @@ export function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("admin@hybridretail.test");
   const [password, setPassword] = useState("RetailDemo@123");
+  const [totpCode, setTotpCode] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -16,7 +19,12 @@ export function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(
+        email,
+        password,
+        useRecovery ? undefined : totpCode,
+        useRecovery ? recoveryCode : undefined,
+      );
     } catch (loginError) {
       if (loginError instanceof ApiError) {
         setError(loginError.message);
@@ -68,6 +76,43 @@ export function LoginPage() {
             value={password}
           />
 
+          {useRecovery ? (
+            <>
+              <label htmlFor="recovery-code">Recovery code</label>
+              <input
+                autoComplete="one-time-code"
+                id="recovery-code"
+                onChange={(event) => setRecoveryCode(event.target.value)}
+                placeholder="xxxx-xxxx"
+                type="text"
+                value={recoveryCode}
+              />
+            </>
+          ) : (
+            <>
+              <label htmlFor="totp-code">Authenticator code</label>
+              <input
+                autoComplete="one-time-code"
+                id="totp-code"
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6-digit code (if enabled)"
+                type="text"
+                value={totpCode}
+              />
+            </>
+          )}
+
+          <button
+            className="text-button"
+            onClick={() => setUseRecovery((current) => !current)}
+            type="button"
+          >
+            <KeyRound aria-hidden="true" size={16} />
+            {useRecovery ? "Use authenticator code" : "Use a recovery code"}
+          </button>
+
           {error ? (
             <div className="form-error" role="alert">
               {error}
@@ -83,7 +128,7 @@ export function LoginPage() {
         <div className="login-notes" aria-label="Development login notes">
           <div>
             <LockKeyhole aria-hidden="true" size={17} />
-            <span>Demo password: RetailDemo@123</span>
+            <span>Privileged production accounts require MFA.</span>
           </div>
           <div>
             <Server aria-hidden="true" size={17} />

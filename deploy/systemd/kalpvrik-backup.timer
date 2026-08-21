@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule Kalpvrik Local Hub PostgreSQL Backups
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=kalpvrik-backup.service
+
+[Install]
+WantedBy=timers.target

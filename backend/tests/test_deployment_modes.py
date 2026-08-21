@@ -19,6 +19,10 @@ def build_settings(**overrides: object) -> Settings:
         "deployment_mode": DeploymentMode.LOCAL_HUB,
         "database_url": LOCAL_URL,
         "local_database_url": LOCAL_URL,
+        # Keep these explicit so tests that exercise missing cloud configuration
+        # stay hermetic even when CI exports real cloud test database URLs.
+        "cloud_runtime_database_url": None,
+        "cloud_migration_database_url": None,
         "api_docs_enabled": False,
         "_env_file": None,
     }
@@ -27,7 +31,9 @@ def build_settings(**overrides: object) -> Settings:
 
 
 def route_paths(app) -> set[str]:
-    return {route.path for route in app.routes}
+    # OpenAPI is the stable external contract across FastAPI router
+    # implementation changes.
+    return set(app.openapi()["paths"])
 
 
 def test_local_hub_registers_existing_operational_routes() -> None:
@@ -60,6 +66,7 @@ def test_cloud_gateway_registers_only_approved_cloud_safe_routes() -> None:
         "/api/cloud/public/cafe/qr/resolve",
         "/api/cloud/public/cafe/orders",
         "/api/cloud/public/cafe/orders/{public_id}",
+        "/api/cloud/public/cafe/orders/{public_id}/bill-request",
         "/api/cloud/sync/commands",
         "/api/cloud/sync/events",
         "/api/cloud/sync/receipts",
@@ -168,11 +175,10 @@ def test_cloud_readiness_never_returns_secret_values() -> None:
 
 def test_production_disables_api_docs_by_default() -> None:
     app = create_app(build_settings(environment="production", api_docs_enabled=None, secret_key="test-production-secret"))
-    paths = route_paths(app)
 
-    assert "/docs" not in paths
-    assert "/redoc" not in paths
-    assert "/openapi.json" not in paths
+    assert app.docs_url is None
+    assert app.redoc_url is None
+    assert app.openapi_url is None
 
 
 def test_cloud_alembic_history_is_independent() -> None:

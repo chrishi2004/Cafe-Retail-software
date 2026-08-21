@@ -31,6 +31,7 @@ export type ServerAuthUser = {
   branch_id: number | null;
   permissions: string[];
   is_active: boolean;
+  mfa_enabled: boolean;
 };
 
 export type AuthUser = Omit<LegacyAuthUser, "role"> & {
@@ -40,6 +41,7 @@ export type AuthUser = Omit<LegacyAuthUser, "role"> & {
   company_slug: string | null;
   company_business_type: BusinessType | null;
   permissions: string[];
+  mfa_enabled: boolean;
   /** Authoritative backend role used by the P3 portal router. */
   server_role: ServerUserRole;
   /** Compatibility role used only inside the existing Retail operational pages. */

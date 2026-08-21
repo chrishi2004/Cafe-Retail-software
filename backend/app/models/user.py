@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -59,6 +59,13 @@ class User(TimestampMixin, Base):
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
+    # TOTP MFA. Secrets are application-encrypted before persistence; recovery
+    # codes are stored only as one-way SHA-256 hashes.
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    mfa_secret_encrypted: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    mfa_recovery_hashes: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    mfa_enrolled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     branch: Mapped[Branch | None] = relationship(back_populates="users")
     sales: Mapped[list[Sale]] = relationship(back_populates="creator")

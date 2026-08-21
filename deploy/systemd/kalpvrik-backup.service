@@ -1,0 +1,16 @@
+[Unit]
+Description=Kalpvrik Local Hub PostgreSQL Backup
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=kalpvrik
+Group=kalpvrik
+EnvironmentFile=/etc/kalpvrik/local-hub.env
+ExecStart=/usr/bin/bash /opt/kalpvrik/scripts/backup_postgres.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kalpvrik

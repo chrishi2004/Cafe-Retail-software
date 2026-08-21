@@ -18,6 +18,7 @@ class UserRead(BaseModel):
     branch_id: int | None
     permissions: list[str] = Field(default_factory=list)
     is_active: bool
+    mfa_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -25,6 +26,8 @@ class UserRead(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=1, max_length=255)
+    totp_code: str | None = Field(default=None, min_length=6, max_length=12)
+    recovery_code: str | None = Field(default=None, min_length=8, max_length=64)
 
     @field_validator("email")
     @classmethod
@@ -34,6 +37,7 @@ class LoginRequest(BaseModel):
 
 class StepUpRequest(BaseModel):
     password: str = Field(min_length=1, max_length=255)
+    totp_code: str | None = Field(default=None, min_length=6, max_length=12)
 
 
 class TokenResponse(BaseModel):
@@ -50,3 +54,18 @@ class MessageResponse(BaseModel):
 class BranchScopeResponse(BaseModel):
     all_branches: bool
     branch_ids: list[int]
+
+
+class MfaEnrollResponse(BaseModel):
+    secret: str
+    provisioning_uri: str
+    recovery_codes: list[str]
+
+
+class MfaConfirmRequest(BaseModel):
+    totp_code: str = Field(min_length=6, max_length=12)
+
+
+class MfaDisableRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=255)
+    totp_code: str = Field(min_length=6, max_length=12)

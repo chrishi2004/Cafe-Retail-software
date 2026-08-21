@@ -1,124 +1,212 @@
 # Cloud Deployment Runbook
 
-This project has a deliberate three-part deployment model:
+This project uses a deliberate three-part deployment model:
 
-1. **Local Hub** — the business's FastAPI operational API and PostgreSQL system of record.
-2. **Vercel frontend** — customer QR ordering plus the authenticated staff/owner interface.
-3. **Vercel cloud gateway** — a restricted FastAPI service backed by Supabase coordination storage.
+1. **Local Hub** — full FastAPI operational API plus the authoritative PostgreSQL business database.
+2. **Hosted frontend** — customer QR ordering plus authenticated staff/owner UI.
+3. **Restricted Cloud Gateway** — limited FastAPI service backed by the Supabase coordination database.
 
-The cloud gateway is not the replacement for the Local Hub. It handles safe public continuity,
-menu publication, signed device synchronization, and cloud coordination. Billing, inventory,
-invoices, and other financial writes remain Local Hub-authoritative.
+The Cloud Gateway is not a replacement for the Local Hub. Billing, inventory, invoices, payments, ledgers, stock movements, purge/governance and unrestricted operational data remain Local-Hub authoritative.
 
-## 1. Create the free-tier external services
+## 1. External services
 
-- Create a Supabase project for this repository's cloud coordination database.
-- Create two Vercel projects from the same GitHub repository:
-  - the frontend project, rooted at `frontend`;
-  - the backend gateway project, rooted at `backend` and using the restricted `server:app` entrypoint.
-- Keep the Local Hub PostgreSQL instance on the operator device for the first release. A secure
-  tunnel or private network path is required before a hosted frontend can call it.
+Create:
 
-Do not commit credentials, `.env` files, Supabase service-role keys, or device secrets.
+- one Supabase project for cloud coordination storage;
+- one Vercel frontend project rooted at `frontend`;
+- one Vercel backend project rooted at `backend`.
 
-## 2. Prepare Supabase coordination storage
+The backend Vercel project must run the restricted `server:app` entrypoint. Never deploy `app.main:app` or `operational_server:app` as the public cloud gateway.
 
-From the `backend` directory, use the Supabase transaction-pooler URL for runtime and the direct
-database URL for migrations. Set the migration variable only in a protected local shell or CI
-secret store, then run:
+Do not commit credentials, `.env` files, Supabase database passwords, device secrets or service-role keys.
 
-```powershell
-$env:CLOUD_MIGRATION_DATABASE_URL="postgresql+psycopg://..."
+## 2. Apply cloud coordination migrations
+
+Use the Supabase transaction-pooler URL for `CLOUD_RUNTIME_DATABASE_URL` and the protected direct/migration URL for `CLOUD_MIGRATION_DATABASE_URL`.
+
+From `backend`:
+
+```bash
+export CLOUD_MIGRATION_DATABASE_URL='postgresql+psycopg://...'
 alembic -c alembic_cloud.ini upgrade head
+alembic -c alembic_cloud.ini current
 ```
 
-The cloud Alembic chain is independent from the Local Hub chain. Never point either cloud URL at
-the Local Hub database. The cloud migration URL is required even when the runtime pooler URL is
-already configured.
+Expected cloud head for this release:
 
-## 3. Configure the Vercel backend gateway
+```text
+20260821_cloud_0003
+```
 
-Set these variables in the backend Vercel project's Production environment:
+The cloud Alembic chain is independent from the Local Hub chain. Never point a cloud URL at the Local Hub database.
+
+## 3. Configure the Vercel Cloud Gateway
+
+Production variables:
 
 ```text
 DEPLOYMENT_MODE=cloud_gateway
 CLOUD_RUNTIME_DATABASE_URL=<Supabase transaction-pooler URL>
-CLOUD_MIGRATION_DATABASE_URL=<protected migration URL, if migrations run in this environment>
-SECRET_KEY=<long random production value>
-FRONTEND_ORIGIN=<frontend production origin>
-FRONTEND_EXTRA_ORIGINS=<additional approved origins, if needed>
+CLOUD_MIGRATION_DATABASE_URL=<protected migration URL if needed by the runtime/readiness policy>
+SECRET_KEY=<strong unique production secret>
+ENVIRONMENT=production
+FRONTEND_ORIGIN=https://<hosted-frontend>
+FRONTEND_EXTRA_ORIGINS=<comma-separated approved extra origins, if any>
 ```
 
-The gateway must use `server:app`; do not deploy `app.main:app` as the cloud gateway because that
-would expose Local Hub operational routes. The gateway's health endpoint is:
+Health:
 
 ```text
 https://<gateway-host>/api/health
 ```
 
-The safe readiness endpoint is:
+Readiness:
 
 ```text
 https://<gateway-host>/api/cloud/readiness
 ```
 
-It returns only booleans and version/status data. It never returns database URLs, passwords, or
-device credentials. `status=ready` means the database is reachable and both required cloud URL
-settings are present. Recommended device/gateway checks are shown separately for continuity setup.
+The readiness response must report `cloud_schema_revision=20260821_cloud_0003` before go-live.
 
 ## 4. Configure the Local Hub
 
-Copy the root `.env.example` to a private `.env` and keep `DEPLOYMENT_MODE=local_hub`. Configure:
+Create the private Local Hub environment file from `.env.example` and set at minimum:
 
 ```text
-DATABASE_URL=<Local Hub PostgreSQL URL>
+ENVIRONMENT=production
+DEPLOYMENT_MODE=local_hub
+DATABASE_URL=<Local Hub PostgreSQL SQLAlchemy URL>
 LOCAL_DATABASE_URL=<same Local Hub URL>
-CLOUD_GATEWAY_BASE_URL=https://<gateway-host>/api
-SYNC_DEVICE_ID=<registered device id>
-SYNC_DEVICE_SECRET=<server-side device secret>
-SYNC_BUSINESS_GROUP_ID=<authorized scope>
-SYNC_COMPANY_ID=<authorized scope>
-SYNC_BRANCH_ID=<authorized scope>
+LOCAL_BACKUP_DATABASE_URL=<pg_dump-compatible PostgreSQL URL>
+SECRET_KEY=<strong unique Local Hub production secret>
+FRONTEND_ORIGIN=https://<hosted-frontend>
+FRONTEND_EXTRA_ORIGINS=http://<local-ui-origin>,https://<other-explicit-approved-origin>
+CLOUD_GATEWAY_BASE_URL=https://<gateway-host>
+SYNC_DEVICE_SECRET=<strong random device secret>
+SYNC_DEVICE_NAME=Local Business Hub
 ```
 
-`SYNC_DEVICE_SECRET` is server-side only. Never add it to a `VITE_*` variable, browser bundle,
-GitHub issue, screenshot, or Vercel frontend project.
+`CLOUD_GATEWAY_BASE_URL` may be supplied as either `https://<gateway-host>` or `https://<gateway-host>/api`. The transport normalizes both forms and never duplicates `/api`. The host-root form is preferred for new installations.
 
-## 5. Configure the Vercel frontend
+`SYNC_DEVICE_SECRET` is server-side only. Never place it in `VITE_*`, frontend source, logs, screenshots, issues or chat.
 
-Set these variables in the frontend Vercel project's Production environment:
+Apply the Local Hub migration:
+
+```bash
+cd /opt/kalpvrik/backend
+set -a; source /etc/kalpvrik/local-hub.env; set +a
+.venv/bin/alembic -c alembic.ini upgrade head
+.venv/bin/alembic -c alembic.ini current
+```
+
+Expected Local Hub head:
 
 ```text
-VITE_OPERATIONAL_API_BASE_URL=<secure Local Hub/tunnel URL>/api
-VITE_API_BASE_URL=<secure Local Hub/tunnel URL>/api
-VITE_CLOUD_API_BASE_URL=https://<gateway-host>/api
+20260821_0019
 ```
 
-The operational URL must be HTTPS and must not be an unauthenticated public database/API exposure.
-For a first device-only release, the Local Hub can remain private and the customer QR flow can use
-the cloud continuity path. Staff and owner portals need a reachable operational API to sign in.
+## 5. Register the Local Hub device
 
-## 6. Verify in order
+Registration is a trusted operator action because it writes the device credential **hash** and scope to the cloud coordination database. The raw secret remains only on the Local Hub.
 
-1. Confirm Local Hub health and authenticated login locally.
-2. Confirm Supabase cloud migrations are at the current cloud head.
-3. Confirm gateway `/api/health`.
-4. Confirm gateway `/api/cloud/readiness` reports `ready`.
-5. Register the Local Hub device through the approved HC1/HC2 flow and verify the recommended
-   readiness checks become true.
-6. Publish a safe cafe menu and resolve one opaque QR token.
-7. Place a continuity-mode customer order and verify status refresh.
-8. Verify that billing, inventory, invoice, and staff operations still route to the Local Hub.
-9. Run the repository P1–P11 GitHub Actions gates before release.
+Temporarily provide the protected cloud migration URL in the trusted shell/environment and run from `backend`:
 
-Cloud-only integration checks require protected environment variables such as
-`HC2_TEST_CLOUD_DATABASE_URL`, `HC3_TEST_CLOUD_DATABASE_URL`, and
-`HC4_TEST_CLOUD_DATABASE_URL`. Missing values should remain explicit skips, not fake credentials.
+```bash
+python -m scripts.register_cloud_device
+```
 
-## Current release boundary and next step
+When the Local Hub contains exactly one active business group, the script discovers it automatically and registers the device at business-group scope. To restrict a device further:
 
-The system is ready for configuration validation, but a production release still needs the actual
-Supabase project URLs, Vercel environment variables, device registration, and a secure path from
-the hosted frontend to the Local Hub for internal portals. The next implementation phase should
-automate or improve those operator-facing setup checks; it must not move financial authority into
-the cloud gateway.
+```bash
+python -m scripts.register_cloud_device --business-group-id 1 --company-id 2 --branch-id 3
+```
+
+If intentionally rotating `SYNC_DEVICE_SECRET` for an already registered device:
+
+```bash
+python -m scripts.register_cloud_device --rotate-secret
+```
+
+The command refuses accidental secret replacement. It never prints the raw secret and never stores the raw secret in the cloud database.
+
+Default device purposes are:
+
+```text
+heartbeat
+menu_publication
+sync_pull
+sync_push
+```
+
+After registration, remove the direct cloud migration URL from any transient shell where it is no longer needed. Keep protected server-side configuration according to the chosen deployment procedure.
+
+## 6. Publish the first Cafe menu snapshot
+
+The customer QR route is cloud-primary, so the Cloud Gateway must have a current sanitized menu/QR publication.
+
+From the Local Hub `backend` directory:
+
+```bash
+python -m scripts.publish_cafe_menu --force
+```
+
+The publisher:
+
+- reads Cafe categories/items/tables/active QR references from Local PostgreSQL;
+- publishes only the approved customer-safe snapshot;
+- sends no cost price, password hash, ledger, payment or unrestricted customer data;
+- authenticates with the registered Local Hub device;
+- records a non-secret local fingerprint so unchanged menus are not republished repeatedly.
+
+Production Linux installs also use `kalpvrik-menu-publish.timer`, which checks every two minutes and publishes only when the customer-safe snapshot changes.
+
+## 7. Configure the hosted frontend
+
+Frontend Vercel production variables:
+
+```text
+VITE_CLOUD_API_BASE_URL=https://<gateway-host>/api
+VITE_OPERATIONAL_API_BASE_URL=https://<secure-local-hub-tunnel>/api
+VITE_API_BASE_URL=https://<secure-local-hub-tunnel>/api
+```
+
+The hosted `/order/:qr-token` route uses the Cloud Gateway. Staff/owner portals use the Operational Local Hub.
+
+No service-role key, database password, device secret or backend credential may exist in a `VITE_*` variable.
+
+## 8. Remote operational access
+
+Expose only FastAPI through the approved authenticated HTTPS tunnel/private network. Never expose PostgreSQL TCP 5432.
+
+Recommended boundary:
+
+```text
+Hosted frontend -> HTTPS tunnel/private network -> Local Hub FastAPI
+Local Hub FastAPI -> Local PostgreSQL
+Customer QR -> Hosted frontend -> Cloud Gateway -> Supabase coordination
+Cloud Gateway <-> Local Hub durable sync
+```
+
+## 9. Verify in order
+
+1. Local Hub migration is `20260821_0019`.
+2. Cloud migration is `20260821_cloud_0003`.
+3. Local API health passes.
+4. Cloud `/api/health` passes.
+5. Cloud `/api/cloud/readiness` reports `ready`.
+6. Device registration command succeeds.
+7. Sync worker heartbeat and writer lease become healthy.
+8. `python -m scripts.publish_cafe_menu --force` succeeds.
+9. A physical QR resolves through the hosted/cloud path.
+10. Customer order is durable in cloud and imports once locally.
+11. Customer bill request produces only a local `bill_requested` state until staff billing.
+12. POS/waiter/kitchen continue locally during internet loss.
+13. Remote Super Admin works only through the approved operational endpoint.
+14. Backup/restore and physical outage tests in `docs/PRODUCTION_GO_LIVE_CHECKLIST.md` are evidenced.
+15. `Release Readiness` is green for the exact commit or PR being released.
+
+## Release boundary
+
+Repository implementation is considered deployment-shaped only when the final release branch/PR passes `Release Readiness`. Public-production readiness still requires actual Supabase/Vercel environment values, the real Local Hub, device registration, menu publication, secure tunnel/network configuration, privileged MFA enrollment and physical failure/recovery evidence.
+
+Do not move financial authority into the Cloud Gateway to work around an unavailable Local Hub. Customer ordering may remain cloud-primary while invoices/payments/stock/ledger authority remains local.

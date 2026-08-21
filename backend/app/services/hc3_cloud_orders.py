@@ -24,6 +24,8 @@ from app.cloud_db.schema import (
     sync_receipts,
 )
 from app.schemas.hc3 import (
+    CloudBillRequestCreate,
+    CloudBillRequestRead,
     CloudOrderCreate,
     CloudOrderItemRead,
     CloudOrderRead,
@@ -39,6 +41,7 @@ SAFE_CLOUD_STATUSES = {
     "preparing",
     "ready",
     "served",
+    "bill_requested",
     "billed",
     "rejected",
     "closed",
@@ -309,6 +312,164 @@ def create_cloud_order(
 
 def get_cloud_order(db: Session, public_id: UUID) -> CloudOrderRead:
     return _read_cloud_order(db, public_id)
+
+
+def _read_cloud_bill_request(db: Session, public_id: UUID, *, replayed: bool = False) -> CloudBillRequestRead:
+    order = db.execute(select(cloud_orders).where(cloud_orders.c.public_id == public_id)).mappings().first()
+    if order is None:
+        raise_not_found("Cloud Cafe order was not found.")
+    requested_at = db.execute(
+        select(cloud_order_events.c.recorded_at)
+        .where(
+            cloud_order_events.c.order_id == order["id"],
+            cloud_order_events.c.event_type == "cafe.bill.requested",
+        )
+        .order_by(cloud_order_events.c.recorded_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if requested_at is None:
+        raise_not_found("Cloud Cafe bill request was not found.")
+    return CloudBillRequestRead(
+        order_public_id=public_id,
+        bill_requested_at=requested_at,
+        replayed=replayed,
+    )
+
+
+def queue_cloud_bill_request(
+    db: Session,
+    *,
+    public_id: UUID,
+    payload: CloudBillRequestCreate,
+    idempotency_key: str,
+) -> CloudBillRequestRead:
+    if not 8 <= len(idempotency_key) <= 200:
+        raise_bad_request("Idempotency-Key must be between 8 and 200 characters.")
+
+    table = _resolve_ordering_table(db, publication_id=payload.publication_id, opaque_qr=payload.opaque_qr)
+    order = db.execute(select(cloud_orders).where(cloud_orders.c.public_id == public_id)).mappings().first()
+    if order is None:
+        raise_not_found("Cloud Cafe order was not found.")
+    if (
+        str(order["business_group_id"]) != str(table["business_group_id"])
+        or str(order["company_id"]) != str(table["company_id"])
+        or str(order["branch_id"]) != str(table["branch_id"])
+        or str(order["table_public_reference"]) != str(table["qr_public_reference"])
+    ):
+        raise_not_found("Cloud Cafe order was not found for this table.")
+    if str(order["status"]) in {"rejected", "closed", "billed"}:
+        raise_conflict("This Cafe order can no longer request a bill.")
+
+    company_id = str(order["company_id"])
+    branch_id = str(order["branch_id"])
+    business_group_id = str(order["business_group_id"])
+    key_hash = _sha256(f"{company_id}:{branch_id}:cloud_cafe_bill_request:{idempotency_key}")
+    request_hash = _sha256(
+        json.dumps(
+            {
+                "order_public_id": str(public_id),
+                "publication_id": str(payload.publication_id),
+                "table_public_reference": str(table["qr_public_reference"]),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
+
+    prior = db.execute(
+        select(cloud_idempotency_keys).where(
+            cloud_idempotency_keys.c.company_id == company_id,
+            cloud_idempotency_keys.c.branch_id == branch_id,
+            cloud_idempotency_keys.c.purpose == "cafe_bill_request",
+            cloud_idempotency_keys.c.key_hash == key_hash,
+        )
+    ).mappings().first()
+    if prior is not None:
+        if prior["request_hash"] != request_hash or prior["result_reference"] != str(public_id):
+            raise_conflict("This retry key was already used for a different bill request.")
+        return _read_cloud_bill_request(db, public_id, replayed=True)
+
+    prior_version = db.execute(
+        select(cloud_order_events.c.aggregate_version)
+        .where(cloud_order_events.c.order_id == order["id"])
+        .order_by(cloud_order_events.c.aggregate_version.desc())
+        .limit(1)
+    ).scalar_one_or_none() or 1
+    aggregate_version = int(prior_version) + 1
+    event_id = uuid4()
+    correlation_id = uuid4()
+    now = datetime.now(UTC)
+    event_payload = {
+        "cloud_order_public_id": str(public_id),
+        "publication_id": str(payload.publication_id),
+        "table_public_reference": str(table["qr_public_reference"]),
+        "source_table_id": str(table["source_table_id"]),
+        "requested_at": now.isoformat(),
+    }
+
+    try:
+        db.execute(
+            insert(cloud_order_events).values(
+                event_id=event_id,
+                order_id=order["id"],
+                business_group_id=business_group_id,
+                company_id=company_id,
+                branch_id=branch_id,
+                event_type="cafe.bill.requested",
+                schema_version=1,
+                aggregate_version=aggregate_version,
+                correlation_id=correlation_id,
+                payload=event_payload,
+                recorded_at=now,
+            )
+        )
+        db.execute(
+            insert(sync_commands).values(
+                event_id=event_id,
+                business_group_id=business_group_id,
+                company_id=company_id,
+                branch_id=branch_id,
+                target_device_id=None,
+                event_type="cafe.bill.requested",
+                schema_version=1,
+                aggregate_type="cafe_order",
+                aggregate_id=str(public_id),
+                aggregate_version=aggregate_version,
+                correlation_id=correlation_id,
+                causation_id=None,
+                payload=event_payload,
+                status="pending",
+                recorded_at=now,
+            )
+        )
+        db.execute(
+            insert(cloud_idempotency_keys).values(
+                business_group_id=business_group_id,
+                company_id=company_id,
+                branch_id=branch_id,
+                purpose="cafe_bill_request",
+                key_hash=key_hash,
+                request_hash=request_hash,
+                result_reference=str(public_id),
+                created_at=now,
+            )
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        prior = db.execute(
+            select(cloud_idempotency_keys).where(
+                cloud_idempotency_keys.c.company_id == company_id,
+                cloud_idempotency_keys.c.branch_id == branch_id,
+                cloud_idempotency_keys.c.purpose == "cafe_bill_request",
+                cloud_idempotency_keys.c.key_hash == key_hash,
+            )
+        ).mappings().first()
+        if prior is not None and prior["request_hash"] == request_hash and prior["result_reference"] == str(public_id):
+            return _read_cloud_bill_request(db, public_id, replayed=True)
+        raise_conflict("This retry key cannot be reused for a different bill request.")
+
+    return _read_cloud_bill_request(db, public_id)
 
 
 def record_sync_receipt(

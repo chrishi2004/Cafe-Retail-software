@@ -216,7 +216,9 @@ def test_cloud_schema_exists_and_rls_is_enabled(cloud_factory: sessionmaker[Sess
 
 
 def test_cloud_route_discovery_excludes_local_authoritative_writes(cloud_client) -> None:
-    paths = {route.path for route in cloud_client.app.routes}
+    # OpenAPI is the stable public API contract; modern FastAPI may represent
+    # included routers hierarchically in app.routes.
+    paths = set(cloud_client.app.openapi()["paths"])
     assert "/api/health" in paths
     assert "/api/cloud/readiness" in paths
     assert "/api/cloud/publications/menu" in paths

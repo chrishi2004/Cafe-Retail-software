@@ -1,0 +1,12 @@
+[Unit]
+Description=Publish changed Cafe menu snapshots to the cloud gateway
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=2min
+Persistent=true
+AccuracySec=15s
+Unit=kalpvrik-menu-publish.service
+
+[Install]
+WantedBy=timers.target
