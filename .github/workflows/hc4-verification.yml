@@ -47,20 +47,20 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_cloud_coordination;"
-      - name: Apply Local Hub migrations through HC4
+      - name: Apply Local Hub migrations through release head
         working-directory: backend
         run: alembic -c alembic.ini upgrade head
-      - name: Apply cloud coordination migrations through HC4
+      - name: Apply cloud coordination migrations through release head
         working-directory: backend
         env:
           CLOUD_RUNTIME_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
           CLOUD_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
         run: alembic -c alembic_cloud.ini upgrade head
-      - name: Verify HC4 migration heads remain independent
+      - name: Verify migration heads remain independent
         working-directory: backend
         run: |
-          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260817_0018"
-          test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260814_cloud_0002"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260821_0019"
+          test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260821_cloud_0003"
           test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
       - name: Run HC4 release-blocking continuity tests
         working-directory: backend
