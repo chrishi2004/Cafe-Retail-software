@@ -86,6 +86,17 @@ jobs:
           tests/test_cafe_billing_stock.py
           tests/test_company_scope_auth.py
           tests/test_cross_venture_isolation.py
+      - name: Reset databases before complete regression
+        working-directory: backend
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -c "DROP DATABASE hybrid_cloud_coordination WITH (FORCE);"
+          psql -h localhost -U postgres -d postgres -c "DROP DATABASE hybrid_retail_bi WITH (FORCE);"
+          psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi;"
+          psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_cloud_coordination;"
+          alembic -c alembic.ini upgrade head
+          alembic -c alembic_cloud.ini upgrade head
       - name: Run complete backend regression
         working-directory: backend
         run: python -m pytest -q --disable-warnings
