@@ -14,6 +14,7 @@ import {
 import {
   getCloudOrder,
   getCloudSafeMenu,
+  requestCloudBill,
   resolveCloudQr,
   submitCloudOrder,
   type CloudOrder,
@@ -37,9 +38,14 @@ export type PublicCafeSession = {
 };
 
 const CLOUD_ORDER_STORAGE_PREFIX = "kalpvrik:cloud-cafe-orders:";
+const CLOUD_BILL_KEY_PREFIX = "kalpvrik:cloud-cafe-bill-key:";
 
 function cloudOrderStorageKey(qrValue: string): string {
   return `${CLOUD_ORDER_STORAGE_PREFIX}${qrValue}`;
+}
+
+function cloudBillKeyStorageKey(qrValue: string): string {
+  return `${CLOUD_BILL_KEY_PREFIX}${qrValue}`;
 }
 
 function readCloudOrderIds(qrValue: string): string[] {
@@ -57,6 +63,23 @@ function rememberCloudOrder(qrValue: string, publicId: string): void {
     window.sessionStorage.setItem(cloudOrderStorageKey(qrValue), JSON.stringify(next));
   } catch {
     // Order status remains available for the current page even if storage is blocked.
+  }
+}
+
+function cloudBillIdempotencyKey(qrValue: string): string {
+  const storageKey = cloudBillKeyStorageKey(qrValue);
+  try {
+    const existing = window.sessionStorage.getItem(storageKey);
+    if (existing && existing.length >= 8) return existing;
+    const created = typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `bill-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem(storageKey, created);
+    return created;
+  } catch {
+    return typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `bill-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 }
 
@@ -152,7 +175,22 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
       return toPublicCloudOrder(order);
     },
     requestBill: async () => {
-      throw new PublicCafeApiError(409, "cloud_bill_request_pending_implementation", "Bill request submission is being handled by the cloud command path; final billing remains a Local Hub action.");
+      const ids = readCloudOrderIds(qrValue);
+      const orderPublicId = ids.at(-1);
+      if (!orderPublicId) {
+        throw new PublicCafeApiError(409, "cloud_bill_requires_order", "Place an order before requesting the bill.");
+      }
+      const queued = await requestCloudBill(
+        orderPublicId,
+        resolved.publication_id,
+        qrValue,
+        cloudBillIdempotencyKey(qrValue),
+      );
+      return {
+        session_public_id: sessionId,
+        session_status: "bill_requested",
+        bill_requested_at: queued.bill_requested_at,
+      };
     },
   };
 }
