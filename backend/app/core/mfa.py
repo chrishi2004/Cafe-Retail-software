@@ -4,7 +4,6 @@ import base64
 import hashlib
 import secrets
 from datetime import UTC, datetime
-from urllib.parse import quote
 
 import pyotp
 from cryptography.fernet import Fernet, InvalidToken
@@ -45,7 +44,8 @@ def verify_totp(secret: str, code: str, *, valid_window: int = 1) -> bool:
 
 
 def generate_recovery_codes(count: int = 8) -> list[str]:
-    return [f"{secrets.token_hex(4)}-{secrets.token_hex(4)}" for _ in range(count)]
+    # 128 bits of entropy per code while keeping a human-copyable separator.
+    return [f"{secrets.token_hex(8)}-{secrets.token_hex(8)}" for _ in range(count)]
 
 
 def hash_recovery_code(code: str) -> str:
