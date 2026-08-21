@@ -1,0 +1,40 @@
+name: NPM Lock Remediation
+
+on:
+  push:
+    branches:
+      - agent/release-readiness-finalization
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Apply compatible npm audit fixes to lockfile
+        working-directory: frontend
+        run: npm audit fix --package-lock-only
+      - name: Verify remediated production dependency audit
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Upload remediated package lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-package-lock-fixed
+          path: frontend/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
