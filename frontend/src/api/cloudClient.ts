@@ -53,6 +53,13 @@ export type CloudOrder = {
   replayed: boolean;
 };
 
+export type CloudBillRequest = {
+  order_public_id: string;
+  status: "queued";
+  bill_requested_at: string;
+  replayed: boolean;
+};
+
 async function cloudRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
@@ -104,4 +111,23 @@ export function submitCloudOrder(
 
 export function getCloudOrder(publicId: string): Promise<CloudOrder> {
   return cloudRequest<CloudOrder>(`/cloud/public/cafe/orders/${encodeURIComponent(publicId)}`);
+}
+
+export function requestCloudBill(
+  orderPublicId: string,
+  publicationId: string,
+  opaqueQr: string,
+  idempotencyKey: string,
+): Promise<CloudBillRequest> {
+  return cloudRequest<CloudBillRequest>(
+    `/cloud/public/cafe/orders/${encodeURIComponent(orderPublicId)}/bill-request`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({
+        publication_id: publicationId,
+        opaque_qr: opaqueQr,
+      }),
+    },
+  );
 }
