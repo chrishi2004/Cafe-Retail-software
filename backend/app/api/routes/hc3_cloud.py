@@ -9,6 +9,8 @@ from sqlalchemy import or_, select
 from app.api.routes.cloud_gateway import Database, _active_device
 from app.cloud_db.schema import cloud_orders, sync_commands
 from app.schemas.hc3 import (
+    CloudBillRequestCreate,
+    CloudBillRequestRead,
     CloudCommandBatch,
     CloudOrderCreate,
     CloudOrderRead,
@@ -20,6 +22,7 @@ from app.services.hc3_cloud_orders import (
     apply_local_sync_event,
     create_cloud_order,
     get_cloud_order,
+    queue_cloud_bill_request,
     record_sync_receipt,
 )
 
@@ -38,6 +41,23 @@ def submit_cloud_order(
 @router.get("/public/cafe/orders/{public_id}", response_model=CloudOrderRead)
 def read_cloud_order(public_id: UUID, db: Database) -> CloudOrderRead:
     return get_cloud_order(db, public_id)
+
+
+@router.post("/public/cafe/orders/{public_id}/bill-request", response_model=CloudBillRequestRead, status_code=202)
+def submit_cloud_bill_request(
+    public_id: UUID,
+    payload: CloudBillRequestCreate,
+    db: Database,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=200)],
+) -> CloudBillRequestRead:
+    # This is a durable guest command only. It never creates an invoice,
+    # payment, ledger entry, or stock movement in the cloud gateway.
+    return queue_cloud_bill_request(
+        db,
+        public_id=public_id,
+        payload=payload,
+        idempotency_key=idempotency_key,
+    )
 
 
 @router.get("/sync/commands", response_model=CloudCommandBatch)
