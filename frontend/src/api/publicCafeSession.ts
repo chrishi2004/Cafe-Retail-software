@@ -44,8 +44,8 @@ function cloudOrderStorageKey(qrValue: string): string {
   return `${CLOUD_ORDER_STORAGE_PREFIX}${qrValue}`;
 }
 
-function cloudBillKeyStorageKey(qrValue: string): string {
-  return `${CLOUD_BILL_KEY_PREFIX}${qrValue}`;
+function cloudBillKeyStorageKey(qrValue: string, orderPublicId: string): string {
+  return `${CLOUD_BILL_KEY_PREFIX}${qrValue}:${orderPublicId}`;
 }
 
 function readCloudOrderIds(qrValue: string): string[] {
@@ -66,8 +66,8 @@ function rememberCloudOrder(qrValue: string, publicId: string): void {
   }
 }
 
-function cloudBillIdempotencyKey(qrValue: string): string {
-  const storageKey = cloudBillKeyStorageKey(qrValue);
+function cloudBillIdempotencyKey(qrValue: string, orderPublicId: string): string {
+  const storageKey = cloudBillKeyStorageKey(qrValue, orderPublicId);
   try {
     const existing = window.sessionStorage.getItem(storageKey);
     if (existing && existing.length >= 8) return existing;
@@ -184,7 +184,7 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
         orderPublicId,
         resolved.publication_id,
         qrValue,
-        cloudBillIdempotencyKey(qrValue),
+        cloudBillIdempotencyKey(qrValue, orderPublicId),
       );
       return {
         session_public_id: sessionId,
