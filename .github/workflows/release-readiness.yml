@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/release-readiness-finalization
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -71,6 +74,9 @@ jobs:
         run: >-
           python -m pytest -q --disable-warnings
           tests/test_r9_mfa.py
+          tests/test_release_cloud_transport.py
+          tests/test_release_cloud_bill_request.py
+          tests/test_hc2_cloud_gateway.py
           tests/test_hc3_cloud_order_convergence.py
           tests/test_hc3_worker_restart.py
           tests/test_hc4_recovery.py
