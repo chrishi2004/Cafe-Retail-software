@@ -78,10 +78,20 @@ export async function apiRequest<T>(
   return (await response.json()) as T;
 }
 
-export async function loginRequest(email: string, password: string): Promise<LoginResponse> {
+export async function loginRequest(
+  email: string,
+  password: string,
+  totpCode?: string,
+  recoveryCode?: string,
+): Promise<LoginResponse> {
   const response = await apiRequest<ServerLoginResponse>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email,
+      password,
+      totp_code: totpCode?.trim() || undefined,
+      recovery_code: recoveryCode?.trim() || undefined,
+    }),
   });
   return {
     ...response,
