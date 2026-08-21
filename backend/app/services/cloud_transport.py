@@ -15,6 +15,20 @@ from app.schemas.sync import EventEnvelope
 from app.sync.service import PermanentSyncError, RetryableSyncError, parse_retry_after
 
 
+def gateway_api_url(gateway_base_url: str, path: str) -> str:
+    """Build a cloud-gateway API URL without ever duplicating the /api prefix.
+
+    Deployment documentation and older installations may provide either the host
+    root (https://gateway.example.com) or the API root
+    (https://gateway.example.com/api). Both forms are accepted deliberately.
+    """
+    base = gateway_base_url.strip().rstrip("/")
+    if not base:
+        raise ValueError("Cloud gateway base URL is required.")
+    api_root = base if base.endswith("/api") else f"{base}/api"
+    return f"{api_root}/{path.lstrip('/')}"
+
+
 def _raise_sync_http(response: httpx.Response) -> None:
     if response.status_code < 400:
         return
@@ -97,13 +111,16 @@ def push_menu_publication(
     payload: MenuPublicationInput,
     timeout_seconds: float = 15.0,
 ) -> MenuPublicationRead:
-    url = f"{gateway_base_url.rstrip('/')}/api/cloud/publications/menu"
-    response = httpx.post(
-        url,
-        headers=_device_headers(device_id, installation_proof),
-        json=payload.model_dump(mode="json"),
-        timeout=timeout_seconds,
-    )
+    url = gateway_api_url(gateway_base_url, "/cloud/publications/menu")
+    try:
+        response = httpx.post(
+            url,
+            headers=_device_headers(device_id, installation_proof),
+            json=payload.model_dump(mode="json"),
+            timeout=timeout_seconds,
+        )
+    except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        raise RetryableSyncError(str(exc), code="cloud_unreachable") from exc
     _raise_sync_http(response)
     return MenuPublicationRead.model_validate(response.json())
 
@@ -117,7 +134,7 @@ def send_signed_heartbeat(
     timeout_seconds: float = 15.0,
 ) -> SignedHeartbeatRead:
     response = _post_signed(
-        url=f"{gateway_base_url.rstrip('/')}/api/cloud/devices/heartbeat",
+        url=gateway_api_url(gateway_base_url, "/cloud/devices/heartbeat"),
         device_id=device_id,
         installation_proof=installation_proof,
         payload=payload,
@@ -135,7 +152,7 @@ def acquire_writer_lease(
     timeout_seconds: float = 15.0,
 ) -> WriterLeaseRead:
     response = _post_signed(
-        url=f"{gateway_base_url.rstrip('/')}/api/cloud/continuity/lease/acquire",
+        url=gateway_api_url(gateway_base_url, "/cloud/continuity/lease/acquire"),
         device_id=device_id,
         installation_proof=installation_proof,
         payload=payload,
@@ -153,7 +170,7 @@ def renew_writer_lease(
     timeout_seconds: float = 15.0,
 ) -> WriterLeaseRead:
     response = _post_signed(
-        url=f"{gateway_base_url.rstrip('/')}/api/cloud/continuity/lease/renew",
+        url=gateway_api_url(gateway_base_url, "/cloud/continuity/lease/renew"),
         device_id=device_id,
         installation_proof=installation_proof,
         payload=payload,
@@ -170,7 +187,7 @@ def pull_cloud_commands(
     limit: int,
     timeout_seconds: float = 15.0,
 ) -> list[EventEnvelope]:
-    url = f"{gateway_base_url.rstrip('/')}/api/cloud/sync/commands"
+    url = gateway_api_url(gateway_base_url, "/cloud/sync/commands")
     try:
         response = httpx.get(
             url,
@@ -193,13 +210,13 @@ class CloudGatewaySyncTransport:
         installation_proof: str,
         timeout_seconds: float = 15.0,
     ) -> None:
-        self.gateway_base_url = gateway_base_url.rstrip("/")
+        self.gateway_base_url = gateway_base_url.strip().rstrip("/")
         self.device_id = device_id
         self.installation_proof = installation_proof
         self.timeout_seconds = timeout_seconds
 
     def send(self, event: EventEnvelope) -> dict[str, object]:
-        url = f"{self.gateway_base_url}/api/cloud/sync/events"
+        url = gateway_api_url(self.gateway_base_url, "/cloud/sync/events")
         try:
             response = httpx.post(
                 url,
