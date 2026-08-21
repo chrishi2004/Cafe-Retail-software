@@ -60,6 +60,7 @@ def test_cloud_gateway_registers_only_approved_cloud_safe_routes() -> None:
         "/api/cloud/public/cafe/qr/resolve",
         "/api/cloud/public/cafe/orders",
         "/api/cloud/public/cafe/orders/{public_id}",
+        "/api/cloud/public/cafe/orders/{public_id}/bill-request",
         "/api/cloud/sync/commands",
         "/api/cloud/sync/events",
         "/api/cloud/sync/receipts",
