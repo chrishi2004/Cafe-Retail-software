@@ -18,11 +18,11 @@ from app.schemas.hc3 import (
     CloudSyncReceiptInput,
 )
 from app.schemas.sync import EventEnvelope, EventSource
+from app.services.hc3_cloud_bill_requests import queue_cloud_bill_request
 from app.services.hc3_cloud_orders import (
     apply_local_sync_event,
     create_cloud_order,
     get_cloud_order,
-    queue_cloud_bill_request,
     record_sync_receipt,
 )
 
@@ -54,7 +54,7 @@ def submit_cloud_bill_request(
     # payment, ledger entry, or stock movement in the cloud gateway.
     return queue_cloud_bill_request(
         db,
-        public_id=public_id,
+        order_public_id=public_id,
         payload=payload,
         idempotency_key=idempotency_key,
     )
