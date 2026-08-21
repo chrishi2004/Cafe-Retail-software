@@ -175,11 +175,10 @@ def test_cloud_readiness_never_returns_secret_values() -> None:
 
 def test_production_disables_api_docs_by_default() -> None:
     app = create_app(build_settings(environment="production", api_docs_enabled=None, secret_key="test-production-secret"))
-    paths = route_paths(app)
 
-    # API docs are disabled at the HTTP surface in production; operational
-    # routes remain represented in the generated contract object.
-    assert "/api/auth/login" in paths
+    assert app.docs_url is None
+    assert app.redoc_url is None
+    assert app.openapi_url is None
 
 
 def test_cloud_alembic_history_is_independent() -> None:
