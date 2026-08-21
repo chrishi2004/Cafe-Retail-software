@@ -150,10 +150,36 @@ def push_local_event(
         from app.api.errors import raise_forbidden
 
         raise_forbidden("Synchronization event source is not authorized for this device.")
-    _require_scope_values(
-        device,
-        business_group_id=str(payload.business_group_id),
-        company_id=str(payload.company_id) if payload.company_id is not None else None,
-        branch_id=str(payload.branch_id) if payload.branch_id is not None else None,
-    )
+
+    # For mirrored Cafe order events, authorize against the stored cloud order
+    # scope rather than trusting the submitted envelope to describe its group.
+    stored_order = None
+    if payload.aggregate_type == "cafe_order":
+        try:
+            order_public_id = UUID(str(payload.aggregate_id))
+        except ValueError:
+            order_public_id = None
+        if order_public_id is not None:
+            stored_order = db.execute(
+                select(
+                    cloud_orders.c.business_group_id,
+                    cloud_orders.c.company_id,
+                    cloud_orders.c.branch_id,
+                ).where(cloud_orders.c.public_id == order_public_id)
+            ).mappings().first()
+
+    if stored_order is not None:
+        _require_scope_values(
+            device,
+            business_group_id=str(stored_order["business_group_id"]),
+            company_id=str(stored_order["company_id"]) if stored_order["company_id"] is not None else None,
+            branch_id=str(stored_order["branch_id"]) if stored_order["branch_id"] is not None else None,
+        )
+    else:
+        _require_scope_values(
+            device,
+            business_group_id=str(payload.business_group_id),
+            company_id=str(payload.company_id) if payload.company_id is not None else None,
+            branch_id=str(payload.branch_id) if payload.branch_id is not None else None,
+        )
     return apply_local_sync_event(db, event=payload)
