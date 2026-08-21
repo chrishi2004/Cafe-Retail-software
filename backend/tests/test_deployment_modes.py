@@ -19,6 +19,10 @@ def build_settings(**overrides: object) -> Settings:
         "deployment_mode": DeploymentMode.LOCAL_HUB,
         "database_url": LOCAL_URL,
         "local_database_url": LOCAL_URL,
+        # Keep these explicit so tests that exercise missing cloud configuration
+        # stay hermetic even when CI exports real cloud test database URLs.
+        "cloud_runtime_database_url": None,
+        "cloud_migration_database_url": None,
         "api_docs_enabled": False,
         "_env_file": None,
     }
