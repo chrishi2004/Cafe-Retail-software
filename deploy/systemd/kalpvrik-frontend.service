@@ -1,0 +1,20 @@
+[Unit]
+Description=Kalpvrik Local Hub React PWA
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kalpvrik
+Group=kalpvrik
+WorkingDirectory=/opt/kalpvrik
+ExecStart=/usr/bin/python3 /opt/kalpvrik/scripts/serve_spa.py --directory /opt/kalpvrik/frontend/dist --bind 0.0.0.0 --port 4173
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
