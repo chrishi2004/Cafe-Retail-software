@@ -1,0 +1,24 @@
+[Unit]
+Description=Kalpvrik Local Hub Durable Sync Worker
+After=network-online.target postgresql.service kalpvrik-api.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=kalpvrik
+Group=kalpvrik
+WorkingDirectory=/opt/kalpvrik/backend
+EnvironmentFile=/etc/kalpvrik/local-hub.env
+ExecStart=/opt/kalpvrik/backend/.venv/bin/python -m app.sync.worker
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kalpvrik /var/log/kalpvrik
+
+[Install]
+WantedBy=multi-user.target
