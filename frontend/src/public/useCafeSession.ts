@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { PublicCafeApiError, type PublicMenu, type PublicOrder } from "../api/publicCafeClient";
-import { openCloudCafeSession, openPublicCafeSession, type PublicCafeSession } from "../api/publicCafeSession";
+import { openCloudCafeSession, type PublicCafeSession } from "../api/publicCafeSession";
 
 export type CafeSessionState = "loading" | "ready" | "cloud_continuity" | "invalid" | "offline";
 
@@ -22,27 +22,24 @@ export function useCafeSession(qrToken: string) {
   useEffect(() => {
     let cancelled = false;
     setState("loading");
-    openPublicCafeSession(qrToken)
+
+    // Release contract: the public Cafe customer route is cloud-primary in both
+    // normal and degraded operation. The browser never needs direct Local Hub
+    // reachability for QR resolution, menu reads, ordering, or status reads.
+    openCloudCafeSession(qrToken)
       .then(async (active) => {
         if (cancelled) return;
         setSession(active);
         await refresh(active);
         if (!cancelled) setState("ready");
       })
-      .catch(async (operationalError: unknown) => {
+      .catch((error: unknown) => {
         if (cancelled) return;
-        try {
-          const cloudSession = await openCloudCafeSession(qrToken);
-          if (cancelled) return;
-          setSession(cloudSession);
-          await refresh(cloudSession);
-          if (!cancelled) setState("cloud_continuity");
-        } catch (cloudError: unknown) {
-          if (cancelled) return;
-          const error = cloudError instanceof PublicCafeApiError ? cloudError : operationalError;
-          setState(error instanceof PublicCafeApiError && [400, 401, 404, 422].includes(error.status) ? "invalid" : "offline");
-        }
+        setSession(null);
+        const publicError = error instanceof PublicCafeApiError ? error : null;
+        setState(publicError && [400, 401, 404, 422].includes(publicError.status) ? "invalid" : "offline");
       });
+
     return () => { cancelled = true; };
   }, [qrToken]);
 
