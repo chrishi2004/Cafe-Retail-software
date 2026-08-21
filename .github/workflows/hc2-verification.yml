@@ -75,7 +75,7 @@ jobs:
           DEPLOYMENT_MODE: cloud_gateway
           CLOUD_RUNTIME_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
         run: >-
-          python -c "import server; paths={r.path for r in server.app.routes}; assert '/api/cloud/readiness' in paths; assert '/api/inventory/adjustments' not in paths"
+          python -c "import server; paths=set(server.app.openapi()['paths']); assert '/api/cloud/readiness' in paths; assert '/api/inventory/adjustments' not in paths"
       - name: Run complete backend regression
         working-directory: backend
         run: python -m pytest -q --disable-warnings
