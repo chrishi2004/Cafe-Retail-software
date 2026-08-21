@@ -152,11 +152,13 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
       return toPublicCloudOrder(order);
     },
     requestBill: async () => {
-      throw new PublicCafeApiError(409, "cloud_billing_unavailable", "Billing is completed by Cafe staff after Local Hub reconciliation.");
+      throw new PublicCafeApiError(409, "cloud_bill_request_pending_implementation", "Bill request submission is being handled by the cloud command path; final billing remains a Local Hub action.");
     },
   };
 }
 
+// Retained only for local-network/PWA operation and regression coverage. The
+// public hosted `/order/:qr-token` release path does not call this helper.
 export async function openPublicCafeSession(qrValue: string): Promise<PublicCafeSession> {
   const resolved = await resolvePublicQr(qrValue);
   const sessionId = resolved.session_public_id;
@@ -183,5 +185,5 @@ export async function openCurrentPublicCafeSession(): Promise<PublicCafeSession>
   if (!path.startsWith(prefix) || path.length <= prefix.length) {
     throw new Error("Public Cafe route is not available.");
   }
-  return openPublicCafeSession(decodeURIComponent(path.slice(prefix.length)));
+  return openCloudCafeSession(decodeURIComponent(path.slice(prefix.length)));
 }
