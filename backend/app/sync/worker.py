@@ -29,6 +29,7 @@ from app.services.continuity import (
     run_reconciliation,
     scope_key,
 )
+from app.sync.cafe_bill_requests import make_cloud_bill_request_handler
 from app.sync.cafe_orders import make_cloud_order_handler
 from app.sync.device import DeviceIdentityStore, SettingsCredentialStore
 from app.sync.service import (
@@ -113,6 +114,7 @@ class LocalSyncWorker:
         self._ensure_local_scope_identity()
         assert self.device_id is not None
         self.handlers.setdefault("cafe.order.submitted", make_cloud_order_handler(self.device_id))
+        self.handlers.setdefault("cafe.bill.requested", make_cloud_bill_request_handler())
         self.handlers.setdefault(
             "continuity.reference.created",
             make_continuity_reference_handler(self.device_id),
@@ -202,9 +204,6 @@ class LocalSyncWorker:
 
     def _heartbeat_and_lease(self, metrics: dict[str, int | datetime | None]) -> bool:
         if self._heartbeat_sender is None or self._lease_acquirer is None or self.device_id is None:
-            # HC1-HC3 tests and embedded integrations can inject a direct transport
-            # without a configured HTTP gateway. Preserve that explicit transport
-            # contract while requiring heartbeat/fencing for real configured gateways.
             if (
                 self.device_id is not None
                 and self.transport is not None
