@@ -31,7 +31,9 @@ def build_settings(**overrides: object) -> Settings:
 
 
 def route_paths(app) -> set[str]:
-    return {route.path for route in app.routes}
+    # Newer Starlette/FastAPI versions may keep internal included-router
+    # entries in app.routes; only concrete routes expose a path.
+    return {route.path for route in app.routes if hasattr(route, "path")}
 
 
 def test_local_hub_registers_existing_operational_routes() -> None:
