@@ -60,6 +60,20 @@ class CloudOrderRead(BaseModel):
     replayed: bool = False
 
 
+class CloudBillRequestCreate(BaseModel):
+    publication_id: UUID
+    opaque_qr: str = Field(min_length=20, max_length=1000)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CloudBillRequestRead(BaseModel):
+    order_public_id: UUID
+    status: Literal["queued"] = "queued"
+    bill_requested_at: datetime
+    replayed: bool = False
+
+
 class CloudCommandBatch(BaseModel):
     events: list[EventEnvelope]
 
