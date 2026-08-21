@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, Query
 from sqlalchemy import or_, select
 
-from app.api.routes.cloud_gateway import Database, _active_device
+from app.api.routes.cloud_gateway import Database, _active_device, _require_scope_values
 from app.cloud_db.schema import cloud_orders, sync_commands
 from app.schemas.hc3 import (
     CloudBillRequestCreate,
@@ -75,6 +75,7 @@ def pull_commands(
     )
     statement = select(sync_commands).where(
         sync_commands.c.status == "pending",
+        sync_commands.c.business_group_id == str(device["business_group_id"]),
         or_(sync_commands.c.target_device_id.is_(None), sync_commands.c.target_device_id == x_device_id),
     )
     if device["company_id"] is not None:
@@ -125,7 +126,15 @@ def push_receipt(
     x_device_id: Annotated[str, Header(alias="X-Device-Id")],
     x_device_proof: Annotated[str, Header(alias="X-Device-Proof")],
 ) -> CloudSyncPushRead:
-    _active_device(db, device_id=x_device_id, proof=x_device_proof, purpose="sync_push")
+    device = _active_device(db, device_id=x_device_id, proof=x_device_proof, purpose="sync_push")
+    command = db.execute(select(sync_commands).where(sync_commands.c.event_id == payload.event_id)).mappings().first()
+    if command is not None:
+        _require_scope_values(
+            device,
+            business_group_id=str(command["business_group_id"]),
+            company_id=str(command["company_id"]) if command["company_id"] is not None else None,
+            branch_id=str(command["branch_id"]) if command["branch_id"] is not None else None,
+        )
     return record_sync_receipt(db, device_id=x_device_id, receipt=payload)
 
 
@@ -141,12 +150,10 @@ def push_local_event(
         from app.api.errors import raise_forbidden
 
         raise_forbidden("Synchronization event source is not authorized for this device.")
-    if device["company_id"] is not None and str(payload.company_id) != str(device["company_id"]):
-        from app.api.errors import raise_forbidden
-
-        raise_forbidden("Synchronization event company scope is not authorized.")
-    if device["branch_id"] is not None and str(payload.branch_id) != str(device["branch_id"]):
-        from app.api.errors import raise_forbidden
-
-        raise_forbidden("Synchronization event branch scope is not authorized.")
+    _require_scope_values(
+        device,
+        business_group_id=str(payload.business_group_id),
+        company_id=str(payload.company_id) if payload.company_id is not None else None,
+        branch_id=str(payload.branch_id) if payload.branch_id is not None else None,
+    )
     return apply_local_sync_event(db, event=payload)
