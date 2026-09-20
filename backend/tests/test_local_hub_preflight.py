@@ -6,7 +6,7 @@ from scripts.preflight_local_hub import inspect_backup, inspect_configuration
 
 
 def test_defaults_block_production():
-    gates = {g['gate']: g['passed'] for g in inspect_configuration(Settings(_env_file=None))}
+    gates = {g['gate']: g['passed'] for g in inspect_configuration(Settings(_env_file=None, secret_key='change-me-in-development'))}
     assert not gates['production_mode']
     assert not gates['signing_secret']
     assert not gates['admin_mfa_required']
