@@ -124,7 +124,7 @@ def date_bounds(start_date: date | None, end_date: date | None) -> tuple[datetim
 
 
 def ensure_invoice_write_permission(user: User, branch_id: int) -> None:
-    if user.role not in {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
+    if user.role not in {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
         raise_forbidden("This role is read-only for invoice and POS billing.")
     ensure_branch_access(user, branch_id)
 

@@ -1,3 +1,5 @@
+> **Full-product release status:** blocked pending the expansion modules and target-Hub acceptance. See [completion matrix](docs/FULL_PRODUCT_COMPLETION_MATRIX.md) and [Local Hub go-live runbook](docs/LOCAL_HUB_GO_LIVE_RUNBOOK.md). A core CI pass is not full-roadmap completion.
+
 # AI-Powered Hybrid Retail Inventory, Sales Analytics, and Remote Order Management System
 
 > **Release status (20 September 2026): not approved for public go-live.** Core Retail/Cafe and hybrid features are implemented, but current deployment, real full-stack journeys and physical recovery need evidence. See [the current audit and completion phases](docs/DEPLOYMENT_AUDIT_2026_09_20.md). Older planning statements below are historical; they do not establish current completion of every Hitech add-on.

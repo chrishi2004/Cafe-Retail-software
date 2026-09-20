@@ -4,7 +4,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, get_current_user
+from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
 from app.models import InvoiceStatus, User
 from app.schemas.invoices import (
@@ -33,7 +33,7 @@ from app.services.invoices import (
 )
 from app.services.tax_operation import enforce_invoice_tax_policy
 
-router = APIRouter(tags=["invoices"])
+router = APIRouter(tags=["invoices"], dependencies=[Depends(require_any_permission('billing.read', 'reports.read'))])
 
 
 @router.get("/invoices", response_model=list[InvoiceListItemRead])

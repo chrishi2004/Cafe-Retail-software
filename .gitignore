@@ -51,3 +51,8 @@ Thumbs.db
 
 # Power BI local scratch files
 *.pbitmp
+
+# Browser verification artifacts (retained by CI)
+frontend/playwright-report/
+frontend/playwright-live-report/
+frontend/test-results/

@@ -1,3 +1,5 @@
+import { requestId } from "../utils/requestId";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -32,7 +34,7 @@ function messageFrom(error: unknown): string {
 }
 
 function newCheckoutKey(): string {
-  return `cafe-bill-${crypto.randomUUID()}`;
+  return `cafe-bill-${requestId()}`;
 }
 
 function sourcesFromOrders(orders: CafeOrder[]): BillingSource[] {

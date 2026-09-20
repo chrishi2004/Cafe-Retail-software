@@ -43,6 +43,8 @@ test("login renders MFA and submits authenticator code", async ({ page }) => {
   const authenticator = page.getByLabel("Authenticator code");
   await expect(authenticator).toBeVisible();
   await authenticator.fill("123456");
+  await page.getByLabel("Email", { exact: true }).fill("admin@hybridretail.test");
+  await page.getByLabel("Password", { exact: true }).fill("RetailDemo@123");
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect.poll(() => submitted).not.toBeNull();
@@ -130,3 +132,27 @@ test("cloud customer can order and retry a bill request with the same key", asyn
   expect(billKeys[1]).toBe(billKeys[0]);
   expect(operationalCalls).toBe(0);
 });
+
+for (const role of ["admin", "kitchen", "order_taker", "super_admin"]) {
+  test(`entry point routes ${role} to the correct portal`, async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem("hybrid_retail_auth_token", "portal-test"));
+    await page.route("**/api/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/api/auth/me") {
+        await route.fulfill({ json: {
+          id: 1, business_group_id: 1, company_id: role === "super_admin" ? null : 1,
+          company_name: "Cafe", company_slug: "cafe", company_business_type: "cafe",
+          name: "Portal Test", email: "test@example.com", role, branch_id: 1,
+          permissions: [], is_active: true, mfa_enabled: true,
+        } });
+      } else {
+        await route.fulfill({ status: 503, json: { error: { message: "Test service unavailable" } } });
+      }
+    });
+    await page.goto("/");
+    const section = { admin: "dashboard", kitchen: "kitchen", order_taker: "orders", super_admin: "ventures" }[role];
+    await expect(page).toHaveURL(new RegExp(`/${role === "super_admin" ? "super-admin" : "cafe"}/${section}$`));
+    await expect(page.getByText("Portal Test", { exact: true })).toBeVisible();
+    if (role === "kitchen") await expect(page.getByRole("button", { name: "Billing", exact: true })).toHaveCount(0);
+  });
+}

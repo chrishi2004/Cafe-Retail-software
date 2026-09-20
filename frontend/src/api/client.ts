@@ -1,7 +1,7 @@
 import { normalizeAuthUser, type LoginResponse, type ServerLoginResponse } from "../auth/types";
 import type { ApiErrorResponse } from "../types";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
+export const API_BASE_URL = import.meta.env.VITE_OPERATIONAL_API_BASE_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
 export class ApiError extends Error {
   status: number;

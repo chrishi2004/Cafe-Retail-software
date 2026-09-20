@@ -118,6 +118,7 @@ jobs:
         run: |
           bash -n scripts/backup_postgres.sh
           bash -n scripts/check_local_hub.sh
+          bash -n scripts/restore_postgres.sh
           python -m py_compile scripts/serve_spa.py
       - name: Audit Python dependencies
         working-directory: backend
@@ -134,7 +135,11 @@ jobs:
           test -n "$DUMP"
           sha256sum -c "${DUMP}.sha256"
           psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi_restore;"
-          pg_restore -h localhost -U postgres -d hybrid_retail_bi_restore --no-owner --no-privileges "$DUMP"
+          LOCAL_RESTORE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/hybrid_retail_bi_restore bash scripts/restore_postgres.sh "$DUMP"
+          if LOCAL_RESTORE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/hybrid_retail_bi_restore bash scripts/restore_postgres.sh "$DUMP"; then
+            echo "Restore incorrectly accepted a nonempty database" >&2
+            exit 1
+          fi
           test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20260821_0019"
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.users') IS NOT NULL" | grep -q t
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.sync_inbox') IS NOT NULL" | grep -q t
@@ -174,6 +179,20 @@ jobs:
       - name: Run browser release smoke
         working-directory: frontend
         run: npx playwright test --config=playwright.release.config.mjs
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install real browser fixture dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Build frontend for real Local Hub browser tests
+        working-directory: frontend
+        env:
+          VITE_OPERATIONAL_API_BASE_URL: http://127.0.0.1:8001/api
+          VITE_CLOUD_API_BASE_URL: http://127.0.0.1:8001/api
+        run: npm run build
+      - name: Verify real browser to API cafe workflow
+        working-directory: frontend
+        run: npx playwright test --config=playwright.live.config.mjs
       - name: Audit production npm dependencies
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
@@ -184,6 +203,7 @@ jobs:
           name: browser-release-${{ github.sha }}
           path: |
             frontend/playwright-report/
+            frontend/playwright-live-report/
             frontend/test-results/
           if-no-files-found: warn
           retention-days: 30

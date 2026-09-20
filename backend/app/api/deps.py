@@ -168,6 +168,14 @@ def require_permission(permission: str) -> Callable[[ScopeContext], ScopeContext
     return dependency
 
 
+def require_any_permission(*permissions: str) -> Callable[[ScopeContext], ScopeContext]:
+    def dependency(scope: Annotated[ScopeContext, Depends(get_scope_context)]) -> ScopeContext:
+        if not any(has_permission(scope, permission) for permission in permissions):
+            raise_forbidden("You do not have permission to access this resource.")
+        return scope
+    return dependency
+
+
 def require_admin(user: Annotated[User, Depends(require_roles(UserRole.ADMIN))]) -> User:
     return user
 

@@ -1,13 +1,13 @@
 import { FormEvent, useState } from "react";
-import { KeyRound, LockKeyhole, LogIn, Server } from "lucide-react";
+import { KeyRound, LockKeyhole, LogIn } from "lucide-react";
 
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@hybridretail.test");
-  const [password, setPassword] = useState("RetailDemo@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
@@ -125,14 +125,10 @@ export function LoginPage() {
           </button>
         </form>
 
-        <div className="login-notes" aria-label="Development login notes">
+        <div className="login-notes" aria-label="Sign-in security">
           <div>
             <LockKeyhole aria-hidden="true" size={17} />
             <span>Privileged production accounts require MFA.</span>
-          </div>
-          <div>
-            <Server aria-hidden="true" size={17} />
-            <span>API: {import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api"}</span>
           </div>
         </div>
       </section>

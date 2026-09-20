@@ -6,20 +6,7 @@ import { useAuth } from "./auth/AuthContext";
 import { defaultPathForUser, portalFromPath, safePathForUser } from "./portalRouting";
 import { CafePortal } from "./portals/CafePortal";
 import { SuperAdminPortal } from "./portals/SuperAdminPortal";
-
-function PublicOrderPlaceholder({ token }: { token: string }) {
-  return (
-    <main className="login-shell">
-      <section className="login-card">
-        <p className="eyebrow">Kalpvrik Cafe</p>
-        <h1>Table ordering is not active yet</h1>
-        <p className="page-description">
-          QR route recognized for token {token.slice(0, 6)}… . P3 keeps this surface separate from authenticated portals; public ordering remains disabled until the P5/HC2/P6 gates pass.
-        </p>
-      </section>
-    </main>
-  );
-}
+import { CustomerMenuEntry } from "./public/CustomerMenuEntry";
 
 export default function PortalApp() {
   const auth = useAuth();
@@ -37,7 +24,7 @@ export default function PortalApp() {
   };
 
   const publicOrderMatch = pathname.match(/^\/order\/([^/]+)$/);
-  if (publicOrderMatch) return <PublicOrderPlaceholder token={publicOrderMatch[1]} />;
+  if (publicOrderMatch) return <CustomerMenuEntry />;
 
   if (auth.status !== "authenticated" || !auth.user || !auth.token) {
     return <App />;

@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, get_current_user
+from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
 from app.models import PurchaseOrderStatus, User
 from app.schemas.purchase_orders import (
@@ -29,7 +29,7 @@ from app.services.purchase_orders import (
     update_purchase_order,
 )
 
-router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
+router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"], dependencies=[Depends(require_any_permission('purchases.read', 'reports.read'))])
 
 
 @router.get("", response_model=list[PurchaseOrderListItemRead])
