@@ -248,6 +248,13 @@ def count_session(db: Session, *, scope: ScopeContext, user: User, session_id: i
     session.counted_cash = _money(counted_cash)
     data = summary(db, scope=scope, session_id=session.id)
     session.variance = _money(session.counted_cash - data["expected_cash"])
+    _audit(
+        db,
+        user=user,
+        session=session,
+        action="cash_register_counted",
+        notes=f"Counted cash: {session.counted_cash}; variance: {session.variance}.",
+    )
     db.commit()
     return summary(db, scope=scope, session_id=session.id)
 
