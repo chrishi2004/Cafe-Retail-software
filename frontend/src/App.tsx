@@ -15,6 +15,7 @@ import { LowStockReorderPage } from "./pages/LowStockReorderPage";
 import { MasterDataPage, isMasterDataRoute } from "./pages/MasterDataPage";
 import { OverviewDashboardPage } from "./pages/OverviewDashboardPage";
 import { POSPage } from "./pages/POSPage";
+import { ReturnsPage } from "./pages/ReturnsPage";
 import { PowerBIReportsPage } from "./pages/PowerBIReportsPage";
 import { PurchaseOrdersDashboardPage } from "./pages/PurchaseOrdersDashboardPage";
 import { SalesPage } from "./pages/SalesPage";
@@ -29,6 +30,7 @@ const ROUTE_KEYS: RouteKey[] = [
   "products",
   "customers",
   "pos",
+  "returns",
   "sales",
   "inventory",
   "low-stock",
@@ -108,6 +110,8 @@ function App() {
         <CustomersPage />
       ) : availableRoute === "pos" ? (
         <POSPage />
+      ) : availableRoute === "returns" ? (
+        <ReturnsPage />
       ) : availableRoute === "overview" ? (
         <OverviewDashboardPage />
       ) : availableRoute === "inventory" ? (

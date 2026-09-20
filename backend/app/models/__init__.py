@@ -94,6 +94,15 @@ from app.models.purchase_order import (
     PurchaseOrderStatus,
 )
 from app.models.sale import Sale, SaleItem
+from app.models.returns import (
+    CreditNote,
+    CreditNoteStatus,
+    RefundMode,
+    ReturnCondition,
+    SalesReturn,
+    SalesReturnItem,
+    SalesReturnStatus,
+)
 from app.models.supplier import Supplier
 from app.models.sync import (
     ContinuityMode,
@@ -195,6 +204,13 @@ __all__ = [
     "PurchaseOrderStatus",
     "Sale",
     "SaleItem",
+    "CreditNote",
+    "CreditNoteStatus",
+    "RefundMode",
+    "ReturnCondition",
+    "SalesReturn",
+    "SalesReturnItem",
+    "SalesReturnStatus",
     "InventoryBatch",
     "SerialNumber",
     "StockMovement",

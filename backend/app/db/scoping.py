@@ -34,6 +34,7 @@ from app.models import (
     Inventory,
     InventoryBatch,
     Invoice,
+    InvoiceItem,
     InvoiceSequence,
     MenuCategory,
     MenuItem,
@@ -46,6 +47,9 @@ from app.models import (
     Sale,
     SerialNumber,
     StockMovement,
+    SalesReturn,
+    SalesReturnItem,
+    CreditNote,
     Supplier,
     SyncInbox,
     SyncOutbox,
@@ -103,6 +107,8 @@ COMPANY_MODELS = (
     Sale,
     SerialNumber,
     StockMovement,
+    SalesReturn,
+    CreditNote,
     Supplier,
     TableQRToken,
     TableSession,
@@ -188,6 +194,9 @@ REFERENCE_COMPANY_MODELS: dict[type[Any], tuple[tuple[str, type[Any]], ...]] = {
     CloudRecordLink: (("branch_id", Branch),),
     CashRegisterSession: (("branch_id", Branch),),
     CashRegisterMovement: (("session_id", CashRegisterSession), ("branch_id", Branch)),
+    SalesReturn: (("branch_id", Branch), ("invoice_id", Invoice), ("customer_id", Customer)),
+    SalesReturnItem: (("return_id", SalesReturn), ("invoice_item_id", InvoiceItem), ("product_id", Product)),
+    CreditNote: (("branch_id", Branch), ("invoice_id", Invoice), ("sales_return_id", SalesReturn), ("customer_id", Customer)),
 }
 
 
