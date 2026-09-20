@@ -29,6 +29,9 @@ from app.models import (
     CustomerLedgerEntry,
     CustomerPayment,
     FiscalPeriod,
+    ExpenseCategory,
+    ExpenseEntry,
+    ExpenseCategory,
     Forecast,
     GSTRegistration,
     Inventory,
@@ -94,6 +97,7 @@ COMPANY_MODELS = (
     CustomerLedgerEntry,
     CustomerPayment,
     FiscalPeriod,
+    ExpenseEntry,
     Forecast,
     GSTRegistration,
     Inventory,
@@ -208,6 +212,7 @@ REFERENCE_COMPANY_MODELS: dict[type[Any], tuple[tuple[str, type[Any]], ...]] = {
     PurchaseBillItem: (("bill_id", PurchaseBill), ("product_id", Product)),
     SupplierLedgerEntry: (("branch_id", Branch), ("supplier_id", Supplier)),
     PurchaseDebitNote: (("branch_id", Branch), ("supplier_id", Supplier), ("bill_id", PurchaseBill)),
+    ExpenseEntry: (("branch_id", Branch), ("category_id", ExpenseCategory)),
 }
 
 

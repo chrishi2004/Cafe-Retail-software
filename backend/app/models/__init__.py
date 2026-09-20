@@ -67,6 +67,7 @@ from app.models.customer import (
     CustomerPayment,
 )
 from app.models.forecast import Forecast, ForecastType
+from app.models.expense import ExpenseCategory, ExpenseEntry
 from app.models.inventory import Inventory, StockMovement, StockMovementType
 from app.models.invoice import (
     Invoice,
@@ -181,6 +182,8 @@ __all__ = [
     "FiscalPeriod",
     "Forecast",
     "ForecastType",
+    "ExpenseCategory",
+    "ExpenseEntry",
     "GSTRegistration",
     "Inventory",
     "InvoiceSequence",

@@ -46,6 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "pos", label: "POS Billing", shortLabel: "POS", icon: ReceiptText, roles: operationalRoles },
   { key: "returns", label: "Returns and Credit Notes", shortLabel: "Returns", icon: RotateCcw, roles: operationalRoles },
   { key: "purchase-bills", label: "Purchase Bills", shortLabel: "Bills", icon: ClipboardList, roles: reportingRoles },
+  { key: "expenses", label: "Expenses and Cashbook", shortLabel: "Expenses", icon: ClipboardList, roles: reportingRoles },
   { key: "sales", label: "Sales Summary", shortLabel: "Sales", icon: LineChart, roles: allRoles },
   { key: "inventory", label: "Inventory", icon: Boxes, roles: allRoles },
   { key: "low-stock", label: "Low Stock and Reorder", shortLabel: "Low Stock", icon: PackageSearch, roles: reportingRoles },

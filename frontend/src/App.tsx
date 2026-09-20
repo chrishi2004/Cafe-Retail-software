@@ -17,6 +17,7 @@ import { OverviewDashboardPage } from "./pages/OverviewDashboardPage";
 import { POSPage } from "./pages/POSPage";
 import { ReturnsPage } from "./pages/ReturnsPage";
 import { PurchaseBillsPage } from "./pages/PurchaseBillsPage";
+import { ExpensesPage } from "./pages/ExpensesPage";
 import { PowerBIReportsPage } from "./pages/PowerBIReportsPage";
 import { PurchaseOrdersDashboardPage } from "./pages/PurchaseOrdersDashboardPage";
 import { SalesPage } from "./pages/SalesPage";
@@ -33,6 +34,7 @@ const ROUTE_KEYS: RouteKey[] = [
   "pos",
   "returns",
   "purchase-bills",
+  "expenses",
   "sales",
   "inventory",
   "low-stock",
@@ -116,6 +118,8 @@ function App() {
         <ReturnsPage />
       ) : availableRoute === "purchase-bills" ? (
         <PurchaseBillsPage />
+      ) : availableRoute === "expenses" ? (
+        <ExpensesPage />
       ) : availableRoute === "overview" ? (
         <OverviewDashboardPage />
       ) : availableRoute === "inventory" ? (

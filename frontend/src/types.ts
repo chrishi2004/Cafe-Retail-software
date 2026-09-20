@@ -31,6 +31,7 @@ export type RouteKey =
   | "pos"
   | "returns"
   | "purchase-bills"
+  | "expenses"
   | "sales"
   | "inventory"
   | "low-stock"

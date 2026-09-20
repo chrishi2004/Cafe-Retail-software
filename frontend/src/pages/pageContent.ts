@@ -1,7 +1,7 @@
 import type { PageAction, PageMetric, RouteKey, TableColumn, TableRow, UserRole } from "../types";
 import { canCreateOperationalRecords } from "../navigation";
 
-export type DashboardRouteKey = Exclude<RouteKey, "products" | "customers" | "pos" | "returns" | "purchase-bills" | "suppliers" | "categories" | "branches">;
+export type DashboardRouteKey = Exclude<RouteKey, "products" | "customers" | "pos" | "returns" | "purchase-bills" | "expenses" | "suppliers" | "categories" | "branches">;
 
 type PageDefinition = {
   eyebrow: string;
