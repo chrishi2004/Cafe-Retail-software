@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Callable
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -168,10 +168,12 @@ def require_permission(permission: str) -> Callable[[ScopeContext], ScopeContext
     return dependency
 
 
-def require_any_permission(*permissions: str) -> Callable[[ScopeContext], ScopeContext]:
-    def dependency(scope: Annotated[ScopeContext, Depends(get_scope_context)]) -> ScopeContext:
+def require_any_permission(*permissions: str) -> Callable[..., ScopeContext]:
+    def dependency(request: Request, scope: Annotated[ScopeContext, Depends(get_scope_context)]) -> ScopeContext:
         if not any(has_permission(scope, permission) for permission in permissions):
             raise_forbidden("You do not have permission to access this resource.")
+        if scope.all_companies and request.method not in {"GET", "HEAD", "OPTIONS"}:
+            raise_forbidden("Select a venture before changing operational data.")
         return scope
     return dependency
 
