@@ -13,6 +13,24 @@ CLOUD_RUNTIME_URL = "postgresql+psycopg://cloud_user@region.pooler.supabase.inva
 CLOUD_MIGRATION_URL = "postgresql+psycopg://cloud_user@db.project.supabase.invalid:5432/cloud_db"
 
 
+def test_empty_optional_mfa_env_uses_environment_policy(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("REQUIRE_PRIVILEGED_MFA", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("REQUIRE_PRIVILEGED_MFA=\n", encoding="utf-8")
+    for environment, expected in (("development", False), ("production", True)):
+        config = Settings(environment=environment, _env_file=env_file)
+        assert config.require_privileged_mfa is None
+        assert config.resolved_require_privileged_mfa is expected
+
+
+def test_invalid_nonempty_mfa_env_is_rejected(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("REQUIRE_PRIVILEGED_MFA", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("REQUIRE_PRIVILEGED_MFA=not-a-boolean\n", encoding="utf-8")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=env_file)
+
+
 def build_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "environment": "test",

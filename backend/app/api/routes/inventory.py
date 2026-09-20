@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, get_current_user
+from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
 from app.models import StockMovementType, User
 from app.schemas.inventory import (
@@ -26,7 +26,7 @@ from app.services.inventory import (
 )
 from app.services.reorder import ReorderFilters, query_reorder_recommendations
 
-router = APIRouter(prefix="/inventory", tags=["inventory"])
+router = APIRouter(prefix="/inventory", tags=["inventory"], dependencies=[Depends(require_any_permission('inventory.read', 'reports.read'))])
 
 
 @router.get("", response_model=list[InventoryRead])

@@ -50,6 +50,12 @@ from app.models.cafe_order import (
     PublicRateLimitBucket,
 )
 from app.models.category import Category
+from app.models.cash_register import (
+    CashRegisterMovement,
+    CashRegisterMovementType,
+    CashRegisterSession,
+    CashRegisterSessionStatus,
+)
 from app.models.chat import AIChatMessage, AIChatSession, ChatSender
 from app.models.cloud_link import CloudRecordLink
 from app.models.customer import (
@@ -61,6 +67,7 @@ from app.models.customer import (
     CustomerPayment,
 )
 from app.models.forecast import Forecast, ForecastType
+from app.models.expense import ExpenseCategory, ExpenseEntry
 from app.models.inventory import Inventory, StockMovement, StockMovementType
 from app.models.invoice import (
     Invoice,
@@ -87,7 +94,24 @@ from app.models.purchase_order import (
     PurchaseOrderItem,
     PurchaseOrderStatus,
 )
+from app.models.purchase_accounting import (
+    PurchaseBill,
+    PurchaseBillItem,
+    PurchaseBillStatus,
+    PurchaseDebitNote,
+    SupplierLedgerEntry,
+    SupplierLedgerEntryType,
+)
 from app.models.sale import Sale, SaleItem
+from app.models.returns import (
+    CreditNote,
+    CreditNoteStatus,
+    RefundMode,
+    ReturnCondition,
+    SalesReturn,
+    SalesReturnItem,
+    SalesReturnStatus,
+)
 from app.models.supplier import Supplier
 from app.models.sync import (
     ContinuityMode,
@@ -135,6 +159,10 @@ __all__ = [
     "CafeOrderStatusHistory",
     "CafeTable",
     "Category",
+    "CashRegisterMovement",
+    "CashRegisterMovementType",
+    "CashRegisterSession",
+    "CashRegisterSessionStatus",
     "ChatSender",
     "CloudRecordLink",
     "Company",
@@ -154,6 +182,8 @@ __all__ = [
     "FiscalPeriod",
     "Forecast",
     "ForecastType",
+    "ExpenseCategory",
+    "ExpenseEntry",
     "GSTRegistration",
     "Inventory",
     "InvoiceSequence",
@@ -183,8 +213,21 @@ __all__ = [
     "PurchaseOrder",
     "PurchaseOrderItem",
     "PurchaseOrderStatus",
+    "PurchaseBill",
+    "PurchaseBillItem",
+    "PurchaseBillStatus",
+    "PurchaseDebitNote",
+    "SupplierLedgerEntry",
+    "SupplierLedgerEntryType",
     "Sale",
     "SaleItem",
+    "CreditNote",
+    "CreditNoteStatus",
+    "RefundMode",
+    "ReturnCondition",
+    "SalesReturn",
+    "SalesReturnItem",
+    "SalesReturnStatus",
     "InventoryBatch",
     "SerialNumber",
     "StockMovement",

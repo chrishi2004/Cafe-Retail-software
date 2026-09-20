@@ -19,18 +19,22 @@ def include_local_hub_routes(app: FastAPI, app_settings: Settings) -> None:
     from app.api.routes.cafe_billing import router as cafe_billing_router
     from app.api.routes.cafe_orders import router as cafe_orders_router
     from app.api.routes.cafe_qr_render import router as cafe_qr_render_router
+    from app.api.routes.cash_register import router as cash_register_router
     from app.api.routes.categories import router as categories_router
     from app.api.routes.continuity import router as continuity_router
     from app.api.routes.customers import router as customers_router
     from app.api.routes.dashboard import router as dashboard_router
     from app.api.routes.exports import router as exports_router
+    from app.api.routes.expense import router as expense_router
     from app.api.routes.forecasts import router as forecasts_router
     from app.api.routes.governance import router as governance_router
     from app.api.routes.inventory import router as inventory_router
     from app.api.routes.invoices import router as invoices_router
+    from app.api.routes.returns import router as returns_router
     from app.api.routes.products import router as products_router
     from app.api.routes.public_cafe import router as public_cafe_router
     from app.api.routes.purchase_orders import router as purchase_orders_router
+    from app.api.routes.purchase_accounting import router as purchase_accounting_router
     from app.api.routes.sales import router as sales_router
     from app.api.routes.suppliers import router as suppliers_router
     from app.api.routes.sync_status import router as sync_status_router
@@ -45,6 +49,7 @@ def include_local_hub_routes(app: FastAPI, app_settings: Settings) -> None:
         cafe_billing_router,
         cafe_router,
         cafe_qr_render_router,
+        cash_register_router,
         sync_status_router,
         continuity_router,
         tax_operation_router,
@@ -55,13 +60,16 @@ def include_local_hub_routes(app: FastAPI, app_settings: Settings) -> None:
         products_router,
         customers_router,
         invoices_router,
+        returns_router,
         inventory_router,
         sales_router,
         dashboard_router,
         purchase_orders_router,
+        purchase_accounting_router,
         forecasts_router,
         governance_router,
         exports_router,
+        expense_router,
         ai_router,
     ):
         app.include_router(router, prefix=app_settings.api_prefix)

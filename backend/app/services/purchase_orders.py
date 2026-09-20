@@ -211,13 +211,13 @@ def ensure_purchase_order_create_permission(user: User, branch_id: int) -> None:
         raise_forbidden("Analysts can view purchase orders but cannot create them.")
     if user.role == UserRole.STAFF:
         raise_forbidden("Staff purchase order creation is not configured.")
-    if user.role not in {UserRole.ADMIN, UserRole.STORE_MANAGER}:
+    if user.role not in {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_MANAGER}:
         raise_forbidden("You do not have permission to create purchase orders.")
     ensure_branch_access(user, branch_id)
 
 
 def ensure_purchase_order_operational_permission(user: User, branch_id: int) -> None:
-    if user.role == UserRole.ADMIN:
+    if user.role in {UserRole.SUPER_ADMIN, UserRole.ADMIN}:
         return
     if user.role == UserRole.STORE_MANAGER:
         ensure_branch_access(user, branch_id)
@@ -228,12 +228,12 @@ def ensure_purchase_order_operational_permission(user: User, branch_id: int) -> 
 
 
 def ensure_purchase_order_approval_permission(user: User) -> None:
-    if user.role != UserRole.ADMIN:
+    if user.role not in {UserRole.SUPER_ADMIN, UserRole.ADMIN}:
         raise_forbidden("Only admins can approve purchase orders.")
 
 
 def ensure_cancel_permission(user: User, purchase_order: PurchaseOrder) -> None:
-    if user.role == UserRole.ADMIN:
+    if user.role in {UserRole.SUPER_ADMIN, UserRole.ADMIN}:
         return
     if user.role == UserRole.STORE_MANAGER and purchase_order.status in {
         PurchaseOrderStatus.DRAFT,

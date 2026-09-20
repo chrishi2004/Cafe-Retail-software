@@ -51,7 +51,7 @@ def customer_options():
 
 
 def customer_is_accessible(user: User, customer: Customer) -> bool:
-    if user.role in {UserRole.ADMIN, UserRole.ANALYST}:
+    if user.role in {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.ANALYST}:
         return True
     return user.branch_id is not None and customer.branch_id in {None, user.branch_id}
 
@@ -62,7 +62,7 @@ def ensure_customer_read_access(user: User, customer: Customer) -> None:
 
 
 def ensure_customer_manage_access(user: User, customer_branch_id: int | None) -> None:
-    if user.role == UserRole.ADMIN:
+    if user.role in {UserRole.SUPER_ADMIN, UserRole.ADMIN}:
         return
     if user.role != UserRole.STORE_MANAGER:
         raise_forbidden("Only Admin and Store Manager roles can manage customer accounts.")
@@ -73,7 +73,7 @@ def ensure_customer_manage_access(user: User, customer_branch_id: int | None) ->
 
 
 def ensure_customer_payment_access(user: User, branch_id: int | None) -> None:
-    if user.role not in {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
+    if user.role not in {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
         raise_forbidden("This role is read-only for customer payments.")
     if branch_id is not None:
         ensure_branch_access(user, branch_id)

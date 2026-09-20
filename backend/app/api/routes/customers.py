@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, get_current_user
+from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
 from app.models import User
 from app.schemas.customers import (
@@ -27,7 +27,7 @@ from app.services.customers import (
     update_customer,
 )
 
-router = APIRouter(tags=["customers"])
+router = APIRouter(tags=["customers"], dependencies=[Depends(require_any_permission('master.read'))])
 
 
 @router.get("/customers", response_model=list[CustomerRead])

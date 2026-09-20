@@ -276,7 +276,7 @@ def query_sales_trends(
 
 
 def ensure_sale_write_permission(user: User, branch_id: int) -> None:
-    if user.role not in {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
+    if user.role not in {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF}:
         raise_forbidden("This role is read-only for sales entry.")
     ensure_branch_access(user, branch_id)
 

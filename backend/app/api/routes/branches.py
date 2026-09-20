@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_admin
+from app.api.deps import require_any_permission, get_current_user, require_admin
 from app.api.errors import raise_conflict, raise_not_found
 from app.db.session import get_db
 from app.models import Branch, User
 from app.schemas.master_data import BranchCreate, BranchRead, BranchUpdate
 from app.services.audit import write_audit_log
 
-router = APIRouter(prefix="/branches", tags=["branches"])
+router = APIRouter(prefix="/branches", tags=["branches"], dependencies=[Depends(require_any_permission('master.read'))])
 
 
 def ensure_branch_name_available(db: Session, name: str, branch_id: int | None = None) -> None:

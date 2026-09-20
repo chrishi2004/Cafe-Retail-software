@@ -241,7 +241,7 @@ def query_movements(
 
 
 def ensure_adjust_permission(user: User, branch_id: int) -> None:
-    if user.role == UserRole.ADMIN:
+    if user.role in {UserRole.SUPER_ADMIN, UserRole.ADMIN}:
         return
 
     if user.role == UserRole.STORE_MANAGER:

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.api.deps import get_current_user, require_admin
+from app.api.deps import require_any_permission, get_current_user, require_admin
 from app.api.errors import raise_conflict, raise_not_found
 from app.db.session import get_db
 from app.models import Category, Product, ProductBarcode, ProductPriceHistory, Supplier, TaxRate, User
@@ -14,7 +14,7 @@ from app.schemas.master_data import ProductCreate, ProductRead, ProductUpdate
 from app.services.audit import write_audit_log
 from app.services.barcodes import ensure_barcode_available, normalize_barcode
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(prefix="/products", tags=["products"], dependencies=[Depends(require_any_permission('master.read'))])
 
 
 def product_to_read(product: Product) -> ProductRead:

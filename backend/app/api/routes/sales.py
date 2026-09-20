@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import BranchScope, get_branch_scope, get_current_user
+from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
 from app.models import User
 from app.schemas.sales import (
@@ -23,7 +23,7 @@ from app.services.sales import (
     query_sales_trends,
 )
 
-router = APIRouter(prefix="/sales", tags=["sales"])
+router = APIRouter(prefix="/sales", tags=["sales"], dependencies=[Depends(require_any_permission('sales.read', 'reports.read'))])
 
 
 @router.get("", response_model=list[SaleListItemRead])

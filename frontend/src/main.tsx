@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import App from "./App";
+import PortalApp from "./PortalApp";
 import { AuthProvider } from "./auth/AuthContext";
 import { CustomerMenuEntry } from "./public/CustomerMenuEntry";
 
@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <CustomerMenuEntry />
     ) : (
       <AuthProvider>
-        <App />
+        <PortalApp />
       </AuthProvider>
     )}
   </React.StrictMode>,
