@@ -10,7 +10,7 @@ The earlier cafe/core CI pass validates implemented behavior; it does not comple
 | 3 Catalog/barcodes | Products, tax/HSN fields, alternate barcode lookup and barcode services | Verify actual scanner and duplicates through bulk onboarding |
 | 4 Customers/ledger | Customer records, opening balance, invoices and payment ledger | Full returns/credit-note reconciliation depends on phase 8 |
 | 5 Invoice/POS | Server-side quoting, issue/payment, stock, partial/split/credit, cafe billing | Real browser workflow coverage and target hardware acceptance; entry-point routing fixed in this change |
-| 6 Printing/PDF | Template configuration and limited existing invoice presentation | Dedicated A4/A5/58/80mm renderers, downloadable PDFs, credit/purchase templates, real printer proof |
+| 6 Printing/PDF | A4/A5/58/80mm and non-GST HTML/PDF rendering for issued invoices; POS print/PDF actions; template selection | Credit-note/purchase-bill templates depend on phases 8/9; logo upload, physical printer proof and final layout sign-off remain |
 | 7 Cash register | Invoice payments and daily cafe closing | Drawer sessions, opening float, cash-in/out, expected-versus-counted reconciliation and mode summaries |
 | 8 Returns/refunds | Governance reversal foundation | Item-level sales returns, cumulative quantity limits, saleable/damaged handling, credit notes, original-tax reversal, refund/customer ledger integration |
 | 9 Purchase accounting | Purchase orders and stock receiving | Purchase bills, supplier payable ledger/payments, purchase returns/debit notes; PO receiving must not double-count stock |
@@ -67,3 +67,7 @@ The real browser test exposed a kitchen-role authorization leak in legacy invoic
 Local evidence: 243 backend tests passed with 19 PostgreSQL-specific skips before the additional route gate patch; the seven focused bootstrap/preflight/permission tests pass after it. Seven mocked browser checks pass. Two real browser-to-FastAPI/SQLite tests pass, including order → preparation → service → cash settlement → persisted stock deduction and kitchen financial-access denial. PostgreSQL CI and actual Hub/hardware acceptance are separate gates.
 
 Owner follow-up: legacy customer, inventory, purchase and sale services now recognize the super-admin owner. Legacy operational writes require a selected venture; a regression verifies unselected-write refusal, selected-venture customer/stock writes and cross-venture rejection. The 39 affected-domain tests and all four legacy permission tests pass after this correction.
+
+### Phase 6 evidence
+
+Issued invoices can be requested as escaped printable HTML or ReportLab PDF using the selected template type. The service uses stored invoice lines, tax rows, payment rows, business profile and active GST registration; it never recomputes tax. Draft invoices are rejected. The current model has no credit-note or purchase-bill document entity, so those template types return a clear validation error until phases 8 and 9 add their accounting records. Local document tests cover HTML content, PDF signature, template selection and draft/future-type rejection. Physical printer alignment and logo assets remain Local Hub acceptance gates.

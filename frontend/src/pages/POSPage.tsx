@@ -4,6 +4,7 @@ import { CreditCard, Plus, ReceiptText, RotateCw, Search, Send, Trash2 } from "l
 import { listPaymentModes, getBusinessProfile } from "../api/businessSettings";
 import { ApiError } from "../api/client";
 import { createCustomer, listCustomers } from "../api/customers";
+import { downloadInvoicePdf, openInvoicePrintPreview } from "../api/invoiceDocuments";
 import { listBranches } from "../api/masterData";
 import { checkoutPosInvoice, holdDraftInvoice, quotePosInvoice, searchPosProducts } from "../api/pos";
 import { useAuth } from "../auth/AuthContext";
@@ -123,6 +124,25 @@ export function POSPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const canUsePOS = user?.role === "admin" || user?.role === "store_manager" || user?.role === "staff";
+  const invoiceTemplate = lastInvoice?.invoice_type === "gst" ? "a4_gst_invoice" : "non_gst_invoice";
+
+  async function printLastInvoice() {
+    if (!token || !lastInvoice) return;
+    try {
+      await openInvoicePrintPreview(token, lastInvoice.id, invoiceTemplate);
+    } catch (printError) {
+      setError(errorMessage(printError));
+    }
+  }
+
+  async function downloadLastInvoice() {
+    if (!token || !lastInvoice) return;
+    try {
+      await downloadInvoicePdf(token, lastInvoice.id, invoiceTemplate);
+    } catch (downloadError) {
+      setError(errorMessage(downloadError));
+    }
+  }
   const canQuickCreateCustomer = user?.role === "admin" || user?.role === "store_manager";
   const branchLocked = user?.role === "store_manager" || user?.role === "staff";
 
@@ -593,11 +613,11 @@ export function POSPage() {
             <span>Due {formatCurrency(lastInvoice.balance_due)}</span>
           </div>
           <div className="sale-button-row">
-            <button className="action-button secondary" disabled type="button">
-              Print in Phase 6
+            <button className="action-button secondary" onClick={() => void printLastInvoice()} type="button">
+              Print invoice
             </button>
-            <button className="action-button secondary" disabled type="button">
-              PDF in Phase 6
+            <button className="action-button secondary" onClick={() => void downloadLastInvoice()} type="button">
+              Download PDF
             </button>
           </div>
         </article>

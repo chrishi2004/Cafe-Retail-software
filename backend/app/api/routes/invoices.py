@@ -1,12 +1,12 @@
 from datetime import date
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_any_permission, BranchScope, get_branch_scope, get_current_user
 from app.db.session import get_db
-from app.models import InvoiceStatus, User
+from app.models import InvoiceStatus, PrintTemplateType, User
 from app.schemas.invoices import (
     InvoiceCancelRequest,
     InvoiceCreate,
@@ -31,6 +31,7 @@ from app.services.invoices import (
     quote_invoice,
     search_pos_products,
 )
+from app.services.invoice_documents import render_invoice_html, render_invoice_pdf, load_invoice_document
 from app.services.tax_operation import enforce_invoice_tax_policy
 
 router = APIRouter(tags=["invoices"], dependencies=[Depends(require_any_permission('billing.read', 'reports.read'))])
@@ -61,6 +62,34 @@ def read_invoices(
             search=search,
             limit=limit,
         ),
+    )
+
+
+@router.get("/invoices/{invoice_id}/document")
+def download_invoice_document(
+    invoice_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    document_format: str = Query(default="pdf", alias="format", pattern="^(html|pdf)$"),
+    template_type: PrintTemplateType | None = None,
+) -> Response:
+    document = load_invoice_document(
+        db,
+        invoice_id=invoice_id,
+        user=current_user,
+        template_type=template_type,
+    )
+    filename = f"{document.invoice.invoice_number}.{document_format}"
+    if document_format == "html":
+        return Response(
+            content=render_invoice_html(document),
+            media_type="text/html",
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+    return Response(
+        content=render_invoice_pdf(document),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
