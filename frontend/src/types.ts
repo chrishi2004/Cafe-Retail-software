@@ -30,6 +30,7 @@ export type RouteKey =
   | "customers"
   | "pos"
   | "returns"
+  | "purchase-bills"
   | "sales"
   | "inventory"
   | "low-stock"

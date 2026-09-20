@@ -44,6 +44,10 @@ from app.models import (
     ProductBarcode,
     ProductPriceHistory,
     PurchaseOrder,
+    PurchaseBill,
+    PurchaseBillItem,
+    PurchaseDebitNote,
+    SupplierLedgerEntry,
     Sale,
     SerialNumber,
     StockMovement,
@@ -104,6 +108,9 @@ COMPANY_MODELS = (
     ProductBarcode,
     ProductPriceHistory,
     PurchaseOrder,
+    PurchaseBill,
+    PurchaseDebitNote,
+    SupplierLedgerEntry,
     Sale,
     SerialNumber,
     StockMovement,
@@ -197,6 +204,10 @@ REFERENCE_COMPANY_MODELS: dict[type[Any], tuple[tuple[str, type[Any]], ...]] = {
     SalesReturn: (("branch_id", Branch), ("invoice_id", Invoice), ("customer_id", Customer)),
     SalesReturnItem: (("return_id", SalesReturn), ("invoice_item_id", InvoiceItem), ("product_id", Product)),
     CreditNote: (("branch_id", Branch), ("invoice_id", Invoice), ("sales_return_id", SalesReturn), ("customer_id", Customer)),
+    PurchaseBill: (("branch_id", Branch), ("supplier_id", Supplier)),
+    PurchaseBillItem: (("bill_id", PurchaseBill), ("product_id", Product)),
+    SupplierLedgerEntry: (("branch_id", Branch), ("supplier_id", Supplier)),
+    PurchaseDebitNote: (("branch_id", Branch), ("supplier_id", Supplier), ("bill_id", PurchaseBill)),
 }
 
 
