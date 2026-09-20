@@ -11,7 +11,7 @@ The earlier cafe/core CI pass validates implemented behavior; it does not comple
 | 4 Customers/ledger | Customer records, opening balance, invoices and payment ledger | Full returns/credit-note reconciliation depends on phase 8 |
 | 5 Invoice/POS | Server-side quoting, issue/payment, stock, partial/split/credit, cafe billing | Real browser workflow coverage and target hardware acceptance; entry-point routing fixed in this change |
 | 6 Printing/PDF | A4/A5/58/80mm and non-GST HTML/PDF rendering for issued invoices; POS print/PDF actions; template selection | Credit-note/purchase-bill templates depend on phases 8/9; logo upload, physical printer proof and final layout sign-off remain |
-| 7 Cash register | Invoice payments and daily cafe closing | Drawer sessions, opening float, cash-in/out, expected-versus-counted reconciliation and mode summaries |
+| 7 Cash register | Branch-scoped cash register sessions with opening float, cash-in/out, expenses, adjustments, payment-mode summaries, idempotent drawer movements and counted-versus-expected close | Physical drawer/printer acceptance; refund totals become richer when phase 8 returns are implemented |
 | 8 Returns/refunds | Governance reversal foundation | Item-level sales returns, cumulative quantity limits, saleable/damaged handling, credit notes, original-tax reversal, refund/customer ledger integration |
 | 9 Purchase accounting | Purchase orders and stock receiving | Purchase bills, supplier payable ledger/payments, purchase returns/debit notes; PO receiving must not double-count stock |
 | 10 Expenses/accounting | Sales analytics | Expense categories/entries, cashbook, account ledger, receivables/payables and reconciled profit reports |
@@ -71,3 +71,7 @@ Owner follow-up: legacy customer, inventory, purchase and sale services now reco
 ### Phase 6 evidence
 
 Issued invoices can be requested as escaped printable HTML or ReportLab PDF using the selected template type. The service uses stored invoice lines, tax rows, payment rows, business profile and active GST registration; it never recomputes tax. Draft invoices are rejected. The current model has no credit-note or purchase-bill document entity, so those template types return a clear validation error until phases 8 and 9 add their accounting records. Local document tests cover HTML content, PDF signature, template selection and draft/future-type rejection. Physical printer alignment and logo assets remain Local Hub acceptance gates.
+
+### Phase 7 evidence
+
+`cash_register_sessions` and `cash_register_movements` are migrated and included in the scoped model registry. The Local Hub API supports one open session per venture/branch, opening float, cash-in/out/expense/adjustment movements with idempotency keys, invoice-payment mode summaries, expected cash calculation, counted cash, variance and manager/admin close approval. Cafe staff can operate the register through the new Cash Register portal section. `backend/tests/test_cash_register.py` covers invoice cash settlement, drawer movements, reconciliation, close variance and duplicate-open rejection. Physical drawer/printer acceptance remains a target-Hub gate.

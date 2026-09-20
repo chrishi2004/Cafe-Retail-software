@@ -16,8 +16,7 @@ TMP="${DEST}.tmp"
 install -d -m 0750 "${DEST_DIR}"
 trap 'rm -f "${TMP}"' EXIT
 
-export PGDATABASE="${LOCAL_BACKUP_DATABASE_URL}"
-pg_dump --format=custom --no-owner --no-acl --file="${TMP}"
+pg_dump "${LOCAL_BACKUP_DATABASE_URL}" --format=custom --no-owner --no-acl --file="${TMP}"
 pg_restore --list "${TMP}" >/dev/null
 mv "${TMP}" "${DEST}"
 sha256sum "${DEST}" > "${DEST}.sha256"

@@ -4,6 +4,7 @@ import { TaxOperationPanel } from "../components/TaxOperationPanel";
 import { CafeBillingPage } from "../pages/CafeBillingPage";
 import { CafeContinuityPage } from "../pages/CafeContinuityPage";
 import { CafeClosingPage } from "../pages/CafeClosingPage";
+import { CashRegisterPage } from "../pages/CashRegisterPage";
 import { CafeDashboardPage } from "../pages/CafeDashboardPage";
 import { CafeKitchenPage } from "../pages/CafeKitchenPage";
 import { CafeLiveOrdersPage } from "../pages/CafeLiveOrdersPage";
@@ -24,6 +25,7 @@ const LABELS: Record<string, string> = {
   reports: "Reports",
   settings: "Settings",
   closing: "Daily Closing",
+  register: "Cash Register",
   kitchen: "Kitchen",
 };
 
@@ -36,7 +38,7 @@ type CafePortalProps = {
 
 export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalProps) {
   const sections = user.server_role === "super_admin"
-    ? ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "settings", "closing", "kitchen"]
+    ? ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "settings", "register", "closing", "kitchen"]
     : allowedCafeSections(user.server_role);
   const requested = pathname.split("/").filter(Boolean)[1] ?? sections[0] ?? "dashboard";
   const active = sections.includes(requested) ? requested : sections[0] ?? "dashboard";
@@ -52,6 +54,7 @@ export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalP
   else if (active === "reports") content = <CafeReportsPage />;
   else if (active === "settings") content = <TaxOperationPanel />;
   else if (active === "closing") content = <CafeClosingPage />;
+  else if (active === "register") content = <CashRegisterPage />;
   else content = <CafeDashboardPage />;
 
   return (

@@ -17,6 +17,8 @@ from app.models import (
     CafeOrderItem,
     CafeOrderStatusHistory,
     CafeTable,
+    CashRegisterMovement,
+    CashRegisterSession,
     Category,
     CloudRecordLink,
     Company,
@@ -76,6 +78,8 @@ COMPANY_MODELS = (
     CafeOrderItem,
     CafeOrderStatusHistory,
     CafeTable,
+    CashRegisterMovement,
+    CashRegisterSession,
     Category,
     CloudRecordLink,
     Customer,
@@ -131,6 +135,8 @@ BRANCH_MODELS = (
     CafeOrderItem,
     CafeOrderStatusHistory,
     CafeTable,
+    CashRegisterMovement,
+    CashRegisterSession,
     CloudRecordLink,
     Customer,
     CustomerLedgerEntry,
@@ -180,6 +186,8 @@ REFERENCE_COMPANY_MODELS: dict[type[Any], tuple[tuple[str, type[Any]], ...]] = {
     CafeOrderItem: (("branch_id", Branch), ("cafe_order_id", CafeOrder), ("menu_item_id", MenuItem), ("product_id", Product)),
     CafeOrderStatusHistory: (("branch_id", Branch), ("cafe_order_id", CafeOrder)),
     CloudRecordLink: (("branch_id", Branch),),
+    CashRegisterSession: (("branch_id", Branch),),
+    CashRegisterMovement: (("session_id", CashRegisterSession), ("branch_id", Branch)),
 }
 
 

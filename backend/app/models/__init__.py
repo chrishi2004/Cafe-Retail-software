@@ -50,6 +50,12 @@ from app.models.cafe_order import (
     PublicRateLimitBucket,
 )
 from app.models.category import Category
+from app.models.cash_register import (
+    CashRegisterMovement,
+    CashRegisterMovementType,
+    CashRegisterSession,
+    CashRegisterSessionStatus,
+)
 from app.models.chat import AIChatMessage, AIChatSession, ChatSender
 from app.models.cloud_link import CloudRecordLink
 from app.models.customer import (
@@ -135,6 +141,10 @@ __all__ = [
     "CafeOrderStatusHistory",
     "CafeTable",
     "Category",
+    "CashRegisterMovement",
+    "CashRegisterMovementType",
+    "CashRegisterSession",
+    "CashRegisterSessionStatus",
     "ChatSender",
     "CloudRecordLink",
     "Company",
