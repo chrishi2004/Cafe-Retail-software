@@ -68,7 +68,7 @@ jobs:
       - name: Verify independent release migration heads
         working-directory: backend
         run: |
-          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260821_0019"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260920_0020"
           test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260821_cloud_0003"
           test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
       - name: Run release security and synchronization tests
@@ -140,7 +140,7 @@ jobs:
             echo "Restore incorrectly accepted a nonempty database" >&2
             exit 1
           fi
-          test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20260821_0019"
+          test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20260920_0020"
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.users') IS NOT NULL" | grep -q t
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.sync_inbox') IS NOT NULL" | grep -q t
 

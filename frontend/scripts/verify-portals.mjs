@@ -21,7 +21,7 @@ const assertions = [
   [routing.includes('portal === "super-admin"') && routing.includes("return false"), "normal users must be blocked from Super Admin portal"],
   [routing.includes('user.company_business_type === "retail"'), "Retail portal access must derive from server venture type"],
   [routing.includes('role === "kitchen"') && routing.includes('["kitchen"]'), "Kitchen role must have preparation-only navigation"],
-  [routing.includes('role === "order_taker"') && routing.includes('["orders", "pos", "billing"]'), "P8 Order Taker must have Live Orders, New Order and Billing navigation"],
+  [routing.includes('role === "order_taker"') && routing.includes('["orders", "pos", "billing", "register"]'), "P8 Order Taker must have Live Orders, New Order, Billing and Register navigation"],
   [main.includes('window.location.pathname.startsWith("/order/")') && main.includes("<CustomerMenuEntry />"), "public QR route must remain separate from authenticated portals"],
   [cafePortal.includes("CafeLiveOrdersPage") && cafePortal.includes("CafeNewOrderPage") && cafePortal.includes("CafeKitchenPage"), "P7 operational Cafe pages must remain wired"],
   [cafePortal.includes("CafeBillingPage") && cafePortal.includes('active === "billing"'), "P8 must activate the Cafe billing workspace"],
