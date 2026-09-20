@@ -126,7 +126,8 @@ def _verify_login_mfa(user: User, credentials: LoginRequest) -> bool:
 
 @router.post("/login", response_model=TokenResponse)
 def login(credentials: LoginRequest, request: Request, db: Annotated[Session, Depends(get_db)]) -> TokenResponse:
-    user = db.scalar(select(User).where(User.email == credentials.email))
+    # Serialize recovery-code consumption until the login audit commits it.
+    user = db.scalar(select(User).where(User.email == credentials.email).with_for_update())
     if user is None or not verify_password(credentials.password, user.password_hash):
         if user is not None:
             user.failed_login_count += 1

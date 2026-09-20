@@ -48,7 +48,10 @@ export function useCafeCart(menu: PublicMenu | null, session: PublicCafeSession 
         items: lines.map((line) => ({ menu_item_public_id: line.item.public_id, quantity: line.quantity, notes: line.notes.trim() || null })),
         customer_notes: customerNotes.trim() || null,
       });
-      setCart({}); setCustomerNotes(""); setPendingKey(null); setMessage(`Order ${order.order_number} confirmed.`);
+      setCart({}); setCustomerNotes(""); setPendingKey(null);
+      setMessage(order.status === "awaiting_cafe_confirmation"
+        ? `Order ${order.order_number} sent. Waiting for Cafe confirmation.`
+        : `Order ${order.order_number} received. Check its status below.`);
       await onCommitted();
     } catch (failure: unknown) {
       setError(failure instanceof PublicCafeApiError ? failure.message : "The network did not confirm the order. Retry without changing the cart.");

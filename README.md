@@ -1,5 +1,7 @@
 # AI-Powered Hybrid Retail Inventory, Sales Analytics, and Remote Order Management System
 
+> **Release status (20 September 2026): not approved for public go-live.** Core Retail/Cafe and hybrid features are implemented, but current deployment, real full-stack journeys and physical recovery need evidence. See [the current audit and completion phases](docs/DEPLOYMENT_AUDIT_2026_09_20.md). Older planning statements below are historical; they do not establish current completion of every Hitech add-on.
+
 A full-stack portfolio project that solves a practical small-retail problem: owners need remote visibility into stock, sales, purchase orders, forecasts, and business performance, but do not want the recurring cost of a fully hosted cloud database.
 
 The system keeps the main business database local and exposes only an authenticated web dashboard/API for remote access through Cloudflare Tunnel, Tailscale, or ngrok. It combines retail operations, business intelligence, forecasting, AI-assisted analysis, Power BI reporting support, backup guidance, and workflow-level QA.
@@ -367,7 +369,7 @@ Planning documents:
 - [EXECUTION_FLOW_ANALYSIS.md](EXECUTION_FLOW_ANALYSIS.md)
 - [AGENT_STEP_BY_STEP_PROMPTS.md](AGENT_STEP_BY_STEP_PROMPTS.md)
 
-Planned multi-venture Retail and Cafe expansion (not yet implemented):
+Multi-venture Retail and Cafe requirements and implementation references (historical plans; see current release audit for status):
 
 - [PRD_MULTI_VENTURE_CAFE_EXPANSION.md](PRD_MULTI_VENTURE_CAFE_EXPANSION.md): product contract for venture isolation, Cafe operations, QR ordering, and owner governance.
 - [PRD_HYBRID_CLOUD_CONTINUITY_ADDENDUM.md](PRD_HYBRID_CLOUD_CONTINUITY_ADDENDUM.md): approved Vercel, Supabase, Local Hub, automatic queue resume, and outage-continuity contract.

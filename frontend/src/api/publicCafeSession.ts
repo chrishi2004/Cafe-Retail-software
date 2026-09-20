@@ -120,6 +120,7 @@ async function loadCloudOrders(qrValue: string): Promise<PublicOrder[]> {
 }
 
 export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeSession> {
+  let billRequested = false;
   const resolved = await resolveCloudQr(qrValue);
   if (!resolved.ordering_enabled) {
     throw new PublicCafeApiError(409, "cloud_ordering_disabled", "Cloud Cafe ordering is not enabled for this publication.");
@@ -166,7 +167,7 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
       table_code: resolved.table_code,
       table_display_name: resolved.table_display_name,
       session_public_id: sessionId,
-      session_status: "cloud_continuity",
+      session_status: billRequested ? "bill_requested" : "cloud_continuity",
       orders: await loadCloudOrders(qrValue),
     }),
     submit: async (retryKey, payload) => {
@@ -186,6 +187,7 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
         qrValue,
         cloudBillIdempotencyKey(qrValue, orderPublicId),
       );
+      billRequested = true;
       return {
         session_public_id: sessionId,
         session_status: "bill_requested",

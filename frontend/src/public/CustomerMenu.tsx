@@ -46,7 +46,7 @@ export function CustomerMenu({ qrToken }: { qrToken: string }) {
           <div><p className="eyebrow">{cafe.menu.cafe_name}</p><h1>{cafe.menu.table_display_name}</h1><p className="page-description">Table {cafe.menu.table_code} · {cafe.sessionStatus.replace(/_/g, " ")}</p></div>
           <span className={`status-badge ${acceptingItems ? "ok" : "warning"}`}>{acceptingItems ? "Ordering open" : "Ordering paused"}</span>
         </header>
-        {inCloudContinuity ? <div className="state-panel" role="status"><strong>Cloud continuity mode</strong><p>The Local Hub is temporarily unreachable. Your order will be queued safely for Cafe reconciliation; billing and stock remain local-authoritative.</p></div> : null}
+        {inCloudContinuity ? <div className="state-panel" role="status"><strong>Order confirmation</strong><p>Cafe staff will confirm your order. Please check its status below.</p></div> : null}
         {cart.message ? <div className="success-banner" role="status">{cart.message}</div> : null}
         {cart.error ? <div className="state-panel" role="alert"><p>{cart.error}</p></div> : null}
         {!acceptingItems ? <div className="state-panel"><p>New items are disabled for this session. Existing order status is still available.</p></div> : null}

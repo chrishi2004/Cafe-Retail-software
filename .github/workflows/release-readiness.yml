@@ -3,6 +3,7 @@ name: Release Readiness
 on:
   push:
     branches:
+      - main
       - agent/release-readiness-finalization
   pull_request:
     branches:
@@ -40,6 +41,7 @@ jobs:
       HC3_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
       HC2_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
       SECRET_KEY: github-actions-release-readiness-only
+      RELEASE_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
       KALPVRIK_BACKUP_ROOT: /tmp/kalpvrik-backups
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +74,9 @@ jobs:
       - name: Run release security and synchronization tests
         working-directory: backend
         run: >-
-          python -m pytest -q --disable-warnings
+          python -m pytest -q --disable-warnings --junitxml=release-targeted.xml
           tests/test_r9_mfa.py
+          tests/test_release_mfa_concurrency.py
           tests/test_release_cloud_transport.py
           tests/test_release_sync_scope.py
           tests/test_release_cloud_bill_request.py
@@ -99,10 +102,18 @@ jobs:
           alembic -c alembic_cloud.ini upgrade head
       - name: Run complete backend regression
         working-directory: backend
-        run: python -m pytest -q --disable-warnings
+        run: python -m pytest -q --disable-warnings --junitxml=release-regression.xml
       - name: Compile Python release paths
         working-directory: backend
         run: python -m compileall -q app scripts operational_server.py server.py
+      - name: Retain backend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release-${{ github.sha }}
+          path: backend/release-*.xml
+          if-no-files-found: warn
+          retention-days: 30
       - name: Validate Linux deployment scripts
         run: |
           bash -n scripts/backup_postgres.sh
@@ -166,3 +177,13 @@ jobs:
       - name: Audit production npm dependencies
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-release-${{ github.sha }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 30
