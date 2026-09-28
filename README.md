@@ -1,109 +1,141 @@
-# AI-Powered Hybrid Retail Inventory, Sales Analytics, and Remote Order Management System
+# Hybrid Retail Intelligence Platform
 
-A full-stack portfolio project that solves a practical small-retail problem: owners need remote visibility into stock, sales, purchase orders, forecasts, and business performance, but do not want the recurring cost of a fully hosted cloud database.
+A full-stack retail operations and analytics system built for small and multi-branch businesses that need inventory control, sales visibility, purchase-order workflows, forecasting, and remote owner access without making a hosted cloud database the center of the architecture.
 
-The system keeps the main business database local and exposes only an authenticated web dashboard/API for remote access through Cloudflare Tunnel, Tailscale, or ngrok. It combines retail operations, business intelligence, forecasting, AI-assisted analysis, Power BI reporting support, backup guidance, and workflow-level QA.
+The platform combines **FastAPI, PostgreSQL, React, TypeScript, forecasting, AI-assisted analysis, and Power BI-ready reporting** in a local-first deployment model.
 
-## Business Problem
+## At a Glance
 
-Small and medium retail businesses often run inventory, sales, suppliers, and purchase orders through disconnected spreadsheets or manual checks. That creates stockouts, late ordering, slow sales reporting, poor visibility for remote owners, and unnecessary cloud cost.
-
-This project presents a consulting-style solution: a local-first operational system with secure remote dashboard access, data-backed reorder decisions, AI business answers, Power BI reporting, and a clear recovery path.
-
-## Solution Summary
-
-The application lets an Admin or owner:
-
-- Log in remotely through the web dashboard.
-- Check live inventory by branch, product, category, supplier, and low-stock status.
-- Review sales KPIs, trends, gross profit, branch performance, top products, and slow-moving stock.
-- Record sales and reduce inventory through transactional backend logic.
-- Generate reorder recommendations using stock, target levels, sales velocity, and supplier lead time.
-- Create purchase order drafts from recommendations, approve orders, mark them ordered, and receive stock.
-- Run explainable forecasts using historical sales.
-- Ask an AI assistant business questions that use backend data tools instead of invented numbers.
-- Export CSV data or connect Power BI Desktop to local SQL reporting views.
-- Keep PostgreSQL local and private while documenting remote dashboard access.
-- Back up and restore the local database with documented PostgreSQL commands and helper scripts.
-
-## Core Features
-
-- Authentication with bearer tokens, logout invalidation, current user lookup, role checks, and branch scope.
-- Roles: Admin, Store Manager, Staff, Analyst.
-- Master data management for products, categories, suppliers, and branches.
-- Inventory table, low-stock detection, manual adjustments, and stock movement ledger.
-- Sales entry with multiple items, server-side totals, stock validation, inventory reduction, and audit logs.
-- KPI dashboards for overview, sales, inventory, and purchase orders.
-- Reorder recommendation engine with critical, high, medium, and low priorities.
-- Purchase order workflow: Draft, Pending Approval, Approved, Ordered, Partially Received, Received, Cancelled.
-- Forecasting service using moving average plus simple trend logic.
-- AI Assistant with safe tools for sales, low stock, reorder, top products, branch performance, slow-moving stock, pending purchase orders, and forecasts.
-- Reporting SQL views and authenticated CSV exports for Power BI.
-- Remote access, backup/restore, QA, demo, and portfolio documentation.
-
-## Tech Stack
-
-| Layer | Technology |
+| Area | Implementation |
 | --- | --- |
 | Backend | FastAPI, Python, SQLAlchemy |
-| Database | Local PostgreSQL |
-| Migrations | Alembic |
+| Database | PostgreSQL |
 | Frontend | React, TypeScript, Vite |
-| Charts | Recharts |
-| Icons | lucide-react |
-| AI | Backend tool layer first, optional OpenAI API formatting |
-| BI | Power BI Desktop through local SQL views or CSV exports |
-| Remote access | Cloudflare Tunnel, Tailscale, or ngrok |
-| Backup | PostgreSQL `pg_dump`, `pg_restore`, `psql`, PowerShell helpers |
+| Migrations | Alembic |
+| Analytics | Recharts, SQL reporting views, CSV exports |
+| Forecasting | Explainable moving-average and trend-based demand forecasts |
+| AI | Database-backed business assistant with controlled tools |
+| BI | Power BI support |
+| Access | Role-based authentication and branch scope |
+| Deployment model | Local-first with optional secure remote access |
 
-## Hybrid Local-First Architecture
+## Problem
 
-Core rule: remote users access the dashboard/API only. The browser never connects directly to PostgreSQL.
+Many small retail businesses still manage stock, purchases, sales, and reporting through disconnected spreadsheets or manual checks. That creates several recurring problems:
+
+- stockouts and delayed reordering;
+- weak visibility across branches;
+- manual purchase-order follow-up;
+- inconsistent sales reporting;
+- poor remote visibility for owners;
+- unnecessary infrastructure cost for businesses that do not need a fully cloud-native stack.
+
+This project approaches that problem as an operational system rather than a dashboard-only prototype.
+
+## Core Capabilities
+
+### Retail operations
+
+- Product, category, supplier, and branch management
+- Inventory tracking and low-stock detection
+- Manual stock adjustments with reasons
+- Stock-movement ledger
+- Multi-item sales entry with server-side totals
+- Inventory reduction after completed sales
+- Purchase-order lifecycle from draft through receiving
+- Branch-aware role permissions
+
+### Decision support
+
+- Sales KPIs and trend dashboards
+- Gross-profit and branch-performance views
+- Top-product and slow-moving-stock analysis
+- Reorder recommendations using current stock, target stock, sales velocity, and supplier lead time
+- 7, 30, and 90-day forecasting where sufficient data exists
+
+### AI-assisted analysis
+
+The assistant is designed to answer business questions using backend data tools instead of inventing operational values.
+
+Example questions include:
+
+- Which products are low in stock?
+- What should be reordered today?
+- What are the top-selling products this month?
+- Which branch is performing best?
+- Which products are slow-moving?
+- What purchase orders are still pending?
+- What is next week's demand forecast?
+
+The core data flow still works without an external model key.
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    Staff["Store staff or manager"] --> Frontend["React dashboard"]
-    Admin["Remote admin browser"] --> Tunnel["Cloudflare Tunnel, Tailscale, or ngrok"]
-    Tunnel --> Frontend
-    Frontend --> API["FastAPI backend API"]
-    API --> Auth["Auth, RBAC, branch scope"]
-    API --> DB[("Local PostgreSQL")]
-    API --> Services["Dashboard, inventory, sales, reorder, PO, forecast, AI services"]
+    Staff["Store staff / manager"] --> UI["React dashboard"]
+    Owner["Remote owner"] --> Secure["Secure tunnel / private access"]
+    Secure --> UI
+    UI --> API["FastAPI API"]
+    API --> Auth["RBAC + branch scope"]
+    API --> DB[("PostgreSQL")]
+    API --> Services["Sales · Inventory · PO · Forecast · AI"]
     Services --> DB
-    API --> Exports["CSV export APIs"]
-    PowerBI["Power BI Desktop"] --> Views["Local SQL reporting views"]
+    API --> Export["CSV / reporting exports"]
+    BI["Power BI"] --> Views["SQL reporting views"]
     Views --> DB
-    Backup["Backup scripts"] --> DB
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture, component map, business flows, and data rules.
+The browser never connects directly to PostgreSQL.
 
-## Project Structure
+For the detailed system design, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Important Business Rules
+
+The backend enforces operational rules rather than relying on frontend state:
+
+- Sales reduce inventory.
+- Creating a purchase order does not increase available stock.
+- Receiving a purchase order increases inventory.
+- Every inventory change creates a stock-movement record.
+- Manual adjustments require a reason.
+- Reorder quantities cannot be negative.
+- Dashboard metrics are calculated from backend/database data.
+- AI numerical answers use backend tools.
+- Role and branch permissions are enforced server-side.
+
+## Repository Structure
 
 ```text
-backend/    FastAPI API, SQLAlchemy models, Alembic migrations, tests, seed script
-frontend/   React TypeScript dashboard, API clients, authenticated pages
-docs/       Setup, architecture, case study, demo script, QA, reporting, remote access, backup
-powerbi/    Power BI placeholders and screenshot folder
-scripts/    PostgreSQL backup and restore helper scripts
+backend/    FastAPI API, domain logic, models, migrations, tests
+frontend/   React + TypeScript application
+docs/       Architecture, setup, QA, case study, demo and deployment docs
+powerbi/    Reporting support assets
+scripts/    Backup and restore utilities
 ```
 
-## Quick Start
-
-For a detailed setup walkthrough, use [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
+## Run Locally
 
 ### 1. Backend
 
-```powershell
+```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+source .venv/bin/activate
 pip install -r requirements.txt
-copy ..\.env.example .env
+cp ../.env.example .env
+alembic upgrade head
+python -m scripts.seed --reset
 uvicorn app.main:app --reload
 ```
 
-Health check:
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+API health check:
 
 ```text
 http://localhost:8000/api/health
@@ -111,286 +143,113 @@ http://localhost:8000/api/health
 
 ### 2. Frontend
 
-```powershell
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Dashboard:
+Open:
 
 ```text
 http://localhost:5173
 ```
 
-### 3. Local Database
+For the full setup path, see [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
 
-Default local PostgreSQL URL:
+## Testing
 
-```text
-postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
-```
+Backend regression:
 
-Run migrations:
-
-```powershell
+```bash
 cd backend
-.venv\Scripts\Activate.ps1
-alembic upgrade head
-```
-
-Seed realistic demo data:
-
-```powershell
-python -m scripts.seed --reset
-```
-
-The seed now also prepares the billing add-on foundation: demo business profile, branch GST/state records, GST rates `0%`, `5%`, `12%`, `18%`, `28%`, payment modes, print template placeholders, and the default invoice sequence `INV-2026-00001`.
-
-## Demo Credentials
-
-All seeded demo users use this development-only password:
-
-```text
-RetailDemo@123
-```
-
-| Role | Email | Scope |
-| --- | --- | --- |
-| Admin | `admin@hybridretail.test` | All branches |
-| Store Manager | `manager.central@hybridretail.test` | Central Market |
-| Staff | `staff.north@hybridretail.test` | Northside Express |
-| Staff | `staff.lakeside@hybridretail.test` | Lakeside Daily |
-| Analyst | `analyst@hybridretail.test` | Read-only reporting |
-
-See [docs/DEMO_CREDENTIALS.md](docs/DEMO_CREDENTIALS.md). Change these before using the app outside a local demo.
-
-Development GST profile: `Hybrid Retail Demo Private Limited`, PAN `ABCDE1234F`, primary GSTIN `29ABCDE1234F1Z5`. GST/e-invoice/e-way bill features are demo operational aids and must be reviewed by a CA/GST expert before real filing or production use.
-
-## Main API Surface
-
-All endpoints are prefixed with `/api`.
-
-```text
-GET  /health
-
-POST /auth/login
-POST /auth/logout
-GET  /auth/me
-
-GET  /products
-POST /products
-GET  /products/{id}
-PUT  /products/{id}
-PATCH /products/{id}/deactivate
-
-GET  /categories
-POST /categories
-PUT  /categories/{id}
-
-GET  /suppliers
-POST /suppliers
-GET  /suppliers/{id}
-PUT  /suppliers/{id}
-
-GET  /branches
-POST /branches
-PUT  /branches/{id}
-
-GET  /inventory
-GET  /inventory/low-stock
-GET  /inventory/reorder-recommendations
-POST /inventory/adjustments
-GET  /inventory/movements
-GET  /inventory/{product_id}
-
-GET  /sales
-POST /sales
-GET  /sales/summary
-GET  /sales/trends
-GET  /sales/{sale_id}
-
-GET  /dashboard/overview
-GET  /dashboard/sales
-GET  /dashboard/inventory
-GET  /dashboard/purchase-orders
-
-GET  /purchase-orders
-POST /purchase-orders
-POST /purchase-orders/from-recommendations
-GET  /purchase-orders/{id}
-PUT  /purchase-orders/{id}
-POST /purchase-orders/{id}/submit
-POST /purchase-orders/{id}/approve
-POST /purchase-orders/{id}/cancel
-POST /purchase-orders/{id}/mark-ordered
-POST /purchase-orders/{id}/receive
-
-POST /forecasts/run
-GET  /forecasts
-GET  /forecasts/products/{product_id}
-
-POST /ai/chat
-GET  /ai/sessions
-GET  /ai/sessions/{session_id}
-
-GET  /exports/sales
-GET  /exports/inventory
-GET  /exports/purchase-orders
-GET  /exports/forecasts
-```
-
-## Business Rules Implemented
-
-- Sales reduce inventory.
-- Purchase order creation does not increase available inventory.
-- Purchase order receiving increases inventory.
-- Every stock change creates a stock movement record.
-- Manual stock adjustments require a reason.
-- Reorder quantity uses target stock, current stock, average daily sales, and supplier lead time, and is never negative.
-- Dashboard metrics are calculated from backend/database data, not hardcoded frontend values.
-- AI numerical answers use backend data tools.
-- AI write-like requests require confirmation and do not mutate records through chat.
-- Backend role and branch scope checks enforce permissions.
-
-## Forecasting And AI
-
-Forecasting supports 7, 30, and 90 day horizons for revenue, units, and product demand where data exists. The model intentionally starts explainable: recent moving averages plus simple trend adjustment, with a clear insufficient-data state.
-
-The AI assistant is read-oriented in the MVP. It can answer:
-
-- What are today's sales?
-- Which products are low in stock?
-- Which items should I reorder today?
-- What are the top-selling products this month?
-- Which branch performed best?
-- Which products are slow-moving?
-- Summarize pending purchase orders.
-- Forecast next week's demand.
-
-Optional OpenAI settings:
-
-```text
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
-```
-
-If no key is configured, deterministic database-backed responses still work.
-
-## Power BI Reporting
-
-Power BI is for executive reporting and presentation. Operational actions stay in the web app/API.
-
-Reporting views:
-
-```text
-vw_sales_summary
-vw_sales_by_product
-vw_sales_by_category
-vw_inventory_health
-vw_low_stock
-vw_purchase_order_status
-vw_supplier_performance
-vw_forecast_summary
-```
-
-See [docs/POWER_BI_SETUP.md](docs/POWER_BI_SETUP.md) for PostgreSQL connection steps, CSV export workflow, recommended report pages, and suggested measures.
-
-## Remote Access
-
-The database remains local and private. Remote access should expose only the authenticated dashboard/API.
-
-Recommended options:
-
-- Cloudflare Tunnel for a polished public portfolio demo URL.
-- Tailscale for private access from trusted devices.
-- ngrok for temporary demos.
-
-See [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md).
-
-## Backup And Restore
-
-The local PostgreSQL database is the system of record. Backup files should stay out of git.
-
-```powershell
-.\scripts\backup_postgres.ps1
-.\scripts\restore_postgres.ps1 -BackupFile .\backups\postgres\YYYY-MM\hybrid_retail_bi_YYYYMMDD_HHMMSS.dump -Clean -Confirm:$false
-```
-
-See [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md) for manual and scripted workflows.
-
-## QA And Testing
-
-Workflow regression:
-
-```powershell
-cd backend
-.venv\Scripts\Activate.ps1
-python -m pytest tests/test_business_workflows.py -q
-```
-
-Broader backend regression:
-
-```powershell
-python -m pytest tests/test_auth.py tests/test_master_data.py tests/test_inventory.py tests/test_sales.py -q
-python -m pytest tests/test_reorder.py tests/test_purchase_orders.py tests/test_dashboard.py tests/test_forecasts.py -q
-python -m pytest tests/test_ai.py tests/test_exports.py tests/test_business_workflows.py -q
+python -m pytest -q
 ```
 
 Frontend checks:
 
-```powershell
+```bash
 cd frontend
 npm run typecheck
 npm run build
 ```
 
-See [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md) for manual workflow testing and known limitations.
+The repository also contains workflow-level QA documentation in [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md).
 
-## Portfolio And Demo Docs
+## Reporting
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system architecture, component map, business flows, and security rules.
-- [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md): local installation, database setup, migrations, seed data, and troubleshooting.
-- [docs/CASE_STUDY.md](docs/CASE_STUDY.md): consulting-style business case study.
-- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): interview and portfolio walkthrough script.
-- [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md): screenshot capture plan and placeholder guidance.
-- [docs/POWER_BI_SETUP.md](docs/POWER_BI_SETUP.md): Power BI reporting setup.
-- [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md): remote dashboard access while keeping PostgreSQL private.
-- [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md): backup, restore, and reliability guide.
-- [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md): automated and manual QA checklist.
-- [docs/FINAL_VERIFICATION.md](docs/FINAL_VERIFICATION.md): final PRD completion verification report.
-- [docs/DEMO_CREDENTIALS.md](docs/DEMO_CREDENTIALS.md): seed user accounts.
+Power BI is treated as an executive reporting layer, while operational actions remain in the web application.
 
-Planning documents:
+Reporting views include:
 
-- [PRD.md](PRD.md)
-- [EXECUTION_FLOW_ANALYSIS.md](EXECUTION_FLOW_ANALYSIS.md)
-- [AGENT_STEP_BY_STEP_PROMPTS.md](AGENT_STEP_BY_STEP_PROMPTS.md)
+- `vw_sales_summary`
+- `vw_sales_by_product`
+- `vw_sales_by_category`
+- `vw_inventory_health`
+- `vw_low_stock`
+- `vw_purchase_order_status`
+- `vw_supplier_performance`
+- `vw_forecast_summary`
 
-Planned multi-venture Retail and Cafe expansion (not yet implemented):
+See [docs/POWER_BI_SETUP.md](docs/POWER_BI_SETUP.md).
 
-- [PRD_MULTI_VENTURE_CAFE_EXPANSION.md](PRD_MULTI_VENTURE_CAFE_EXPANSION.md): product contract for venture isolation, Cafe operations, QR ordering, and owner governance.
-- [PRD_HYBRID_CLOUD_CONTINUITY_ADDENDUM.md](PRD_HYBRID_CLOUD_CONTINUITY_ADDENDUM.md): approved Vercel, Supabase, Local Hub, automatic queue resume, and outage-continuity contract.
-- [TRD_MULTI_VENTURE_CAFE_EXPANSION.md](TRD_MULTI_VENTURE_CAFE_EXPANSION.md): schema, authorization, API, transaction, tax-mode, and security design.
-- [TRD_HYBRID_CLOUD_CONTINUITY.md](TRD_HYBRID_CLOUD_CONTINUITY.md): cloud/local data authority, durable synchronization, writer fencing, restart, and recovery design.
-- [docs/MULTI_VENTURE_CAFE_IMPLEMENTATION_PHASES.md](docs/MULTI_VENTURE_CAFE_IMPLEMENTATION_PHASES.md): gated implementation order and tests for every phase.
-- [docs/HYBRID_CLOUD_CONTINUITY_IMPLEMENTATION_PHASES.md](docs/HYBRID_CLOUD_CONTINUITY_IMPLEMENTATION_PHASES.md): required Vercel, Supabase, Local Hub, and failure-recovery gates integrated into the Cafe phases.
-- [docs/HYBRID_DEPLOYMENT_FOUNDATION.md](docs/HYBRID_DEPLOYMENT_FOUNDATION.md): HC0 runtime modes, migration separation, Vercel project roots, Local Hub service design, and credential boundaries.
-- [AGENT_STEP_BY_STEP_PROMPTS_MULTI_VENTURE_CAFE.md](AGENT_STEP_BY_STEP_PROMPTS_MULTI_VENTURE_CAFE.md): copy-paste execution prompts for Phases 0 through 11.
-- [Multi-Venture Cafe Phase Prompts PDF](output/pdf/MULTI_VENTURE_CAFE_PHASE_PROMPTS.pdf): original formatted playbook; it predates the hybrid continuity addenda and must not be executed without the newer documents and HC gates.
+## Reliability and Remote Access
 
-## Portfolio Resume Description
+The database is intended to remain private. Remote users access the authenticated application rather than connecting directly to PostgreSQL.
 
-AI-Powered Hybrid Business Intelligence Platform for Retail Inventory, Sales Forecasting, and Remote Order Management.
+The repository documents:
 
-Built a cost-optimized full-stack retail management system with local PostgreSQL storage, secure remote dashboard access, role-based operations, inventory and sales workflows, stock movement ledger, reorder recommendations, purchase order lifecycle, forecasting, AI business assistant, Power BI reporting support, and backup/restore documentation.
+- Cloudflare Tunnel / private remote access options
+- PostgreSQL backup and restore
+- release verification
+- security checks
+- deployment boundaries
 
-## Current MVP Status
+Relevant documents:
 
-The MVP is implemented across backend, frontend, database migrations, seed data, dashboards, forecasting, AI, Power BI exports, remote access docs, backup docs, and QA hardening. Remaining optional enhancements include frontend end-to-end tests, a polished Power BI `.pbix` file with screenshots, a production reverse proxy configuration, and advanced forecasting models.
+- [Remote Access](docs/REMOTE_ACCESS.md)
+- [Backup & Restore](docs/BACKUP_RESTORE.md)
+- [Final Verification](docs/FINAL_VERIFICATION.md)
 
-## P11 Security and Release Gate
+## Engineering Decisions
 
-The application adds uniform security headers, production checks for explicit CORS and API-doc protection, and application-level throttling for login and step-up requests. Public Cafe QR/order/bill endpoints retain their database-backed rate limits and idempotency keys.
+A few deliberate choices in this project:
 
-Before any public admin exposure, complete the release evidence in [docs/MULTI_VENTURE_FINAL_VERIFICATION.md](docs/MULTI_VENTURE_FINAL_VERIFICATION.md) and [docs/PHASE_P11_REPORT.md](docs/PHASE_P11_REPORT.md). MFA/TOTP, PostgreSQL migration evidence, browser E2E, and backup/restore remain explicit release gates.
+1. **Local-first data ownership**  
+   The business can keep its primary operational database local while still providing controlled remote access.
+
+2. **Backend-enforced business rules**  
+   Inventory and purchase workflows are transactional domain behavior, not frontend-only calculations.
+
+3. **Explainable forecasting first**  
+   The initial forecasting layer favors understandable output and clear insufficient-data states over unnecessarily complex models.
+
+4. **AI as an interface to verified data**  
+   AI responses are grounded in backend tools instead of treating the model as a database.
+
+5. **Operational application and BI remain separate**  
+   Power BI supports executive analysis; transactional work stays in the application.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Setup Guide](docs/SETUP_GUIDE.md)
+- [Case Study](docs/CASE_STUDY.md)
+- [Demo Script](docs/DEMO_SCRIPT.md)
+- [QA Checklist](docs/QA_CHECKLIST.md)
+- [Power BI Setup](docs/POWER_BI_SETUP.md)
+- [Remote Access](docs/REMOTE_ACCESS.md)
+- [Backup & Restore](docs/BACKUP_RESTORE.md)
+- [Final Verification](docs/FINAL_VERIFICATION.md)
+
+Product and technical planning documents are also retained in the repository for traceability.
+
+## Current Status
+
+The main retail MVP includes backend APIs, frontend workflows, PostgreSQL migrations, authentication and role controls, inventory and sales operations, purchase orders, dashboards, forecasting, AI-assisted analysis, reporting exports, backup documentation, and QA coverage.
+
+Some broader multi-venture and cafe capabilities remain documented as planned expansion work rather than being presented as completed production functionality.
+
+## Interview Summary
+
+**Hybrid Retail Intelligence Platform** — built a local-first full-stack retail system using FastAPI, PostgreSQL, React and TypeScript with branch-aware RBAC, transactional inventory and sales workflows, purchase-order management, reorder recommendations, explainable forecasting, AI-assisted business analysis, Power BI reporting support, and documented backup/remote-access strategy.
