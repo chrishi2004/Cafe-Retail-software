@@ -165,6 +165,8 @@ Inspect the restored database with `psql` or a database client: verify `alembic_
 
 ## Normal application upgrade: backup, then Alembic
 
+For tagged Linux application releases, use [CAFE_UPGRADE_GUIDE.md](../CAFE_UPGRADE_GUIDE.md) and `scripts/upgrade_cafe_release.sh cafe-vX.Y.Z`. That orchestrator calls the existing guarded schema upgrade below; `upgrade_cafe.sh` remains the lower-level database-only maintenance command and does not fetch/build application releases.
+
 1. Schedule a short maintenance window. Stop the API and any worker that writes the Local Hub database. On Linux use `systemctl stop kalpvrik-api kalpvrik-sync` if the sync worker is enabled. Stop equivalent Windows processes/services. Keep PostgreSQL running.
 2. Keep the existing PostgreSQL cluster, external environment file, `SECRET_KEY`, production data directory and backups unchanged. Install the reviewed code/dependencies/build into the stable application path; do not repeat first-install bootstrap, copy a demo database, remove a database volume or run any demo seed.
 3. Load `KALPVRIK_ENV_FILE` and run:

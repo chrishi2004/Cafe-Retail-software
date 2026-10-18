@@ -102,6 +102,8 @@ sudo -u kalpvrik env KALPVRIK_ENV_FILE=/etc/kalpvrik/local-hub.env bash /opt/kal
 
 ## Upgrade without resetting production data
 
+For tagged production releases, follow [the production upgrade guide](../CAFE_UPGRADE_GUIDE.md) and use `sudo bash /opt/kalpvrik/scripts/upgrade_cafe_release.sh cafe-v1.1.0` with the actual reviewed tag. It performs the backup, pinned checkout, dependencies, forward migrations, build and health checks. The branch-based steps below are retained for the initial pre-tag development installation only; do not use `git pull` as the normal production release procedure.
+
 Schedule downtime. Take the manual backup above **before replacing code**. Stop the API/frontend and pause the backup timer; keep PostgreSQL running:
 
 ```bash

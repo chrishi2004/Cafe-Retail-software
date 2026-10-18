@@ -76,6 +76,39 @@ def test_linux_preflight_reads_private_current_database_without_mutation(pg_data
 
 
 @requires_postgres
+def test_release_status_and_backup_verification_are_read_only(pg_database, monkeypatch, capsys):
+    import sys
+    create, config = pg_database
+    url = create()
+    ops.bootstrap(url, config)
+    before = snapshot(url)
+    archive = ops.backup(url, reason='pre-upgrade')
+    capsys.readouterr()
+    monkeypatch.setattr(ops, 'configured_url', lambda: url)
+    monkeypatch.setattr(sys, 'argv', ['cafe_production.py', 'status'])
+    ops.main()
+    status = json.loads(capsys.readouterr().out)
+    assert status['database'] == ops.identity(url)
+    assert status['alembic_revisions']
+    monkeypatch.setattr(sys, 'argv', ['cafe_production.py', 'verify-backup', '--archive', str(archive)])
+    ops.main()
+    assert 'source identity verified' in capsys.readouterr().out
+    assert snapshot(url) == before
+    metadata_path = Path(str(archive) + '.json')
+    metadata = json.loads(metadata_path.read_text())
+    metadata['source']['database'] = 'different_database'
+    metadata_path.write_text(json.dumps(metadata))
+    with pytest.raises(RuntimeError, match='does not belong'):
+        ops.main()
+    metadata['source'] = ops.identity(url)
+    metadata_path.write_text(json.dumps(metadata))
+    archive.write_bytes(archive.read_bytes() + b'corruption')
+    with pytest.raises(RuntimeError, match='checksum'):
+        ops.main()
+    assert snapshot(url) == before
+
+
+@requires_postgres
 def test_bootstrap_only_new_database_no_fake_trading_and_repeat_refused(pg_database):
     create, config = pg_database
     url = create()

@@ -2,6 +2,8 @@
 
 Café V1 local Linux production setup: [installation, desktop launcher, health and safe uninstall](docs/CAFE_V1_LINUX.md). This profile requires only local PostgreSQL, the Operational API, the built frontend and daily backups.
 
+Tagged Café production releases: [safe upgrade and recovery guide](CAFE_UPGRADE_GUIDE.md).
+
 A full-stack retail operations and analytics system built for small and multi-branch businesses that need inventory control, sales visibility, purchase-order workflows, forecasting, and remote owner access without making a hosted cloud database the center of the architecture.
 
 The platform combines **FastAPI, PostgreSQL, React, TypeScript, forecasting, AI-assisted analysis, and Power BI-ready reporting** in a local-first deployment model.

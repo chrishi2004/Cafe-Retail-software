@@ -327,6 +327,8 @@ def main():
     sub = parser.add_subparsers(dest='action', required=True)
     first = sub.add_parser('bootstrap'); first.add_argument('--config', type=Path, required=True)
     sub.add_parser('upgrade')
+    sub.add_parser('status')
+    verify = sub.add_parser('verify-backup'); verify.add_argument('--archive', type=Path, required=True)
     check = sub.add_parser('check-upgrade'); check.add_argument('--operation', default='upgrade')
     dump = sub.add_parser('backup'); dump.add_argument('--reason', choices=['daily', 'manual', 'pre-upgrade'], default='manual')
     drill = sub.add_parser('restore'); drill.add_argument('--archive', type=Path, required=True)
@@ -338,6 +340,16 @@ def main():
     elif args.action == 'upgrade': upgrade(url)
     elif args.action == 'backup':
         with maintenance(url): print(f'Verified backup: {backup(url, reason=args.reason)}')
+    elif args.action == 'verify-backup':
+        metadata = verify_archive(args.archive.resolve())
+        if metadata['source'] != identity(url):
+            raise RuntimeError('Archive does not belong to the configured production database.')
+        print('Backup archive, full decode, checksum and source identity verified.')
+    elif args.action == 'status':
+        with maintenance(url) as connection:
+            assert_safe_operation(connection, 'upgrade')
+            revisions = list(connection.execute(text('SELECT version_num FROM alembic_version')).scalars())
+        print(json.dumps({'database': identity(url), 'alembic_revisions': revisions}))
     elif args.action == 'restore': restore(url, args.archive.resolve(), args.target_env, args.confirm_database)
     else:
         with maintenance(url) as connection: assert_safe_operation(connection, args.operation)
