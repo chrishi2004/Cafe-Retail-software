@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
 
-import { PublicCafeApiError, type PublicMenu, type PublicOrder } from "../api/publicCafeClient";
-import { openCloudCafeSession, type PublicCafeSession } from "../api/publicCafeSession";
+import {
+  PublicCafeApiError,
+  type PublicMenu,
+  type PublicOrder,
+} from "../api/publicCafeClient";
+import {
+  openPublicCafeSession,
+  type PublicCafeSession,
+} from "../api/publicCafeSession";
 
-export type CafeSessionState = "loading" | "ready" | "cloud_continuity" | "invalid" | "offline";
+export type CafeSessionState =
+  | "loading"
+  | "ready"
+  | "cloud_continuity"
+  | "invalid"
+  | "offline";
 
 export function useCafeSession(qrToken: string) {
   const [state, setState] = useState<CafeSessionState>("loading");
@@ -13,7 +25,10 @@ export function useCafeSession(qrToken: string) {
   const [sessionStatus, setSessionStatus] = useState("open");
 
   const refresh = async (active: PublicCafeSession) => {
-    const [nextMenu, nextOrders] = await Promise.all([active.menu(), active.orders()]);
+    const [nextMenu, nextOrders] = await Promise.all([
+      active.menu(),
+      active.orders(),
+    ]);
     setMenu(nextMenu);
     setOrders(nextOrders.orders);
     setSessionStatus(nextOrders.session_status);
@@ -23,10 +38,8 @@ export function useCafeSession(qrToken: string) {
     let cancelled = false;
     setState("loading");
 
-    // Release contract: the public Cafe customer route is cloud-primary in both
-    // normal and degraded operation. The browser never needs direct Local Hub
-    // reachability for QR resolution, menu reads, ordering, or status reads.
-    openCloudCafeSession(qrToken)
+    // The hosted Next.js application owns the public ordering API directly.
+    openPublicCafeSession(qrToken)
       .then(async (active) => {
         if (cancelled) return;
         setSession(active);
@@ -37,10 +50,16 @@ export function useCafeSession(qrToken: string) {
         if (cancelled) return;
         setSession(null);
         const publicError = error instanceof PublicCafeApiError ? error : null;
-        setState(publicError && [400, 401, 404, 422].includes(publicError.status) ? "invalid" : "offline");
+        setState(
+          publicError && [400, 401, 404, 422].includes(publicError.status)
+            ? "invalid"
+            : "offline",
+        );
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [qrToken]);
 
   useEffect(() => {
@@ -48,17 +67,25 @@ export function useCafeSession(qrToken: string) {
     let timer: number | undefined;
     const poll = async () => {
       if (document.visibilityState !== "visible") return;
-      const next = await session.orders();
-      setOrders(next.orders);
-      setSessionStatus(next.session_status);
+      try {
+        const next = await session.orders();
+        setOrders(next.orders);
+        setSessionStatus(next.session_status);
+      } catch {
+        setState("offline");
+      }
     };
     const schedule = () => {
       window.clearInterval(timer);
-      if (document.visibilityState === "visible") timer = window.setInterval(() => void poll(), 7000);
+      if (document.visibilityState === "visible")
+        timer = window.setInterval(() => void poll(), 7000);
     };
     document.addEventListener("visibilitychange", schedule);
     schedule();
-    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", schedule); };
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
   }, [session, state]);
 
   return { state, session, menu, orders, sessionStatus, refresh };
