@@ -1,47 +1,79 @@
-# Kalpvriksh Next.js / MongoDB Atlas rewrite
+# Kalpvriksh — Next.js + MongoDB Atlas
 
-**Experimental migration, not a production replacement.** Frontend screens have been brought into Next.js and the new backend is native TypeScript, not a FastAPI proxy. The complete legacy backend has **not** been ported: unsupported operations return 501 `migration_pending`. See [the whole-product PRD](../../docs/nextjs/WEBSITE_PRD.md) and the exact original API/schema inventories. Do not deploy this over the installed Café.
+The hosted Retail/Café website lives entirely in **`apps/web`**. Next.js serves the pages and TypeScript API handlers in one deployment. The root `frontend/` and `backend/` directories preserve the original local-first product; they are not deployed by this Vercel project.
 
-## Isolated setup
+Native web workflows include inventory/sales/purchase dashboards, POS, customer credit/ledgers, GST calculations, purchase receiving, Café orders/kitchen/tables, restricted customer QR ordering, receipts, closing, forecasts, saved deterministic assistant chats and exports. Read the [implementation report](../../docs/nextjs/NATIVE_COMPLETION_REPORT.md) for evidence, intentional legacy-interface changes and production gates. This is not a claim of full legacy parity or physical acceptance.
 
-Use Node 24 and a new MongoDB Atlas database whose name starts with `kalpvriksh_web_`. A standalone MongoDB server cannot provide the financial multi-document transactions required here. Production/staging must use separate databases, users, credentials and projects.
+## First setup — new database only
+
+Use Node 24 and an Atlas database named `kalpvriksh_web_*`. Never point at an old customer database. A standalone MongoDB server cannot support the multi-document financial transactions used here.
 
 ```bash
 cd apps/web
 npm ci
-cp .env.example .env.local
-# Privately edit .env.local: new Atlas URI/database and a random AUTH_SECRET.
-# Generate AUTH_SECRET with: openssl rand -hex 32
-# Fill unique real owner/Cafe cashier/Retail cashier emails and strong passwords.
-# Never use NEXT_PUBLIC_* for credentials or database connection strings.
+cp -n .env.example .env.local
+```
+
+Privately edit `.env.local`:
+
+- `MONGODB_URI`: Atlas database username/password connection string; URL-encode special password characters.
+- `MONGODB_DB`: for example `kalpvriksh_web_staging`.
+- `AUTH_SECRET`: a random value of at least 32 characters, generated with `openssl rand -hex 32`. **Use exactly the same value in local setup and Vercel.** It protects sessions and encrypted MFA secrets.
+- Six `BOOTSTRAP_*` email/password fields: three distinct valid emails; passwords of at least 12 characters.
+
+```bash
 npm run bootstrap
 ```
 
-Bootstrap is explicit and refuses any existing database records. It creates only a Kalpvriksh group, Café/Retail companies and branches, business profiles in non-GST mode, payment modes, separate numbering and three users. It does not create customers, products, stock or sales. The owner receives a one-time authenticator manual key in the trusted console; store it securely. Log in with the configured owner email/password and a current time-based code. Credentials/MFA from the old PostgreSQL system are not automatically imported.
+Bootstrap refuses any database that already contains records. It creates only the group, Café/Retail companies/branches, non-GST business profiles, separate numbering, payment modes and owner/two cashier accounts. It does not seed products, customers, stock or sales. It prints the owner's **time-based authenticator setup key and recovery codes once**. Keep that output private. In Google Authenticator, choose **+ → Enter a setup key → Time based** and enter the printed key, not `AUTH_SECRET`.
+
+All users share `/login`. The owner uses email, password and authenticator/recovery code. The Café cashier opens Café POS; the Retail cashier opens Retail POS. Cashiers do not need TOTP unless MFA is intentionally enabled for those accounts.
+
+**Existing deployment:** keep its same database and `AUTH_SECRET`. Do not rerun bootstrap after a code update. New collections/indexes are additive; existing records are not reseeded.
+
+## Lost authenticator — trusted terminal only
+
+After configuring the same private database and `AUTH_SECRET` in `.env.local`:
 
 ```bash
-npm run dev                  # local development, default port 3000
-npm run typecheck
-npm test                     # arithmetic, hashing, TOTP and configuration tests
-npm run test:integration     # disposable MongoDB replica set; downloads test-only mongod
-npm run build
-npx playwright install chromium
-npm run test:browser         # production Next server + browser + disposable MongoDB
-npm start                    # production Next.js server, no Vite/FastAPI process
+npm run mfa -- begin --email YOUR_OWNER_EMAIL
 ```
 
-Keep `.env.local` outside version control. The bootstrap CLI uses Node's `--env-file`; Next loads `.env.local` for development/build/runtime. Configuration is validated lazily: a build does not need credentials, and `/api/health` returns 503 if the database is unavailable. A successful health response explicitly reports `production_parity:false`.
+Add the newly printed key to Authenticator and save the new recovery codes. Run `begin` only once for that enrollment. Existing MFA remains valid until the new key is confirmed.
 
-For Vercel, create a **separate project** with Root Directory `apps/web`, Next.js framework, Node 24, and private `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET` values for each environment. Public API URLs may stay `/api`. Do not copy live customer secrets into previews. Do not bootstrap during builds or request startup. No deployment was performed by this change.
+```bash
+npm run mfa -- confirm --email YOUR_OWNER_EMAIL
+```
 
-## Native backend boundary
+Enter the current six-digit code when prompted. Confirmation replaces the secret, revokes prior sessions and consumes that code. Wait for the next phone code before logging in. Enrollment expires after 15 minutes. Do not print or share `.env.local`.
 
-Current native code covers scoped authentication/TOTP login/revocation, catalogue subsets, non-GST fully paid immediate checkout, integer-paise calculations, transaction/idempotency and conditional stock deduction, read-only Café receipts/history, simple native-sale Café reporting/CSV, group turnover, adjustments and current-day closing. MongoDB unique indexes are installed only by the explicit bootstrap.
+## Development and validation
 
-Pending: complete response/filter/pagination parity; GST, partial/credit/change/refund/ledger/draft behavior; MFA management and step-up; purchase/receiving/reservation/costing; table/session/kitchen/QR/cloud state machines; full Retail/consolidated reports; AI/forecast/BI/provider parity; migration/import/backup/restore and physical acceptance. Pages using pending APIs show errors rather than simulated data. Preserved original source is available for the remaining ports.
+```bash
+npm run dev
+npm run typecheck
+npm test
+npm run test:integration
+npm run build
+npx playwright install chromium
+npm run test:browser
+npm start
+```
 
-Atlas connectivity is required to bill. This new web architecture does not retain the original LAN-only offline guarantee. The existing PostgreSQL production installation and release branches remain unchanged.
+Tests use disposable local replica sets, never the configured customer Atlas database. `test:browser` starts the production Next build. See the report for actual test results and the inherited Python date-boundary failure.
 
-## Validation record
+## Vercel
 
-See [the conversion report](../../docs/nextjs/CONVERSION_REPORT.md) for actual commands/results, unresolved integration-environment blockers and changed-file scope. Do not interpret build success as complete backend parity or production approval.
+| Setting | Value |
+| --- | --- |
+| Repository branch | `main` |
+| Root Directory | **`apps/web`** |
+| Framework | Next.js |
+| Runtime | Node 24 |
+| Build | `npm run build` |
+| Output directory | Next.js default |
+| Private environment | `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET` |
+
+Public API base URLs can stay `/api`. Do not put credentials in `NEXT_PUBLIC_*`, bootstrap during builds, or copy production credentials into previews. Bootstrap/MFA console tasks run from a trusted local terminal against the intended Atlas database. Accounts and old PostgreSQL MFA are not automatically imported.
+
+Atlas connectivity is required for billing and QR ordering. Payments are recorded collection entries; automatic payment-provider charging/refunding is not implied. Physical receipt output, backups/restore, statutory GST documents and production acceptance require separate verification. `/api/health` deliberately retains `production_parity:false`.
