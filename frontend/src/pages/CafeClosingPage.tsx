@@ -1,35 +1,69 @@
-import { useState } from "react";
-
-import { closeClosing, createClosing, submitClosing, type Closing } from "../api/governance";
+import { useEffect, useRef, useState } from "react";
+import { closeClosing, createClosing, getClosing, reopenClosing, submitClosing, type Closing } from "../api/governance";
+import { listBranches } from "../api/masterData";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorState, LoadingState } from "../components/ui";
+import type { Branch } from "../types";
+import { cafeToday } from "../utils/cafeDates";
 
 export function CafeClosingPage() {
   const { token, user } = useAuth();
-  const [branchId, setBranchId] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState(0);
   const [openingCash, setOpeningCash] = useState("0");
+  const [reason, setReason] = useState("");
   const [countedCash, setCountedCash] = useState("");
   const [closing, setClosing] = useState<Closing | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  if (!token) return <LoadingState label="Loading closing controls" />;
-  const today = new Date().toISOString().slice(0, 10);
-  const start = async () => {
-    try { setError(null); setClosing(await createClosing(token, { branch_id: Number(branchId), business_date: today, opening_cash: openingCash })); }
-    catch (err) { setError((err as Error).message); }
+  const today = cafeToday();
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    listBranches(token).then((rows) => { if (active) { setBranches(rows); setBranchId(rows[0]?.id ?? 0); if (!rows.length) setLoading(false); } })
+      .catch((err: Error) => { if (active) { setError(err.message); setLoading(false); } });
+    return () => { active = false; };
+  }, [token]);
+  useEffect(() => {
+    if (!token || !branchId) return;
+    let active = true;
+    setLoading(true); setClosing(null); setCountedCash(""); setOpeningCash("0");
+    getClosing(token, branchId, today).then((row) => { if (active) { setClosing(row); setCountedCash(row?.counted_cash ?? ""); } })
+      .catch((err: Error) => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token, branchId, today]);
+  const run = async (action: "open" | "submit" | "close" | "reopen") => {
+    if (!token || lock.current || !branchId) return;
+    lock.current = true; setBusy(true); setError(null);
+    try {
+      const row = action === "open"
+        ? await createClosing(token, { branch_id: branchId, business_date: today, opening_cash: openingCash })
+        : action === "reopen" && closing ? await reopenClosing(token, closing.id, reason)
+        : closing && (action === "submit" ? await submitClosing(token, closing.id, countedCash) : await closeClosing(token, closing.id));
+      if (row) setClosing(row);
+    } catch (err) { setError((err as Error).message); }
+    finally { lock.current = false; setBusy(false); }
   };
-  const submit = async () => {
-    if (!closing) return;
-    try { setClosing(await submitClosing(token, closing.id, countedCash)); } catch (err) { setError((err as Error).message); }
-  };
-  const finish = async () => {
-    if (!closing) return;
-    try { setClosing(await closeClosing(token, closing.id)); } catch (err) { setError((err as Error).message); }
-  };
-  return (
-    <section className="page-stack" data-p10-scope="cafe-closing">
-      <div className="page-header"><div><p className="eyebrow">P10 · Daily closing</p><h2>Cafe cash reconciliation</h2><p className="page-description">Scope: {user?.company_name ?? "active Cafe"} · {today}. Counted cash never changes the source payments.</p></div></div>
-      {error ? <ErrorState message={error} /> : null}
-      {!closing ? <article className="panel"><h3>Open today</h3><label>Branch ID<input value={branchId} onChange={(e) => setBranchId(e.target.value)} /></label><label>Opening cash<input value={openingCash} onChange={(e) => setOpeningCash(e.target.value)} /></label><button className="logout-button" type="button" onClick={() => void start()}>Open closing</button></article> : <><section className="metric-grid"><div className="metric-card blue"><span>Expected cash</span><strong>{closing.expected_cash}</strong></div><div className="metric-card amber"><span>Non-cash total</span><strong>{closing.non_cash_total}</strong></div><div className="metric-card rose"><span>Variance</span><strong>{closing.variance ?? "Pending count"}</strong></div></section><article className="panel"><h3>Status: {closing.status}</h3><label>Counted cash<input value={countedCash} onChange={(e) => setCountedCash(e.target.value)} /></label><button className="logout-button" type="button" onClick={() => void submit()}>Submit count</button><button className="logout-button" type="button" onClick={() => void finish()}>Close day</button></article></>}
-    </section>
-  );
+  const editable = closing && ["open", "reopened"].includes(closing.status);
+  return <section className="page-stack">
+    <div className="page-header"><div><p className="eyebrow">Daily Closing</p><h2>Café cash reconciliation</h2><p>{user?.company_name} · {today}</p></div></div>
+    {error ? <ErrorState message={error} /> : null}
+    <label>Branch <select disabled={busy} value={branchId} onChange={(e) => { setError(null); setBranchId(Number(e.target.value)); }}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+    {loading ? <LoadingState label="Loading business day" /> : !branchId ? <p>No authorized active Café branch is available.</p> : !closing ? <article className="panel"><h3>Open today</h3><label>Opening cash<input type="number" min="0" step="0.01" value={openingCash} onChange={(e) => setOpeningCash(e.target.value)} /></label><button type="button" disabled={busy || openingCash === "" || Number(openingCash) < 0} onClick={() => void run("open")}>Open business day</button></article> : <>
+      <section className="metric-grid">{[
+        ["Opening cash", closing.opening_cash], ["Cash collections", closing.cash_collections],
+        ["Expected cash", closing.expected_cash], ["Non-cash totals", closing.non_cash_total],
+        ["Counted cash", closing.counted_cash ?? "Pending"], ["Variance", closing.variance ?? "Pending count"],
+      ].map(([label, value]) => <div className="metric-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
+      <article className="panel"><h3>Status: {closing.status}</h3>
+        {editable ? <><label>Counted cash<input type="number" min="0" step="0.01" value={countedCash} onChange={(e) => setCountedCash(e.target.value)} /></label><button type="button" disabled={busy || countedCash === "" || Number(countedCash) < 0} onClick={() => void run("submit")}>Submit count</button><p>Submitting stops billing for this day until the owner reopens it.</p></> : null}
+        {closing.status === "submitted" ? <button type="button" disabled={busy} onClick={() => void run("close")}>Close day</button> : null}
+        {["submitted", "closed"].includes(closing.status) ? <><label>Correction reason<input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} /></label><button type="button" disabled={busy || reason.trim().length < 3} onClick={() => void run("reopen")}>Reopen day</button></> : null}
+        {closing.status === "closed" ? <p>Day closed. The recorded count and variance are saved.</p> : null}
+      </article>
+    </>}
+  </section>;
 }

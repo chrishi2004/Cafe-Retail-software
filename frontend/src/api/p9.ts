@@ -18,6 +18,7 @@ export type P9Dashboard = {
     open_unbilled_sessions: number;
   };
   top_items: Array<{ menu_item_id: number; item_name: string; units_sold: string; ordered_value: string }>;
+  top_selling_items: P9Dashboard["top_items"];
   source_channel_mix: Record<string, string>;
   payment_mode_mix: Record<string, string>;
   table_turnover: { session_count: number; closed_session_count: number; average_duration_minutes: string | null };

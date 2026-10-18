@@ -121,3 +121,20 @@ def collect_payment(
         payload=payload,
         request=request,
     )
+
+
+from app.schemas.cafe_pos import CafeCheckoutRequest
+from app.services.cafe_pos import checkout
+
+
+@router.post('/pos/checkout', response_model=CafeBillResultRead)
+def checkout_pos(
+    payload: CafeCheckoutRequest,
+    idempotency_key: IdempotencyKey,
+    request: Request,
+    user: CurrentUser,
+    scope: CurrentScope,
+    db: Database,
+) -> CafeBillResultRead:
+    return checkout(db, scope=scope, user=user, payload=payload,
+                    idempotency_key=idempotency_key, request=request)

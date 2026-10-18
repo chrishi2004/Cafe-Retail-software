@@ -51,6 +51,7 @@ class P9DashboardRead(BaseModel):
     period_end: date
     kpis: P9KpiRead
     top_items: list[P9TopItemRead] = Field(default_factory=list)
+    top_selling_items: list[P9TopItemRead] = Field(default_factory=list)
     source_channel_mix: dict[str, Decimal] = Field(default_factory=dict)
     payment_mode_mix: dict[str, Decimal] = Field(default_factory=dict)
     table_turnover: P9TableTurnoverRead = Field(default_factory=P9TableTurnoverRead)

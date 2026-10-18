@@ -82,6 +82,7 @@ export type OrderFilters = {
   preparationArea?: PreparationArea;
   businessDate?: string;
   unbilledOnly?: boolean;
+  openOnly?: boolean;
 };
 
 export type TableSessionBillRequest = {
@@ -100,6 +101,7 @@ export function listCafeOrders(token: string, filters: OrderFilters = {}): Promi
   if (filters.source) params.set("source", filters.source);
   if (filters.preparationArea) params.set("preparation_area", filters.preparationArea);
   if (filters.businessDate) params.set("business_date", filters.businessDate);
+  if (filters.openOnly) params.set("open_only", "true");
   if (filters.unbilledOnly) params.set("unbilled_only", "true");
   const suffix = params.size ? `?${params.toString()}` : "";
   return apiRequest<CafeOrder[]>(`/cafe/orders${suffix}`, {}, token);

@@ -63,6 +63,7 @@ CafeReadUser = Annotated[
     Depends(
         require_roles(
             UserRole.ADMIN,
+            UserRole.STAFF,
             UserRole.STORE_MANAGER,
             UserRole.ORDER_TAKER,
             UserRole.KITCHEN,

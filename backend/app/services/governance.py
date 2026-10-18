@@ -12,9 +12,9 @@ from app.api.errors import raise_bad_request, raise_conflict, raise_forbidden, r
 from app.core.scope import ScopeContext
 from app.core.security import verify_password
 from app.models import (
-    AuditLog, BusinessDayClosure, CafeOrder, CafeOrderItem, ClosingStatus,
+    AuditLog, Branch, BusinessDayClosure, CafeOrder, CafeOrderItem, ClosingStatus,
     Company, FinancialReversal, Invoice, InvoicePayment, InvoiceStatus,
-    PaymentMode, PurgeRequest, PurgeStatus, RecordTombstone, ReversalType, User, UserRole,
+    PaymentMode, PaymentModeType, PurgeRequest, PurgeStatus, RecordTombstone, ReversalType, User, UserRole,
 )
 from app.schemas.governance import (
     ClosingCreate, ClosingReopen, ClosingSubmit, PurgeApprove, PurgeCreate,
@@ -44,15 +44,17 @@ def _audit(db: Session, *, user: User, company_id: int, branch_id: int | None, a
     ))
 
 
+from app.services.business_day import business_bounds
+
+
 def _period(date_value: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(date_value, time.min, tzinfo=UTC)
-    return start, start + timedelta(days=1)
+    return business_bounds(date_value)
 
 
 def _payment_totals(db: Session, *, company_id: int, branch_id: int, business_date: date) -> tuple[Decimal, Decimal]:
     start, end = _period(business_date)
     rows = db.execute(
-        select(InvoicePayment.amount, PaymentMode.name)
+        select(InvoicePayment.amount, PaymentMode.mode_type)
         .join(Invoice, Invoice.id == InvoicePayment.invoice_id)
         .outerjoin(PaymentMode, PaymentMode.id == InvoicePayment.payment_mode_id)
         .where(
@@ -66,16 +68,56 @@ def _payment_totals(db: Session, *, company_id: int, branch_id: int, business_da
     ).all()
     cash = Decimal("0.00")
     non_cash = Decimal("0.00")
-    for amount, name in rows:
-        if "cash" in (name or "").lower():
+    for amount, mode_type in rows:
+        if mode_type == PaymentModeType.CASH:
             cash += amount or Decimal("0.00")
         else:
             non_cash += amount or Decimal("0.00")
     return _money(cash), _money(non_cash)
 
 
+def _authorized_branch(db: Session, scope: ScopeContext, branch_id: int) -> Branch:
+    if scope.company_id is None:
+        raise_bad_request("Select a venture before opening Daily Closing.")
+    _scope_branch(scope, branch_id)
+    branch = db.scalar(select(Branch).where(
+        Branch.id == branch_id, Branch.company_id == scope.company_id,
+        Branch.is_active.is_(True)).with_for_update())
+    if branch is None:
+        raise_not_found("Authorized branch not found.")
+    return branch
+
+
+def ensure_business_day_open(db: Session, *, company_id: int, branch_id: int, business_date: date) -> None:
+    db.scalar(select(Branch).where(Branch.id == branch_id, Branch.company_id == company_id).with_for_update())
+    row = db.scalar(select(BusinessDayClosure).where(
+        BusinessDayClosure.company_id == company_id, BusinessDayClosure.branch_id == branch_id,
+        BusinessDayClosure.business_date == business_date))
+    if row is not None and row.status in {ClosingStatus.SUBMITTED, ClosingStatus.CLOSED}:
+        raise_conflict("This business day is submitted or closed. Ask the owner to reopen it before billing.")
+
+
+def _refresh_closing(db: Session, row: BusinessDayClosure) -> None:
+    cash, non_cash = _payment_totals(db, company_id=row.company_id, branch_id=row.branch_id,
+                                   business_date=row.business_date)
+    row.cash_collections = cash
+    row.non_cash_total = non_cash
+    row.expected_cash = _money(row.opening_cash + cash - row.cash_refunds - row.cash_expenses)
+
+
+def read_closing(db: Session, *, scope: ScopeContext, branch_id: int, business_date: date) -> BusinessDayClosure | None:
+    branch = _authorized_branch(db, scope, branch_id)
+    row = db.scalar(select(BusinessDayClosure).where(
+        BusinessDayClosure.company_id == branch.company_id, BusinessDayClosure.branch_id == branch.id,
+        BusinessDayClosure.business_date == business_date))
+    if row is not None and row.status in {ClosingStatus.OPEN, ClosingStatus.REOPENED}:
+        _refresh_closing(db, row)
+        db.commit()
+    return row
+
+
 def get_or_create_closing(db: Session, *, scope: ScopeContext, user: User, payload: ClosingCreate) -> BusinessDayClosure:
-    _scope_branch(scope, payload.branch_id)
+    _authorized_branch(db, scope, payload.branch_id)
     if scope.company_id is None:
         raise_bad_request("Select a venture before creating a branch closing.")
     _scope_company(scope, scope.company_id)
@@ -85,6 +127,9 @@ def get_or_create_closing(db: Session, *, scope: ScopeContext, user: User, paylo
         BusinessDayClosure.business_date == payload.business_date,
     ))
     if existing:
+        if existing.status in {ClosingStatus.OPEN, ClosingStatus.REOPENED}:
+            _refresh_closing(db, existing)
+            db.commit()
         return existing
     cash, non_cash = _payment_totals(db, company_id=scope.company_id, branch_id=payload.branch_id, business_date=payload.business_date)
     expected = _money(payload.opening_cash + cash)
@@ -105,8 +150,11 @@ def submit_closing(db: Session, *, scope: ScopeContext, user: User, row_id: int,
     if row is None:
         raise_not_found()
     _scope_company(scope, row.company_id); _scope_branch(scope, row.branch_id)
+    _authorized_branch(db, scope, row.branch_id)
+    db.refresh(row)
     if row.status not in {ClosingStatus.OPEN, ClosingStatus.REOPENED}:
         raise_conflict("Only an open or reopened day can be submitted.")
+    _refresh_closing(db, row)
     row.counted_cash = _money(payload.counted_cash)
     row.variance = _money(row.counted_cash - row.expected_cash)
     row.status = ClosingStatus.SUBMITTED
@@ -120,8 +168,12 @@ def close_day(db: Session, *, scope: ScopeContext, user: User, row_id: int) -> B
     row = db.get(BusinessDayClosure, row_id)
     if row is None: raise_not_found()
     _scope_company(scope, row.company_id); _scope_branch(scope, row.branch_id)
+    _authorized_branch(db, scope, row.branch_id)
+    db.refresh(row)
     if row.status != ClosingStatus.SUBMITTED or row.counted_cash is None:
         raise_conflict("A counted cash submission is required before closing.")
+    _refresh_closing(db, row)
+    row.variance = _money(row.counted_cash - row.expected_cash)
     row.status = ClosingStatus.CLOSED; row.closed_by = user.id
     _audit(db, user=user, company_id=row.company_id, branch_id=row.branch_id, action="closing_closed", entity_type="business_day_closure", entity_id=row.id, notes="Business day closed.")
     db.commit(); db.refresh(row)
@@ -132,7 +184,10 @@ def reopen_day(db: Session, *, scope: ScopeContext, user: User, row_id: int, pay
     row = db.get(BusinessDayClosure, row_id)
     if row is None: raise_not_found()
     _scope_company(scope, row.company_id); _scope_branch(scope, row.branch_id)
-    if row.status != ClosingStatus.CLOSED: raise_conflict("Only a closed day can be reopened.")
+    _authorized_branch(db, scope, row.branch_id)
+    db.refresh(row)
+    if row.status not in {ClosingStatus.CLOSED, ClosingStatus.SUBMITTED}:
+        raise_conflict("Only a submitted or closed day can be reopened.")
     row.status = ClosingStatus.REOPENED; row.reopened_by = user.id; row.reopened_reason = payload.reason
     _audit(db, user=user, company_id=row.company_id, branch_id=row.branch_id, action="closing_reopened", entity_type="business_day_closure", entity_id=row.id, notes=payload.reason)
     db.commit(); db.refresh(row)

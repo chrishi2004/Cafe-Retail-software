@@ -67,7 +67,7 @@ def test_invalid_legacy_branchless_operational_user_fails_closed(client, db_sess
     assert response.status_code == 401
 
 
-def test_retail_and_cafe_reject_roles_from_the_other_workspace(
+def test_cafe_accepts_cashier_and_retail_rejects_kitchen(
     client,
     db_session_factory: sessionmaker[Session],
 ) -> None:
@@ -78,7 +78,7 @@ def test_retail_and_cafe_reject_roles_from_the_other_workspace(
         "/api/venture-users",
         headers=owner_headers,
         json={
-            "name": "Wrong Cafe Staff Role",
+            "name": "Cafe Cashier",
             "email": "wrong.cafe.staff@example.com",
             "password": TEST_PASSWORD,
             "role": "staff",
@@ -86,7 +86,7 @@ def test_retail_and_cafe_reject_roles_from_the_other_workspace(
             "branch_id": ids["cafe_branch"],
         },
     )
-    assert cafe_staff.status_code == 400
+    assert cafe_staff.status_code == 201, cafe_staff.text
 
     retail_kitchen = client.post(
         "/api/venture-users",
@@ -103,7 +103,7 @@ def test_retail_and_cafe_reject_roles_from_the_other_workspace(
     assert retail_kitchen.status_code == 400
 
 
-def test_invalid_legacy_cross_workspace_role_fails_closed_at_login(
+def test_cafe_cashier_without_branch_fails_closed_at_login(
     client,
     db_session_factory: sessionmaker[Session],
 ) -> None:
@@ -114,8 +114,8 @@ def test_invalid_legacy_cross_workspace_role_fails_closed_at_login(
         invalid = User(
             business_group_id=1,
             company_id=2,
-            branch_id=ids["cafe_branch"],
-            name="Invalid Legacy Cafe Staff",
+            branch_id=None,
+            name="Invalid Cafe Staff Without Branch",
             email="invalid.legacy.cafe.staff@example.test",
             password_hash=template.password_hash,
             role=UserRole.STAFF,

@@ -23,6 +23,7 @@ from app.models import (
     Company,
     Invoice,
     InvoicePayment,
+    InvoiceItem,
     InvoicePaymentStatus,
     InvoiceStatus,
     MenuItem,
@@ -39,6 +40,8 @@ from app.schemas.p9 import (
     P9TopItemRead,
     P9VentureSummaryRead,
 )
+
+from app.services.business_day import business_bounds, business_today
 
 CAFE_SOURCE_TYPES = {"cafe_table_session", "cafe_takeaway"}
 CANCELLED_STATUSES = {InvoiceStatus.CANCELLED, InvoiceStatus.RETURNED}
@@ -61,7 +64,7 @@ def _money(value: Decimal | None) -> Decimal:
 
 
 def _period(filters: P9DashboardFilters) -> P9Period:
-    end = filters.end_date or datetime.now(UTC).date()
+    end = filters.end_date or business_today()
     start = filters.start_date or (end - timedelta(days=29))
     if start > end:
         start, end = end, start
@@ -69,10 +72,7 @@ def _period(filters: P9DashboardFilters) -> P9Period:
 
 
 def _bounds(period: P9Period) -> tuple[datetime, datetime]:
-    return (
-        datetime.combine(period.start, time.min, tzinfo=UTC),
-        datetime.combine(period.end + timedelta(days=1), time.min, tzinfo=UTC),
-    )
+    return business_bounds(period.start, period.end)
 
 
 def _company_ids(db: Session, scope: ScopeContext) -> list[int]:
@@ -153,16 +153,18 @@ def _load_invoices(db: Session, scope: ScopeContext, filters: P9DashboardFilters
 
 
 def _payment_totals(db: Session, scope: ScopeContext, filters: P9DashboardFilters, period: P9Period, cafe_only: bool | None):
-    invoices = _load_invoices(db, scope, filters, period, cafe_only)
-    invoice_ids = [invoice.id for invoice in invoices if invoice.status in REVENUE_STATUSES]
-    if not invoice_ids:
-        return Decimal("0.00"), {}
-    payments = list(
-        db.scalars(
-            select(InvoicePayment)
-            .where(InvoicePayment.invoice_id.in_(invoice_ids))
-        )
-    )
+    start, end = _bounds(period)
+    statement = select(InvoicePayment).join(Invoice).where(
+        InvoicePayment.payment_datetime >= start, InvoicePayment.payment_datetime < end,
+        Invoice.status.in_(REVENUE_STATUSES))
+    statement = _scope_statement(statement, Invoice, scope, filters, _company_ids(db, scope))
+    if cafe_only is True:
+        statement = statement.where(Invoice.source_type.in_(CAFE_SOURCE_TYPES))
+    elif cafe_only is False:
+        statement = statement.where((Invoice.source_type.is_(None)) | (~Invoice.source_type.in_(CAFE_SOURCE_TYPES)))
+    if filters.payment_mode:
+        statement = statement.join(PaymentMode).where(PaymentMode.mode_type == filters.payment_mode)
+    payments = list(db.scalars(statement))
     total = Decimal("0.00")
     by_mode: dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
     for payment in payments:
@@ -213,7 +215,8 @@ def _cafe_dashboard(db: Session, scope: ScopeContext, filters: P9DashboardFilter
         for order in orders
     )
     eligible_orders = [order for order in orders if order.status not in {CafeOrderStatus.REJECTED, CafeOrderStatus.CANCELLED}]
-    average_bill = billed / len(invoices) if invoices else Decimal("0.00")
+    bill_count = sum(invoice.status in REVENUE_STATUSES for invoice in invoices)
+    average_bill = billed / bill_count if bill_count else Decimal("0.00")
     open_sessions = len(
         db.scalars(
             _scope_statement(
@@ -249,6 +252,21 @@ def _cafe_dashboard(db: Session, scope: ScopeContext, filters: P9DashboardFilter
         P9TopItemRead(menu_item_id=menu_id, item_name=str(row["item_name"]), units_sold=row["units"], ordered_value=_money(row["value"]))
         for menu_id, row in sorted(top_items.items(), key=lambda pair: (pair[1]["value"], pair[1]["units"]), reverse=True)[:10]
     ]
+    # Keep the existing ordered-item report, and separately rank actual billed items.
+    sold: dict[int, dict] = {}
+    active_invoice_ids = [invoice.id for invoice in invoices if invoice.status in REVENUE_STATUSES]
+    if active_invoice_ids:
+        rows = db.execute(select(CafeOrderItem, InvoiceItem)
+            .join(InvoiceItem, InvoiceItem.id == CafeOrderItem.billed_invoice_item_id)
+            .where(InvoiceItem.invoice_id.in_(active_invoice_ids))).all()
+        for item, line in rows:
+            bucket = sold.setdefault(item.menu_item_id, {'name': item.menu_item_name_snapshot,
+                'units': Decimal('0'), 'value': Decimal('0')})
+            bucket['units'] += line.quantity
+            bucket['value'] += line.line_total
+    sold_rows = [P9TopItemRead(menu_item_id=menu_id, item_name=row['name'],
+        units_sold=row['units'], ordered_value=_money(row['value']))
+        for menu_id, row in sorted(sold.items(), key=lambda pair: pair[1]['units'], reverse=True)[:10]]
     source_mix: dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
     for order in eligible_orders:
         source_mix[order.source_channel.value] += order.estimated_total or Decimal("0.00")
@@ -288,6 +306,7 @@ def _cafe_dashboard(db: Session, scope: ScopeContext, filters: P9DashboardFilter
             open_unbilled_sessions=open_sessions,
         ),
         top_items=top_rows,
+        top_selling_items=sold_rows,
         source_channel_mix={key: _money(value) for key, value in source_mix.items()},
         payment_mode_mix=payment_mix,
         table_turnover=P9TableTurnoverRead(

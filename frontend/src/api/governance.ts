@@ -28,3 +28,11 @@ export function closeClosing(token: string, id: number) {
 export function requestPurge(token: string, payload: { entity_type: string; entity_id: number; reason: string; backup_reference: string }) {
   return apiRequest<PurgeRequest>("/governance/purges", { method: "POST", body: JSON.stringify(payload) }, token);
 }
+
+export function getClosing(token: string, branchId: number, businessDate: string) {
+  return apiRequest<Closing | null>(`/governance/closings?branch_id=${branchId}&business_date=${businessDate}`, {}, token);
+}
+
+export function reopenClosing(token: string, id: number, reason: string) {
+  return apiRequest<Closing>(`/governance/closings/${id}/reopen`, { method: "POST", body: JSON.stringify({ reason }) }, token);
+}

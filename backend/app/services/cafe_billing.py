@@ -60,7 +60,7 @@ from app.services.business_settings import generate_next_invoice_number
 from app.services.customers import add_customer_ledger_entry, validate_customer_credit_limit
 from app.services.invoices import add_invoice_payments, add_status_history, invoice_status_for_payment, money, quantity
 
-BILLING_ROLES = {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER}
+BILLING_ROLES = {UserRole.STAFF, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER}
 ELIGIBLE_ORDER_STATUSES = {
     CafeOrderStatus.ACCEPTED,
     CafeOrderStatus.SERVED,
@@ -841,12 +841,13 @@ def _bill(
     payload: CafeBillRequest,
     idempotency_key: str,
     request: Request | None,
+    request_hash: str | None = None,
 ) -> CafeBillResultRead:
     company = _require_cafe_company(db, scope)
     if len(idempotency_key.strip()) < 8 or len(idempotency_key) > 200:
         raise_bad_request("A stable Idempotency-Key of at least 8 characters is required.")
     idem_hash = _hash(idempotency_key.strip())
-    req_hash = _request_hash(payload)
+    req_hash = request_hash or _request_hash(payload)
 
     existing = _existing_idempotent_invoice(
         db,
@@ -858,6 +859,15 @@ def _bill(
     )
     if existing is not None:
         return _result_for_invoice(db, scope=scope, invoice=existing, replay=True)
+
+    from app.services.business_day import business_today
+    from app.services.governance import ensure_business_day_open
+    # The source supplies the branch; the client cannot choose a different day boundary.
+    source = (_session_for_scope(db, scope=scope, public_id=source_id, lock=True)
+              if source_type == SOURCE_TABLE else
+              _standalone_order_for_scope(db, scope=scope, public_id=source_id, lock=True))
+    ensure_business_day_open(db, company_id=company.id, branch_id=source.branch_id,
+                             business_date=business_today())
 
     existing_source = _active_source_invoice(
         db, company_id=company.id, source_type=source_type, source_id=source_id
@@ -1049,6 +1059,9 @@ def collect_invoice_payment(
         _ensure_branch(scope, invoice.branch_id)
         if invoice.balance_due <= 0:
             raise_conflict("This Cafe invoice is already settled.")
+        from app.services.business_day import business_today
+        from app.services.governance import ensure_business_day_open
+        ensure_business_day_open(db, company_id=company.id, branch_id=invoice.branch_id, business_date=business_today())
         wrapped = CafeBillRequest(payments=[payload.payment])
         _validate_payment_modes(db, company_id=company.id, payload=wrapped)
         actual_paid = add_invoice_payments(
