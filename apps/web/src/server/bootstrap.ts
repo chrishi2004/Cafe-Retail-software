@@ -1,8 +1,9 @@
+import { enrollment } from "./accounts";
 import { randomBytes } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { database, disconnect, indexes, nextId, type Row } from "./db";
-import { encrypt, hashPassword } from "./security";
+import { digest, encrypt, hashPassword } from "./security";
 export async function bootstrap() {
   const credentials = z
     .object({
@@ -28,10 +29,8 @@ export async function bootstrap() {
         "Bootstrap is NEW database only. Existing data will not be changed.",
       );
   await indexes(db);
-  const secret = Array.from(
-    randomBytes(32),
-    (n) => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[n % 32],
-  ).join("");
+  const enrolled = enrollment(emails[0]);
+  const secret = enrolled.secret;
   const session = client.startSession();
   try {
     await session.withTransaction(
@@ -71,6 +70,7 @@ export async function bootstrap() {
           is_active: true,
           mfa_enabled: true,
           mfa_secret_encrypted: encrypt(secret),
+          mfa_recovery_hashes: enrolled.recovery_codes.map(digest),
         });
         for (const [index, type] of ["cafe", "retail"].entries()) {
           const name =
@@ -148,7 +148,11 @@ export async function bootstrap() {
   } finally {
     await session.endSession();
   }
-  return { owner: emails[0], totpSecret: secret };
+  return {
+    owner: emails[0],
+    totpSecret: secret,
+    recoveryCodes: enrolled.recovery_codes,
+  };
 }
 if (
   process.argv[1] &&
@@ -164,11 +168,30 @@ if (
         "Add this TIME-BASED manual key to your authenticator and store securely:",
         result.totpSecret,
       );
+      console.log(
+        "Recovery codes (store privately):\n" + result.recoveryCodes.join("\n"),
+      );
     })
-    .catch(() => {
+    .catch((error) => {
       console.error(
         "Bootstrap refused or failed. Verify external configuration and that the database is empty.",
       );
+      let detail = error?.issues
+        ? error.issues
+            .map(
+              (i: { path: string[]; message: string }) =>
+                `${i.path.join(".")}: ${i.message}`,
+            )
+            .join("; ")
+        : String(error?.message ?? error);
+      for (const [name, value] of Object.entries(process.env))
+        if (value && /(PASSWORD|SECRET|MONGODB_URI)/.test(name))
+          detail = detail.split(value).join("[REDACTED]");
+      detail = detail.replace(
+        /mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi,
+        "[REDACTED]",
+      );
+      console.error(detail);
       process.exitCode = 1;
     })
     .finally(disconnect);
