@@ -1,5 +1,7 @@
 # Café V1: persistent production data and safe upgrades
 
+Linux installation and service activation: [Café V1 local Linux profile](CAFE_V1_LINUX.md). It uses only PostgreSQL, the Operational API, built frontend and daily backup timer.
+
 This is the production procedure for `release/cafe-v1`. PostgreSQL is the system of record. Installing application files, building the frontend or restarting services does not create, recreate, seed or reset the database. Alembic is the only normal schema upgrade path.
 
 ## Durable layout

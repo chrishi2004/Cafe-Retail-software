@@ -1,5 +1,7 @@
 # Linux / Omarchy Local Hub Deployment
 
+For the **local-only Café V1 release**, use [Café V1 Linux installation](CAFE_V1_LINUX.md). The broader deployment below includes optional future services and is not the Café V1 startup checklist.
+
 For Café V1 database bootstrap, backups, restore drills and upgrades, follow [Café production data](CAFE_PRODUCTION_DATA.md). Use its guarded bootstrap for a new empty database and its backup-before-Alembic upgrade command for an existing database; do not run the generic migration snippet below before a new Café bootstrap.
 
 This is the preferred production profile for a dedicated or POS-combined Local Hub. It works on Omarchy/Arch because it uses standard systemd services; a minimal Debian/Ubuntu server installation is also suitable when the machine is dedicated only to server duties.

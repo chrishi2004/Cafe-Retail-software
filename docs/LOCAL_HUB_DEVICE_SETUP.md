@@ -1,5 +1,7 @@
 # Local Hub device setup
 
+For local-only Linux operation, use [Café V1 Linux installation](CAFE_V1_LINUX.md) for the scripted install, desktop launcher, health check and uninstall procedure.
+
 For the Café V1 production release, follow [Café production data and upgrades](CAFE_PRODUCTION_DATA.md). That guide replaces the older demo-seed installation procedure.
 
 - Install the supported PostgreSQL server/client tools and keep its persistent data directory across code upgrades.

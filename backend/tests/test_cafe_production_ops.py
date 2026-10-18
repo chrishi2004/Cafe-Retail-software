@@ -60,6 +60,22 @@ def snapshot(url):
 
 
 @requires_postgres
+def test_linux_preflight_reads_private_current_database_without_mutation(pg_database):
+    import runpy
+    from types import SimpleNamespace
+    create, config = pg_database
+    url = create()
+    check = runpy.run_path(str(Path(__file__).resolve().parents[2] / 'scripts/check_cafe_v1.py'))['check_database']
+    settings = SimpleNamespace(runtime_database_url=url.render_as_string(hide_password=False))
+    with pytest.raises(Exception):
+        check(settings)  # Empty/uninitialized database cannot start the production API.
+    ops.bootstrap(url, config)
+    before = snapshot(url)
+    check(settings)
+    assert snapshot(url) == before
+
+
+@requires_postgres
 def test_bootstrap_only_new_database_no_fake_trading_and_repeat_refused(pg_database):
     create, config = pg_database
     url = create()
