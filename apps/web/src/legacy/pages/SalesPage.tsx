@@ -1,3 +1,6 @@
+import { RetailReceipt } from "../components/RetailReceipt";
+import { apiRequest } from "../api/client";
+import type { Invoice } from "../types";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, Plus, ReceiptText, RefreshCw, Send, Trash2 } from "lucide-react";
 import {
@@ -18,7 +21,12 @@ import { listInventory } from "../api/inventory";
 import { listBranches, listCategories, listProducts } from "../api/masterData";
 import { createSale, getSale, listSales } from "../api/sales";
 import { useAuth } from "../auth/AuthContext";
-import { EmptyState, ErrorState, LoadingState, MetricCard } from "../components/ui";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  MetricCard,
+} from "../components/ui";
 import type {
   Branch,
   Category,
@@ -126,10 +134,13 @@ export function SalesPage() {
   const [productId, setProductId] = useState(0);
   const [startDate, setStartDate] = useState(() => inputDateDaysAgo(30));
   const [endDate, setEndDate] = useState(() => inputDateDaysAgo(0));
-  const [saleLines, setSaleLines] = useState<SaleFormLine[]>(() => [blankLine()]);
+  const [saleLines, setSaleLines] = useState<SaleFormLine[]>(() => [
+    blankLine(),
+  ]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [reprint, setReprint] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -153,7 +164,13 @@ export function SalesPage() {
   }, [inventoryRows]);
 
   useEffect(() => {
-    if (user && user.role !== "admin" && user.role !== "analyst" && user.branch_id && branchId !== user.branch_id) {
+    if (
+      user &&
+      user.role !== "admin" &&
+      user.role !== "analyst" &&
+      user.branch_id &&
+      branchId !== user.branch_id
+    ) {
       setBranchId(user.branch_id);
     }
   }, [branchId, user]);
@@ -198,7 +215,10 @@ export function SalesPage() {
       setSummary(dashboardData.summary);
       setDashboard(dashboardData);
       setTrends(dashboardData.sales_trend.slice(-14));
-      if (selectedSale && !saleRows.some((sale) => sale.id === selectedSale.id)) {
+      if (
+        selectedSale &&
+        !saleRows.some((sale) => sale.id === selectedSale.id)
+      ) {
         setSelectedSale(null);
       }
     } catch (loadError) {
@@ -206,14 +226,26 @@ export function SalesPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, categoryId, endDate, productId, selectedSale, startDate, token]);
+  }, [
+    branchId,
+    categoryId,
+    endDate,
+    productId,
+    selectedSale,
+    startDate,
+    token,
+  ]);
 
   useEffect(() => {
-    void loadOptions().catch((optionsError) => setError(errorMessage(optionsError)));
+    void loadOptions().catch((optionsError) =>
+      setError(errorMessage(optionsError)),
+    );
   }, [loadOptions]);
 
   useEffect(() => {
-    void loadInventoryRows().catch((inventoryError) => setError(errorMessage(inventoryError)));
+    void loadInventoryRows().catch((inventoryError) =>
+      setError(errorMessage(inventoryError)),
+    );
   }, [loadInventoryRows]);
 
   useEffect(() => {
@@ -222,12 +254,18 @@ export function SalesPage() {
 
   const updateLine = (index: number, changes: Partial<SaleFormLine>) => {
     setSaleLines((current) =>
-      current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...changes } : line)),
+      current.map((line, lineIndex) =>
+        lineIndex === index ? { ...line, ...changes } : line,
+      ),
     );
   };
 
   const removeLine = (index: number) => {
-    setSaleLines((current) => (current.length === 1 ? current : current.filter((_line, lineIndex) => lineIndex !== index)));
+    setSaleLines((current) =>
+      current.length === 1
+        ? current
+        : current.filter((_line, lineIndex) => lineIndex !== index),
+    );
   };
 
   const saleEstimate = useMemo(() => {
@@ -236,7 +274,9 @@ export function SalesPage() {
       if (!product) return sum;
       const quantity = Number(line.quantity) || 0;
       const discount = Number(line.discountAmount) || 0;
-      return sum + Math.max(Number(product.selling_price) * quantity - discount, 0);
+      return (
+        sum + Math.max(Number(product.selling_price) * quantity - discount, 0)
+      );
     }, 0);
     const tax = subtotal * 0.05;
     return {
@@ -280,7 +320,9 @@ export function SalesPage() {
       });
       setSelectedSale(sale);
       setSaleLines([blankLine()]);
-      setSuccessMessage(`Sale ${sale.sale_number} recorded. Backend total: ${formatCurrency(sale.total_amount)}.`);
+      setSuccessMessage(
+        `Sale ${sale.sale_number} recorded. Backend total: ${formatCurrency(sale.total_amount)}.`,
+      );
       await Promise.all([loadSalesWorkspace(), loadInventoryRows()]);
     } catch (saleError) {
       setError(errorMessage(saleError));
@@ -290,6 +332,7 @@ export function SalesPage() {
   };
 
   const openSaleDetail = async (saleId: number) => {
+    setReprint(null);
     if (!token) return;
     setDetailLoading(true);
     setError(null);
@@ -305,7 +348,10 @@ export function SalesPage() {
   const trendChartData = useMemo(
     () =>
       trends.map((point) => ({
-        date: new Date(`${point.date}T00:00:00`).toLocaleDateString([], { day: "2-digit", month: "short" }),
+        date: new Date(`${point.date}T00:00:00`).toLocaleDateString([], {
+          day: "2-digit",
+          month: "short",
+        }),
         revenue: Number(point.revenue),
         grossProfit: Number(point.gross_profit),
       })),
@@ -337,13 +383,15 @@ export function SalesPage() {
           <p className="eyebrow">Sales engine</p>
           <h2>Sales entry and summary</h2>
           <p className="page-description">
-            Record branch sales with multiple items, let the backend calculate totals, and keep stock
-            reductions tied to sale movement records.
+            Record branch sales with multiple items, let the backend calculate
+            totals, and keep stock reductions tied to sale movement records.
           </p>
         </div>
         <div className="page-header-side">
           <span className="role-scope">
-            {authorizedToCreate ? "Sales entry enabled" : "Read-only sales view"}
+            {authorizedToCreate
+              ? "Sales entry enabled"
+              : "Read-only sales view"}
           </span>
         </div>
       </div>
@@ -388,13 +436,25 @@ export function SalesPage() {
           </select>
           <label className="date-filter">
             Start
-            <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+            <input
+              onChange={(event) => setStartDate(event.target.value)}
+              type="date"
+              value={startDate}
+            />
           </label>
           <label className="date-filter">
             End
-            <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+            <input
+              onChange={(event) => setEndDate(event.target.value)}
+              type="date"
+              value={endDate}
+            />
           </label>
-          <button className="filter-chip" onClick={() => void loadSalesWorkspace()} type="button">
+          <button
+            className="filter-chip"
+            onClick={() => void loadSalesWorkspace()}
+            type="button"
+          >
             <RefreshCw aria-hidden="true" size={15} />
             Refresh
           </button>
@@ -436,8 +496,12 @@ export function SalesPage() {
         />
       </section>
 
-      {error ? <ErrorState message={error} title="Sales action failed" /> : null}
-      {successMessage ? <div className="success-panel">{successMessage}</div> : null}
+      {error ? (
+        <ErrorState message={error} title="Sales action failed" />
+      ) : null}
+      {successMessage ? (
+        <div className="success-panel">{successMessage}</div>
+      ) : null}
 
       {dashboard ? (
         <section className="dashboard-grid">
@@ -449,16 +513,36 @@ export function SalesPage() {
               </div>
             </div>
             {trendChartData.length === 0 ? (
-              <EmptyState title="No trend data" message="Record sales or adjust the date range." />
+              <EmptyState
+                title="No trend data"
+                message="Record sales or adjust the date range."
+              />
             ) : (
               <ResponsiveContainer height={280} width="100%">
                 <LineChart data={trendChartData}>
                   <CartesianGrid stroke="#e7ebf1" vertical={false} />
                   <XAxis dataKey="date" />
-                  <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={78} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Line dataKey="revenue" name="Revenue" stroke="#2f8f63" strokeWidth={2} type="monotone" />
-                  <Line dataKey="grossProfit" name="Gross profit" stroke="#276fbf" strokeWidth={2} type="monotone" />
+                  <YAxis
+                    tickFormatter={(value) => formatCurrency(Number(value))}
+                    width={78}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
+                  <Line
+                    dataKey="revenue"
+                    name="Revenue"
+                    stroke="#2f8f63"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                  <Line
+                    dataKey="grossProfit"
+                    name="Gross profit"
+                    stroke="#276fbf"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -472,15 +556,28 @@ export function SalesPage() {
               </div>
             </div>
             {categoryChartData.length === 0 ? (
-              <EmptyState title="No category sales" message="Category revenue appears after matching sales." />
+              <EmptyState
+                title="No category sales"
+                message="Category revenue appears after matching sales."
+              />
             ) : (
               <ResponsiveContainer height={280} width="100%">
                 <BarChart data={categoryChartData}>
                   <CartesianGrid stroke="#e7ebf1" vertical={false} />
                   <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={78} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Bar dataKey="revenue" fill="#c47a19" name="Revenue" radius={[4, 4, 0, 0]} />
+                  <YAxis
+                    tickFormatter={(value) => formatCurrency(Number(value))}
+                    width={78}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#c47a19"
+                    name="Revenue"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -494,15 +591,28 @@ export function SalesPage() {
               </div>
             </div>
             {branchChartData.length === 0 ? (
-              <EmptyState title="No branch sales" message="Branch comparison appears after sales are recorded." />
+              <EmptyState
+                title="No branch sales"
+                message="Branch comparison appears after sales are recorded."
+              />
             ) : (
               <ResponsiveContainer height={280} width="100%">
                 <BarChart data={branchChartData}>
                   <CartesianGrid stroke="#e7ebf1" vertical={false} />
                   <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={78} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Bar dataKey="revenue" fill="#276fbf" name="Revenue" radius={[4, 4, 0, 0]} />
+                  <YAxis
+                    tickFormatter={(value) => formatCurrency(Number(value))}
+                    width={78}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="#276fbf"
+                    name="Revenue"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -531,7 +641,9 @@ export function SalesPage() {
                     <tr key={product.product_id}>
                       <td>
                         <strong>{product.product_name}</strong>
-                        <span className="subtle-cell">{product.product_sku}</span>
+                        <span className="subtle-cell">
+                          {product.product_sku}
+                        </span>
                       </td>
                       <td>{product.category_name}</td>
                       <td>{formatQuantity(product.units_sold)}</td>
@@ -578,21 +690,36 @@ export function SalesPage() {
                 const product = productById.get(line.productId);
                 const stock = stockByProductId.get(line.productId);
                 const lineTotal = product
-                  ? Math.max(Number(product.selling_price) * (Number(line.quantity) || 0) - (Number(line.discountAmount) || 0), 0)
+                  ? Math.max(
+                      Number(product.selling_price) *
+                        (Number(line.quantity) || 0) -
+                        (Number(line.discountAmount) || 0),
+                      0,
+                    )
                   : 0;
                 return (
-                  <div className="sale-line-grid" key={`${index}-${line.productId}`}>
+                  <div
+                    className="sale-line-grid"
+                    key={`${index}-${line.productId}`}
+                  >
                     <label>
                       Product
                       <select
                         disabled={!authorizedToCreate}
-                        onChange={(event) => updateLine(index, { productId: Number(event.target.value) })}
+                        onChange={(event) =>
+                          updateLine(index, {
+                            productId: Number(event.target.value),
+                          })
+                        }
                         required
                         value={line.productId}
                       >
                         <option value={0}>Select product</option>
                         {products.map((productOption) => (
-                          <option key={productOption.id} value={productOption.id}>
+                          <option
+                            key={productOption.id}
+                            value={productOption.id}
+                          >
                             {productOption.name} ({productOption.sku})
                           </option>
                         ))}
@@ -600,7 +727,9 @@ export function SalesPage() {
                       {product ? (
                         <span className="field-note">
                           {formatCurrency(product.selling_price)} each
-                          {stock ? `, ${formatQuantity(stock.quantity_on_hand)} available` : ""}
+                          {stock
+                            ? `, ${formatQuantity(stock.quantity_on_hand)} available`
+                            : ""}
                         </span>
                       ) : null}
                     </label>
@@ -610,7 +739,9 @@ export function SalesPage() {
                         disabled={!authorizedToCreate}
                         inputMode="decimal"
                         minLength={1}
-                        onChange={(event) => updateLine(index, { quantity: event.target.value })}
+                        onChange={(event) =>
+                          updateLine(index, { quantity: event.target.value })
+                        }
                         required
                         type="text"
                         value={line.quantity}
@@ -621,7 +752,11 @@ export function SalesPage() {
                       <input
                         disabled={!authorizedToCreate}
                         inputMode="decimal"
-                        onChange={(event) => updateLine(index, { discountAmount: event.target.value })}
+                        onChange={(event) =>
+                          updateLine(index, {
+                            discountAmount: event.target.value,
+                          })
+                        }
                         required
                         type="text"
                         value={line.discountAmount}
@@ -647,21 +782,31 @@ export function SalesPage() {
 
             <div className="sale-form-actions">
               <div className="sale-estimate">
-                <span>Estimated subtotal {formatCurrency(saleEstimate.subtotal)}</span>
+                <span>
+                  Estimated subtotal {formatCurrency(saleEstimate.subtotal)}
+                </span>
                 <span>Estimated tax {formatCurrency(saleEstimate.tax)}</span>
-                <strong>Estimated total {formatCurrency(saleEstimate.total)}</strong>
+                <strong>
+                  Estimated total {formatCurrency(saleEstimate.total)}
+                </strong>
               </div>
               <div className="sale-button-row">
                 <button
                   className="action-button secondary"
                   disabled={!authorizedToCreate}
-                  onClick={() => setSaleLines((current) => [...current, blankLine()])}
+                  onClick={() =>
+                    setSaleLines((current) => [...current, blankLine()])
+                  }
                   type="button"
                 >
                   <Plus aria-hidden="true" size={16} />
                   Add item
                 </button>
-                <button className="action-button primary" disabled={!authorizedToCreate || saving} type="submit">
+                <button
+                  className="action-button primary"
+                  disabled={!authorizedToCreate || saving}
+                  type="submit"
+                >
                   <Send aria-hidden="true" size={16} />
                   {saving ? "Recording" : "Record sale"}
                 </button>
@@ -678,12 +823,20 @@ export function SalesPage() {
             </div>
           </div>
           {trends.length === 0 ? (
-            <EmptyState title="No trend data" message="Record sales or adjust the date filter to see daily movement." />
+            <EmptyState
+              title="No trend data"
+              message="Record sales or adjust the date filter to see daily movement."
+            />
           ) : (
             <div className="trend-list">
               {trends.map((point) => (
                 <article key={point.date}>
-                  <span>{new Date(`${point.date}T00:00:00`).toLocaleDateString([], { day: "2-digit", month: "short" })}</span>
+                  <span>
+                    {new Date(`${point.date}T00:00:00`).toLocaleDateString([], {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </span>
                   <strong>{formatCurrency(point.revenue)}</strong>
                   <b>{formatQuantity(point.units_sold)} units</b>
                 </article>
@@ -703,7 +856,10 @@ export function SalesPage() {
           </div>
           {loading ? <LoadingState label="Loading sales" /> : null}
           {!loading && sales.length === 0 ? (
-            <EmptyState title="No sales found" message="Try changing the branch or date range." />
+            <EmptyState
+              title="No sales found"
+              message="Try changing the branch or date range."
+            />
           ) : null}
           {!loading && sales.length > 0 ? (
             <div className="table-shell sales-table">
@@ -723,10 +879,17 @@ export function SalesPage() {
                 </thead>
                 <tbody>
                   {sales.map((sale) => (
-                    <tr className={selectedSale?.id === sale.id ? "selected-row" : ""} key={sale.id}>
+                    <tr
+                      className={
+                        selectedSale?.id === sale.id ? "selected-row" : ""
+                      }
+                      key={sale.id}
+                    >
                       <td>
                         <strong>{sale.sale_number}</strong>
-                        <span className="subtle-cell">{formatQuantity(sale.units_sold)} units sold</span>
+                        <span className="subtle-cell">
+                          {formatQuantity(sale.units_sold)} units sold
+                        </span>
                       </td>
                       <td>{sale.branch_name}</td>
                       <td>{formatDateTime(sale.sale_datetime)}</td>
@@ -737,7 +900,10 @@ export function SalesPage() {
                       <td>{sale.created_by_name}</td>
                       <td>
                         <div className="table-actions">
-                          <button onClick={() => void openSaleDetail(sale.id)} type="button">
+                          <button
+                            onClick={() => void openSaleDetail(sale.id)}
+                            type="button"
+                          >
                             <Eye aria-hidden="true" size={14} />
                             Detail
                           </button>
@@ -755,15 +921,43 @@ export function SalesPage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Sale detail</p>
-              <h3>{selectedSale ? selectedSale.sale_number : "Select a sale"}</h3>
+              <h3>
+                {selectedSale ? selectedSale.sale_number : "Select a sale"}
+              </h3>
             </div>
           </div>
           {detailLoading ? <LoadingState label="Loading sale detail" /> : null}
           {!detailLoading && !selectedSale ? (
-            <EmptyState title="No sale selected" message="Open a sale to inspect its line items and backend totals." />
+            <EmptyState
+              title="No sale selected"
+              message="Open a sale to inspect its line items and backend totals."
+            />
           ) : null}
           {!detailLoading && selectedSale ? (
             <div className="detail-stack">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  if (token)
+                    void apiRequest<Invoice>(
+                      `/invoices/${selectedSale.id}`,
+                      {},
+                      token,
+                    )
+                      .then(setReprint)
+                      .catch((e) => setError(e.message));
+                }}
+              >
+                Open receipt for reprint
+              </button>
+              {reprint ? (
+                <RetailReceipt
+                  invoice={reprint}
+                  reprint
+                  onDone={() => setReprint(null)}
+                />
+              ) : null}
               <div className="detail-list">
                 <div>
                   <span>Branch</span>
@@ -789,9 +983,13 @@ export function SalesPage() {
                       <strong>{item.product_name}</strong>
                       <span>{item.product_sku}</span>
                     </div>
-                    <b>{formatQuantity(item.quantity)} x {formatCurrency(item.unit_price)}</b>
+                    <b>
+                      {formatQuantity(item.quantity)} x{" "}
+                      {formatCurrency(item.unit_price)}
+                    </b>
                     <p>
-                      Line {formatCurrency(item.line_total)} | Profit {formatCurrency(item.gross_profit)}
+                      Line {formatCurrency(item.line_total)} | Profit{" "}
+                      {formatCurrency(item.gross_profit)}
                     </p>
                   </article>
                 ))}

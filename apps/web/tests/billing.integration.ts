@@ -75,7 +75,7 @@ test(
         (await call("branches", "GET", undefined, ct, undefined, 2)).status,
         403,
       );
-      assert.equal((await call("public/invoices", "POST", {})).status, 501);
+      assert.equal((await call("public/invoices", "POST", {})).status, 404);
       const category = await call(
         "categories",
         "POST",
@@ -428,8 +428,13 @@ test(
       );
       assert.equal((await call("auth/logout", "POST", {}, ct)).status, 200);
       assert.equal((await call("auth/me", "GET", undefined, ct)).status, 401);
-      await db.collection('users').updateOne({email:'owner@example.test'},{$set:{mfa_enabled:false}});
-      assert.equal((await call('auth/me','GET',undefined,ot)).status,403);
+      await db
+        .collection("users")
+        .updateOne(
+          { email: "owner@example.test" },
+          { $set: { mfa_enabled: false } },
+        );
+      assert.equal((await call("auth/me", "GET", undefined, ot)).status, 403);
     } finally {
       await disconnect();
       await server.stop();

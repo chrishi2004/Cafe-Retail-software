@@ -1,179 +1,179 @@
 runtime,method,path,module,purpose,authentication,operation_id,nextjs_status
-operational,GET,/api/health,health,Health Check,See source policy,health_check_api_health_get,native_subset_not_full_parity
-operational,POST,/api/public/cafe/qr/{opaque_token}/resolve,cafe,Resolve Qr Token,See source policy,resolve_qr_token_api_public_cafe_qr__opaque_token__resolve_post,pending_native_port
-operational,GET,/api/public/cafe/sessions/{public_id}/menu,public-cafe,Read Menu,See source policy,read_menu_api_public_cafe_sessions__public_id__menu_get,pending_native_port
-operational,POST,/api/public/cafe/sessions/{public_id}/orders,public-cafe,Submit Order,See source policy,submit_order_api_public_cafe_sessions__public_id__orders_post,pending_native_port
-operational,GET,/api/public/cafe/sessions/{public_id}/orders,public-cafe,Read Orders,See source policy,read_orders_api_public_cafe_sessions__public_id__orders_get,pending_native_port
-operational,POST,/api/public/cafe/sessions/{public_id}/bill-request,public-cafe,Request Bill,See source policy,request_bill_api_public_cafe_sessions__public_id__bill_request_post,pending_native_port
-operational,POST,/api/auth/login,auth,Login,See source policy,login_api_auth_login_post,native_subset_not_full_parity
-operational,POST,/api/auth/logout,auth,Logout,Protected,logout_api_auth_logout_post,native_subset_not_full_parity
-operational,POST,/api/auth/step-up,auth,Step Up Authentication,Protected,step_up_authentication_api_auth_step_up_post,pending_native_port
-operational,POST,/api/auth/mfa/enroll,auth,Enroll Mfa,Protected,enroll_mfa_api_auth_mfa_enroll_post,pending_native_port
-operational,POST,/api/auth/mfa/confirm,auth,Confirm Mfa,Protected,confirm_mfa_api_auth_mfa_confirm_post,pending_native_port
-operational,POST,/api/auth/mfa/disable,auth,Disable Mfa,Protected,disable_mfa_api_auth_mfa_disable_post,pending_native_port
-operational,GET,/api/auth/me,auth,Read Current User,Protected,read_current_user_api_auth_me_get,native_subset_not_full_parity
-operational,GET,/api/auth/admin-check,auth,Admin Check,Protected,admin_check_api_auth_admin_check_get,pending_native_port
-operational,GET,/api/auth/branch-scope,auth,Read Branch Scope,Protected,read_branch_scope_api_auth_branch_scope_get,pending_native_port
-operational,GET,/api/ventures/current,ventures,Current Venture,Protected,current_venture_api_ventures_current_get,native_subset_not_full_parity
-operational,GET,/api/ventures,ventures,List Ventures,Protected,list_ventures_api_ventures_get,native_subset_not_full_parity
-operational,GET,/api/venture-users,ventures,List Venture Users,Protected,list_venture_users_api_venture_users_get,native_subset_not_full_parity
-operational,POST,/api/venture-users,ventures,Create Venture User,Protected,create_venture_user_api_venture_users_post,pending_native_port
-operational,PUT,/api/venture-users/{user_id},ventures,Update Venture User Assignment,Protected,update_venture_user_assignment_api_venture_users__user_id__put,pending_native_port
-operational,GET,/api/cafe/orders,cafe-orders,Read Orders,Protected,read_orders_api_cafe_orders_get,native_subset_not_full_parity
-operational,POST,/api/cafe/orders,cafe-orders,Add Order,Protected,add_order_api_cafe_orders_post,pending_native_port
-operational,GET,/api/cafe/orders/{public_id},cafe-orders,Read Order,Protected,read_order_api_cafe_orders__public_id__get,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/accept,cafe-orders,Accept Order,Protected,accept_order_api_cafe_orders__public_id__accept_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/reject,cafe-orders,Reject Order,Protected,reject_order_api_cafe_orders__public_id__reject_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/start-preparing,cafe-orders,Start Preparing,Protected,start_preparing_api_cafe_orders__public_id__start_preparing_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/mark-ready,cafe-orders,Mark Ready,Protected,mark_ready_api_cafe_orders__public_id__mark_ready_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/serve,cafe-orders,Serve Order,Protected,serve_order_api_cafe_orders__public_id__serve_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/request-bill,cafe-orders,Request Standalone Order Bill,Protected,request_standalone_order_bill_api_cafe_orders__public_id__request_bill_post,pending_native_port
-operational,POST,/api/cafe/orders/{public_id}/cancel,cafe-orders,Cancel Order,Protected,cancel_order_api_cafe_orders__public_id__cancel_post,pending_native_port
-operational,POST,/api/cafe/table-sessions/{public_id}/request-bill,cafe-orders,Request Session Bill,Protected,request_session_bill_api_cafe_table_sessions__public_id__request_bill_post,pending_native_port
-operational,GET,/api/cafe/kitchen/orders,cafe-orders,Read Kitchen Queue,Protected,read_kitchen_queue_api_cafe_kitchen_orders_get,pending_native_port
-operational,GET,/api/cafe/billing/table-sessions/{public_id}/quote,cafe-billing,Read Table Quote,Protected,read_table_quote_api_cafe_billing_table_sessions__public_id__quote_get,pending_native_port
-operational,POST,/api/cafe/billing/table-sessions/{public_id}/bill,cafe-billing,Create Table Bill,Protected,create_table_bill_api_cafe_billing_table_sessions__public_id__bill_post,pending_native_port
-operational,GET,/api/cafe/billing/orders/{public_id}/quote,cafe-billing,Read Order Quote,Protected,read_order_quote_api_cafe_billing_orders__public_id__quote_get,pending_native_port
-operational,POST,/api/cafe/billing/orders/{public_id}/bill,cafe-billing,Create Order Bill,Protected,create_order_bill_api_cafe_billing_orders__public_id__bill_post,pending_native_port
-operational,GET,/api/cafe/billing/invoices/{invoice_id}/receipt,cafe-billing,Read Receipt,Protected,read_receipt_api_cafe_billing_invoices__invoice_id__receipt_get,native_subset_not_full_parity
-operational,POST,/api/cafe/billing/invoices/{invoice_id}/payments,cafe-billing,Collect Payment,Protected,collect_payment_api_cafe_billing_invoices__invoice_id__payments_post,pending_native_port
-operational,POST,/api/cafe/billing/pos/checkout,cafe-billing,Checkout Pos,Protected,checkout_pos_api_cafe_billing_pos_checkout_post,native_subset_not_full_parity
-operational,GET,/api/cafe/billing/invoices,cafe-billing,Read Invoice History,Protected,read_invoice_history_api_cafe_billing_invoices_get,native_subset_not_full_parity
-operational,GET,/api/cafe/menu/categories,cafe,Read Menu Categories,Protected,read_menu_categories_api_cafe_menu_categories_get,native_subset_not_full_parity
-operational,POST,/api/cafe/menu/categories,cafe,Add Menu Category,Protected,add_menu_category_api_cafe_menu_categories_post,native_subset_not_full_parity
-operational,PUT,/api/cafe/menu/categories/{category_id},cafe,Edit Menu Category,Protected,edit_menu_category_api_cafe_menu_categories__category_id__put,native_subset_not_full_parity
-operational,GET,/api/cafe/menu/items,cafe,Read Menu Items,Protected,read_menu_items_api_cafe_menu_items_get,native_subset_not_full_parity
-operational,POST,/api/cafe/menu/items,cafe,Add Menu Item,Protected,add_menu_item_api_cafe_menu_items_post,native_subset_not_full_parity
-operational,PUT,/api/cafe/menu/items/{item_id},cafe,Edit Menu Item,Protected,edit_menu_item_api_cafe_menu_items__item_id__put,native_subset_not_full_parity
-operational,PATCH,/api/cafe/menu/items/{item_id}/availability,cafe,Set Menu Item Availability,Protected,set_menu_item_availability_api_cafe_menu_items__item_id__availability_patch,pending_native_port
-operational,GET,/api/cafe/tables,cafe,Read Cafe Tables,Protected,read_cafe_tables_api_cafe_tables_get,native_subset_not_full_parity
-operational,POST,/api/cafe/tables,cafe,Add Cafe Table,Protected,add_cafe_table_api_cafe_tables_post,native_subset_not_full_parity
-operational,PUT,/api/cafe/tables/{table_id},cafe,Edit Cafe Table,Protected,edit_cafe_table_api_cafe_tables__table_id__put,native_subset_not_full_parity
-operational,POST,/api/cafe/tables/{table_id}/deactivate,cafe,Deactivate Cafe Table,Protected,deactivate_cafe_table_api_cafe_tables__table_id__deactivate_post,pending_native_port
-operational,POST,/api/cafe/tables/{table_id}/qr/rotate,cafe,Rotate Qr,Protected,rotate_qr_api_cafe_tables__table_id__qr_rotate_post,pending_native_port
-operational,GET,/api/cafe/tables/{table_id}/qr/status,cafe,Read Qr Status,Protected,read_qr_status_api_cafe_tables__table_id__qr_status_get,pending_native_port
-operational,POST,/api/cafe/tables/{table_id}/qr/revoke,cafe,Revoke Qr,Protected,revoke_qr_api_cafe_tables__table_id__qr_revoke_post,pending_native_port
-operational,POST,/api/cafe/tables/{table_id}/qr/print-data,cafe,Print Qr Data,Protected,print_qr_data_api_cafe_tables__table_id__qr_print_data_post,pending_native_port
-operational,POST,/api/cafe/table-sessions,cafe,Open Session,Protected,open_session_api_cafe_table_sessions_post,pending_native_port
-operational,GET,/api/cafe/table-sessions/{public_id},cafe,Read Session,Protected,read_session_api_cafe_table_sessions__public_id__get,pending_native_port
-operational,GET,/api/cafe/tables/{table_id}/active-session,cafe,Read Active Session,Protected,read_active_session_api_cafe_tables__table_id__active_session_get,pending_native_port
-operational,POST,/api/cafe/table-sessions/{public_id}/close,cafe,Close Session,Protected,close_session_api_cafe_table_sessions__public_id__close_post,pending_native_port
-operational,POST,/api/cafe/tables/{table_id}/qr/render,cafe,Render Table Qr,Protected,render_table_qr_api_cafe_tables__table_id__qr_render_post,pending_native_port
-operational,GET,/api/sync/status,sync-status,Sync Status,Protected,sync_status_api_sync_status_get,pending_native_port
-operational,GET,/api/sync/continuity,hc4-continuity,Continuity State,Protected,continuity_state_api_sync_continuity_get,pending_native_port
-operational,GET,/api/sync/reconciliation,hc4-continuity,Read Reconciliation,Protected,read_reconciliation_api_sync_reconciliation_get,pending_native_port
-operational,POST,/api/sync/reconcile,hc4-continuity,Reconcile,Protected,reconcile_api_sync_reconcile_post,pending_native_port
-operational,GET,/api/sync/dead-letters,hc4-continuity,List Dead Letters,Protected,list_dead_letters_api_sync_dead_letters_get,pending_native_port
-operational,POST,/api/sync/dead-letters/{dead_letter_id}/retry,hc4-continuity,Retry Failed Sync,Protected,retry_failed_sync_api_sync_dead_letters__dead_letter_id__retry_post,pending_native_port
-operational,GET,/api/tax-operation,tax-operation,Read Tax Operation,Protected,read_tax_operation_api_tax_operation_get,pending_native_port
-operational,PUT,/api/tax-operation/settings,tax-operation,Update Tax Settings,Protected,update_tax_settings_api_tax_operation_settings_put,pending_native_port
-operational,POST,/api/tax-operation/activate-gst,tax-operation,Activate Gst,Protected,activate_gst_api_tax_operation_activate_gst_post,pending_native_port
-operational,GET,/api/tax-operation/combined-turnover,tax-operation,Read Combined Turnover,Protected,read_combined_turnover_api_tax_operation_combined_turnover_get,native_subset_not_full_parity
-operational,GET,/api/business-profile,business settings,Read Business Profile,Protected,read_business_profile_api_business_profile_get,native_subset_not_full_parity
-operational,PUT,/api/business-profile,business settings,Update Business Profile,Protected,update_business_profile_api_business_profile_put,pending_native_port
-operational,GET,/api/tax-rates,business settings,Read Tax Rates,Protected,read_tax_rates_api_tax_rates_get,pending_native_port
-operational,POST,/api/tax-rates,business settings,Add Tax Rate,Protected,add_tax_rate_api_tax_rates_post,pending_native_port
-operational,PUT,/api/tax-rates/{tax_rate_id},business settings,Edit Tax Rate,Protected,edit_tax_rate_api_tax_rates__tax_rate_id__put,pending_native_port
-operational,GET,/api/payment-modes,business settings,Read Payment Modes,Protected,read_payment_modes_api_payment_modes_get,native_subset_not_full_parity
-operational,POST,/api/payment-modes,business settings,Add Payment Mode,Protected,add_payment_mode_api_payment_modes_post,native_subset_not_full_parity
-operational,PUT,/api/payment-modes/{payment_mode_id},business settings,Edit Payment Mode,Protected,edit_payment_mode_api_payment_modes__payment_mode_id__put,native_subset_not_full_parity
-operational,GET,/api/invoice-sequences,business settings,Read Invoice Sequences,Protected,read_invoice_sequences_api_invoice_sequences_get,native_subset_not_full_parity
-operational,POST,/api/invoice-sequences,business settings,Add Invoice Sequence,Protected,add_invoice_sequence_api_invoice_sequences_post,pending_native_port
-operational,PUT,/api/invoice-sequences/{sequence_id},business settings,Edit Invoice Sequence,Protected,edit_invoice_sequence_api_invoice_sequences__sequence_id__put,pending_native_port
-operational,GET,/api/categories,categories,List Categories,Protected,list_categories_api_categories_get,native_subset_not_full_parity
-operational,POST,/api/categories,categories,Create Category,Protected,create_category_api_categories_post,native_subset_not_full_parity
-operational,PUT,/api/categories/{category_id},categories,Update Category,Protected,update_category_api_categories__category_id__put,native_subset_not_full_parity
-operational,GET,/api/suppliers,suppliers,List Suppliers,Protected,list_suppliers_api_suppliers_get,native_subset_not_full_parity
-operational,POST,/api/suppliers,suppliers,Create Supplier,Protected,create_supplier_api_suppliers_post,native_subset_not_full_parity
-operational,GET,/api/suppliers/{supplier_id},suppliers,Get Supplier,Protected,get_supplier_api_suppliers__supplier_id__get,native_subset_not_full_parity
-operational,PUT,/api/suppliers/{supplier_id},suppliers,Update Supplier,Protected,update_supplier_api_suppliers__supplier_id__put,native_subset_not_full_parity
-operational,GET,/api/branches,branches,List Branches,Protected,list_branches_api_branches_get,native_subset_not_full_parity
-operational,POST,/api/branches,branches,Create Branch,Protected,create_branch_api_branches_post,native_subset_not_full_parity
-operational,PUT,/api/branches/{branch_id},branches,Update Branch,Protected,update_branch_api_branches__branch_id__put,native_subset_not_full_parity
-operational,GET,/api/products,products,List Products,Protected,list_products_api_products_get,native_subset_not_full_parity
-operational,POST,/api/products,products,Create Product,Protected,create_product_api_products_post,native_subset_not_full_parity
-operational,GET,/api/products/search,products,Search Products,Protected,search_products_api_products_search_get,pending_native_port
-operational,GET,/api/products/{product_id},products,Get Product,Protected,get_product_api_products__product_id__get,native_subset_not_full_parity
-operational,PUT,/api/products/{product_id},products,Update Product,Protected,update_product_api_products__product_id__put,native_subset_not_full_parity
-operational,PATCH,/api/products/{product_id}/deactivate,products,Deactivate Product,Protected,deactivate_product_api_products__product_id__deactivate_patch,pending_native_port
-operational,GET,/api/customers,customers,Read Customers,Protected,read_customers_api_customers_get,native_subset_not_full_parity
-operational,POST,/api/customers,customers,Add Customer,Protected,add_customer_api_customers_post,native_subset_not_full_parity
-operational,GET,/api/customers/{customer_id},customers,Read Customer,Protected,read_customer_api_customers__customer_id__get,native_subset_not_full_parity
-operational,PUT,/api/customers/{customer_id},customers,Edit Customer,Protected,edit_customer_api_customers__customer_id__put,native_subset_not_full_parity
-operational,PATCH,/api/customers/{customer_id}/deactivate,customers,Disable Customer,Protected,disable_customer_api_customers__customer_id__deactivate_patch,pending_native_port
-operational,GET,/api/customers/{customer_id}/ledger,customers,Read Customer Ledger,Protected,read_customer_ledger_api_customers__customer_id__ledger_get,pending_native_port
-operational,POST,/api/customers/{customer_id}/payments,customers,Add Customer Payment,Protected,add_customer_payment_api_customers__customer_id__payments_post,pending_native_port
-operational,GET,/api/customer-ledger/outstanding,customers,Read Customer Outstanding,Protected,read_customer_outstanding_api_customer_ledger_outstanding_get,pending_native_port
-operational,GET,/api/invoices,invoices,Read Invoices,Protected,read_invoices_api_invoices_get,native_subset_not_full_parity
-operational,POST,/api/invoices,invoices,Add Invoice,Protected,add_invoice_api_invoices_post,pending_native_port
-operational,GET,/api/invoices/{invoice_id},invoices,Read Invoice,Protected,read_invoice_api_invoices__invoice_id__get,native_subset_not_full_parity
-operational,POST,/api/invoices/{invoice_id}/issue,invoices,Issue Draft Invoice,Protected,issue_draft_invoice_api_invoices__invoice_id__issue_post,pending_native_port
-operational,POST,/api/invoices/{invoice_id}/cancel,invoices,Cancel Draft Invoice,Protected,cancel_draft_invoice_api_invoices__invoice_id__cancel_post,pending_native_port
-operational,POST,/api/invoices/{invoice_id}/payments,invoices,Collect Invoice Payment,Protected,collect_invoice_payment_api_invoices__invoice_id__payments_post,pending_native_port
-operational,GET,/api/pos/products/search,invoices,Search Products For Pos,Protected,search_products_for_pos_api_pos_products_search_get,native_subset_not_full_parity
-operational,POST,/api/pos/quote,invoices,Quote Pos Invoice,Protected,quote_pos_invoice_api_pos_quote_post,native_subset_not_full_parity
-operational,POST,/api/pos/checkout,invoices,Checkout Pos Invoice,Protected,checkout_pos_invoice_api_pos_checkout_post,native_subset_not_full_parity
-operational,GET,/api/inventory,inventory,List Inventory,Protected,list_inventory_api_inventory_get,native_subset_not_full_parity
-operational,GET,/api/inventory/low-stock,inventory,List Low Stock Inventory,Protected,list_low_stock_inventory_api_inventory_low_stock_get,native_subset_not_full_parity
-operational,POST,/api/inventory/adjustments,inventory,Create Stock Adjustment,Protected,create_stock_adjustment_api_inventory_adjustments_post,native_subset_not_full_parity
-operational,GET,/api/inventory/movements,inventory,List Stock Movements,Protected,list_stock_movements_api_inventory_movements_get,native_subset_not_full_parity
-operational,GET,/api/inventory/reorder-recommendations,inventory,List Reorder Recommendations,Protected,list_reorder_recommendations_api_inventory_reorder_recommendations_get,pending_native_port
-operational,GET,/api/inventory/{product_id},inventory,Get Product Inventory,Protected,get_product_inventory_api_inventory__product_id__get,pending_native_port
-operational,GET,/api/sales,sales,List Sales,Protected,list_sales_api_sales_get,pending_native_port
-operational,POST,/api/sales,sales,Record Sale,Protected,record_sale_api_sales_post,pending_native_port
-operational,GET,/api/sales/summary,sales,Get Sales Summary,Protected,get_sales_summary_api_sales_summary_get,pending_native_port
-operational,GET,/api/sales/trends,sales,Get Sales Trends,Protected,get_sales_trends_api_sales_trends_get,pending_native_port
-operational,GET,/api/sales/{sale_id},sales,Get Sale,Protected,get_sale_api_sales__sale_id__get,pending_native_port
-operational,GET,/api/dashboard/overview,dashboard,Overview Dashboard,Protected,overview_dashboard_api_dashboard_overview_get,pending_native_port
-operational,GET,/api/dashboard/sales,dashboard,Sales Dashboard,Protected,sales_dashboard_api_dashboard_sales_get,pending_native_port
-operational,GET,/api/dashboard/inventory,dashboard,Inventory Dashboard,Protected,inventory_dashboard_api_dashboard_inventory_get,pending_native_port
-operational,GET,/api/dashboard/purchase-orders,dashboard,Purchase Orders Dashboard,Protected,purchase_orders_dashboard_api_dashboard_purchase_orders_get,pending_native_port
-operational,GET,/api/dashboard/cafe,dashboard,Cafe Dashboard,Protected,cafe_dashboard_api_dashboard_cafe_get,native_subset_not_full_parity
-operational,GET,/api/dashboard/consolidated,dashboard,Consolidated Dashboard,Protected,consolidated_dashboard_api_dashboard_consolidated_get,pending_native_port
-operational,GET,/api/purchase-orders,purchase-orders,List Purchase Orders,Protected,list_purchase_orders_api_purchase_orders_get,pending_native_port
-operational,POST,/api/purchase-orders,purchase-orders,Create Manual Purchase Order,Protected,create_manual_purchase_order_api_purchase_orders_post,pending_native_port
-operational,POST,/api/purchase-orders/from-recommendations,purchase-orders,Create From Recommendations,Protected,create_from_recommendations_api_purchase_orders_from_recommendations_post,pending_native_port
-operational,GET,/api/purchase-orders/{purchase_order_id},purchase-orders,Get Purchase Order,Protected,get_purchase_order_api_purchase_orders__purchase_order_id__get,pending_native_port
-operational,PUT,/api/purchase-orders/{purchase_order_id},purchase-orders,Update Purchase Order Route,Protected,update_purchase_order_route_api_purchase_orders__purchase_order_id__put,pending_native_port
-operational,POST,/api/purchase-orders/{purchase_order_id}/submit,purchase-orders,Submit Purchase Order Route,Protected,submit_purchase_order_route_api_purchase_orders__purchase_order_id__submit_post,pending_native_port
-operational,POST,/api/purchase-orders/{purchase_order_id}/approve,purchase-orders,Approve Purchase Order Route,Protected,approve_purchase_order_route_api_purchase_orders__purchase_order_id__approve_post,pending_native_port
-operational,POST,/api/purchase-orders/{purchase_order_id}/cancel,purchase-orders,Cancel Purchase Order Route,Protected,cancel_purchase_order_route_api_purchase_orders__purchase_order_id__cancel_post,pending_native_port
-operational,POST,/api/purchase-orders/{purchase_order_id}/mark-ordered,purchase-orders,Mark Purchase Order Ordered Route,Protected,mark_purchase_order_ordered_route_api_purchase_orders__purchase_order_id__mark_ordered_post,pending_native_port
-operational,POST,/api/purchase-orders/{purchase_order_id}/receive,purchase-orders,Receive Purchase Order Route,Protected,receive_purchase_order_route_api_purchase_orders__purchase_order_id__receive_post,pending_native_port
-operational,POST,/api/forecasts/run,forecasts,Run Forecast Route,Protected,run_forecast_route_api_forecasts_run_post,pending_native_port
-operational,GET,/api/forecasts,forecasts,List Forecasts,Protected,list_forecasts_api_forecasts_get,pending_native_port
-operational,GET,/api/forecasts/products/{product_id},forecasts,List Product Forecasts,Protected,list_product_forecasts_api_forecasts_products__product_id__get,pending_native_port
-operational,POST,/api/governance/step-up,governance,Step Up,Protected,step_up_api_governance_step_up_post,pending_native_port
-operational,GET,/api/governance/closings,governance,Get Closing,Protected,get_closing_api_governance_closings_get,native_subset_not_full_parity
-operational,POST,/api/governance/closings,governance,Create Closing,Protected,create_closing_api_governance_closings_post,native_subset_not_full_parity
-operational,POST,/api/governance/closings/{closing_id}/submit,governance,Submit,Protected,submit_api_governance_closings__closing_id__submit_post,native_subset_not_full_parity
-operational,POST,/api/governance/closings/{closing_id}/close,governance,Close,Protected,close_api_governance_closings__closing_id__close_post,native_subset_not_full_parity
-operational,POST,/api/governance/closings/{closing_id}/reopen,governance,Reopen,Protected,reopen_api_governance_closings__closing_id__reopen_post,pending_native_port
-operational,POST,/api/governance/voids/invoices/{invoice_id},governance,Void,Protected,void_api_governance_voids_invoices__invoice_id__post,pending_native_port
-operational,POST,/api/governance/purges,governance,Create Purge,Protected,create_purge_api_governance_purges_post,pending_native_port
-operational,POST,/api/governance/purges/{purge_id}/approve,governance,Approve,Protected,approve_api_governance_purges__purge_id__approve_post,pending_native_port
-operational,POST,/api/governance/purges/{purge_id}/execute,governance,Execute,Protected,execute_api_governance_purges__purge_id__execute_post,pending_native_port
-operational,GET,/api/exports/sales,exports,Export Sales,Protected,export_sales_api_exports_sales_get,pending_native_port
-operational,GET,/api/exports/inventory,exports,Export Inventory,Protected,export_inventory_api_exports_inventory_get,pending_native_port
-operational,GET,/api/exports/purchase-orders,exports,Export Purchase Orders,Protected,export_purchase_orders_api_exports_purchase_orders_get,pending_native_port
-operational,GET,/api/exports/forecasts,exports,Export Forecasts,Protected,export_forecasts_api_exports_forecasts_get,pending_native_port
-operational,GET,/api/exports/cafe,exports,Export Cafe,Protected,export_cafe_api_exports_cafe_get,native_subset_not_full_parity
-operational,GET,/api/exports/consolidated,exports,Export Consolidated,Protected,export_consolidated_api_exports_consolidated_get,pending_native_port
-operational,POST,/api/ai/chat,ai,Chat,Protected,chat_api_ai_chat_post,pending_native_port
-operational,GET,/api/ai/sessions,ai,List Ai Sessions,Protected,list_ai_sessions_api_ai_sessions_get,pending_native_port
-operational,GET,/api/ai/sessions/{session_id},ai,Get Ai Session,Protected,get_ai_session_api_ai_sessions__session_id__get,pending_native_port
-cloud,GET,/api/health,health,Health Check,See source policy,health_check_api_health_get,pending_native_port
-cloud,GET,/api/cloud/readiness,cloud-gateway,Readiness,See source policy,readiness_api_cloud_readiness_get,pending_native_port
-cloud,POST,/api/cloud/devices/heartbeat,cloud-gateway,Heartbeat,See source policy,heartbeat_api_cloud_devices_heartbeat_post,pending_native_port
-cloud,POST,/api/cloud/publications/menu,cloud-gateway,Publish Menu,See source policy,publish_menu_api_cloud_publications_menu_post,pending_native_port
-cloud,GET,/api/cloud/public/cafe/menu/{publication_id},cloud-gateway,Public Menu,See source policy,public_menu_api_cloud_public_cafe_menu__publication_id__get,pending_native_port
-cloud,POST,/api/cloud/public/cafe/qr/resolve,cloud-gateway,Public Qr Resolve,See source policy,public_qr_resolve_api_cloud_public_cafe_qr_resolve_post,pending_native_port
-cloud,POST,/api/cloud/public/cafe/orders,hc3-cloud-orders,Submit Cloud Order,See source policy,submit_cloud_order_api_cloud_public_cafe_orders_post,pending_native_port
-cloud,GET,/api/cloud/public/cafe/orders/{public_id},hc3-cloud-orders,Read Cloud Order,See source policy,read_cloud_order_api_cloud_public_cafe_orders__public_id__get,pending_native_port
-cloud,POST,/api/cloud/public/cafe/orders/{public_id}/bill-request,hc3-cloud-orders,Submit Cloud Bill Request,See source policy,submit_cloud_bill_request_api_cloud_public_cafe_orders__public_id__bill_request_post,pending_native_port
-cloud,GET,/api/cloud/sync/commands,hc3-cloud-orders,Pull Commands,See source policy,pull_commands_api_cloud_sync_commands_get,pending_native_port
-cloud,POST,/api/cloud/sync/receipts,hc3-cloud-orders,Push Receipt,See source policy,push_receipt_api_cloud_sync_receipts_post,pending_native_port
-cloud,POST,/api/cloud/sync/events,hc3-cloud-orders,Push Local Event,See source policy,push_local_event_api_cloud_sync_events_post,pending_native_port
-cloud,POST,/api/cloud/continuity/lease/acquire,hc4-continuity,Acquire Writer Lease,See source policy,acquire_writer_lease_api_cloud_continuity_lease_acquire_post,pending_native_port
-cloud,POST,/api/cloud/continuity/lease/renew,hc4-continuity,Renew Writer Lease,See source policy,renew_writer_lease_api_cloud_continuity_lease_renew_post,pending_native_port
-cloud,POST,/api/cloud/continuity/references,hc4-continuity,Create Continuity Reference,See source policy,create_continuity_reference_api_cloud_continuity_references_post,pending_native_port
+operational,GET,/api/health,health,Health Check,See source policy,health_check_api_health_get,native_web_service
+operational,POST,/api/public/cafe/qr/{opaque_token}/resolve,cafe,Resolve Qr Token,See source policy,resolve_qr_token_api_public_cafe_qr__opaque_token__resolve_post,native_web_service
+operational,GET,/api/public/cafe/sessions/{public_id}/menu,public-cafe,Read Menu,See source policy,read_menu_api_public_cafe_sessions__public_id__menu_get,native_web_service
+operational,POST,/api/public/cafe/sessions/{public_id}/orders,public-cafe,Submit Order,See source policy,submit_order_api_public_cafe_sessions__public_id__orders_post,native_web_service
+operational,GET,/api/public/cafe/sessions/{public_id}/orders,public-cafe,Read Orders,See source policy,read_orders_api_public_cafe_sessions__public_id__orders_get,native_web_service
+operational,POST,/api/public/cafe/sessions/{public_id}/bill-request,public-cafe,Request Bill,See source policy,request_bill_api_public_cafe_sessions__public_id__bill_request_post,native_web_service
+operational,POST,/api/auth/login,auth,Login,See source policy,login_api_auth_login_post,native_web_service
+operational,POST,/api/auth/logout,auth,Logout,Protected,logout_api_auth_logout_post,native_web_service
+operational,POST,/api/auth/step-up,auth,Step Up Authentication,Protected,step_up_authentication_api_auth_step_up_post,native_web_service
+operational,POST,/api/auth/mfa/enroll,auth,Enroll Mfa,Protected,enroll_mfa_api_auth_mfa_enroll_post,native_web_service
+operational,POST,/api/auth/mfa/confirm,auth,Confirm Mfa,Protected,confirm_mfa_api_auth_mfa_confirm_post,native_web_service
+operational,POST,/api/auth/mfa/disable,auth,Disable Mfa,Protected,disable_mfa_api_auth_mfa_disable_post,native_web_service
+operational,GET,/api/auth/me,auth,Read Current User,Protected,read_current_user_api_auth_me_get,native_web_service
+operational,GET,/api/auth/admin-check,auth,Admin Check,Protected,admin_check_api_auth_admin_check_get,native_web_service
+operational,GET,/api/auth/branch-scope,auth,Read Branch Scope,Protected,read_branch_scope_api_auth_branch_scope_get,native_web_service
+operational,GET,/api/ventures/current,ventures,Current Venture,Protected,current_venture_api_ventures_current_get,native_web_service
+operational,GET,/api/ventures,ventures,List Ventures,Protected,list_ventures_api_ventures_get,native_web_service
+operational,GET,/api/venture-users,ventures,List Venture Users,Protected,list_venture_users_api_venture_users_get,native_web_service
+operational,POST,/api/venture-users,ventures,Create Venture User,Protected,create_venture_user_api_venture_users_post,native_web_service
+operational,PUT,/api/venture-users/{user_id},ventures,Update Venture User Assignment,Protected,update_venture_user_assignment_api_venture_users__user_id__put,native_web_service
+operational,GET,/api/cafe/orders,cafe-orders,Read Orders,Protected,read_orders_api_cafe_orders_get,native_web_service
+operational,POST,/api/cafe/orders,cafe-orders,Add Order,Protected,add_order_api_cafe_orders_post,native_web_service
+operational,GET,/api/cafe/orders/{public_id},cafe-orders,Read Order,Protected,read_order_api_cafe_orders__public_id__get,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/accept,cafe-orders,Accept Order,Protected,accept_order_api_cafe_orders__public_id__accept_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/reject,cafe-orders,Reject Order,Protected,reject_order_api_cafe_orders__public_id__reject_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/start-preparing,cafe-orders,Start Preparing,Protected,start_preparing_api_cafe_orders__public_id__start_preparing_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/mark-ready,cafe-orders,Mark Ready,Protected,mark_ready_api_cafe_orders__public_id__mark_ready_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/serve,cafe-orders,Serve Order,Protected,serve_order_api_cafe_orders__public_id__serve_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/request-bill,cafe-orders,Request Standalone Order Bill,Protected,request_standalone_order_bill_api_cafe_orders__public_id__request_bill_post,native_web_service
+operational,POST,/api/cafe/orders/{public_id}/cancel,cafe-orders,Cancel Order,Protected,cancel_order_api_cafe_orders__public_id__cancel_post,native_web_service
+operational,POST,/api/cafe/table-sessions/{public_id}/request-bill,cafe-orders,Request Session Bill,Protected,request_session_bill_api_cafe_table_sessions__public_id__request_bill_post,native_web_service
+operational,GET,/api/cafe/kitchen/orders,cafe-orders,Read Kitchen Queue,Protected,read_kitchen_queue_api_cafe_kitchen_orders_get,native_web_service
+operational,GET,/api/cafe/billing/table-sessions/{public_id}/quote,cafe-billing,Read Table Quote,Protected,read_table_quote_api_cafe_billing_table_sessions__public_id__quote_get,native_web_service
+operational,POST,/api/cafe/billing/table-sessions/{public_id}/bill,cafe-billing,Create Table Bill,Protected,create_table_bill_api_cafe_billing_table_sessions__public_id__bill_post,native_web_service
+operational,GET,/api/cafe/billing/orders/{public_id}/quote,cafe-billing,Read Order Quote,Protected,read_order_quote_api_cafe_billing_orders__public_id__quote_get,native_web_service
+operational,POST,/api/cafe/billing/orders/{public_id}/bill,cafe-billing,Create Order Bill,Protected,create_order_bill_api_cafe_billing_orders__public_id__bill_post,native_web_service
+operational,GET,/api/cafe/billing/invoices/{invoice_id}/receipt,cafe-billing,Read Receipt,Protected,read_receipt_api_cafe_billing_invoices__invoice_id__receipt_get,native_web_service
+operational,POST,/api/cafe/billing/invoices/{invoice_id}/payments,cafe-billing,Collect Payment,Protected,collect_payment_api_cafe_billing_invoices__invoice_id__payments_post,native_web_service
+operational,POST,/api/cafe/billing/pos/checkout,cafe-billing,Checkout Pos,Protected,checkout_pos_api_cafe_billing_pos_checkout_post,native_web_service
+operational,GET,/api/cafe/billing/invoices,cafe-billing,Read Invoice History,Protected,read_invoice_history_api_cafe_billing_invoices_get,native_web_service
+operational,GET,/api/cafe/menu/categories,cafe,Read Menu Categories,Protected,read_menu_categories_api_cafe_menu_categories_get,native_web_service
+operational,POST,/api/cafe/menu/categories,cafe,Add Menu Category,Protected,add_menu_category_api_cafe_menu_categories_post,native_web_service
+operational,PUT,/api/cafe/menu/categories/{category_id},cafe,Edit Menu Category,Protected,edit_menu_category_api_cafe_menu_categories__category_id__put,native_web_service
+operational,GET,/api/cafe/menu/items,cafe,Read Menu Items,Protected,read_menu_items_api_cafe_menu_items_get,native_web_service
+operational,POST,/api/cafe/menu/items,cafe,Add Menu Item,Protected,add_menu_item_api_cafe_menu_items_post,native_web_service
+operational,PUT,/api/cafe/menu/items/{item_id},cafe,Edit Menu Item,Protected,edit_menu_item_api_cafe_menu_items__item_id__put,native_web_service
+operational,PATCH,/api/cafe/menu/items/{item_id}/availability,cafe,Set Menu Item Availability,Protected,set_menu_item_availability_api_cafe_menu_items__item_id__availability_patch,native_web_service
+operational,GET,/api/cafe/tables,cafe,Read Cafe Tables,Protected,read_cafe_tables_api_cafe_tables_get,native_web_service
+operational,POST,/api/cafe/tables,cafe,Add Cafe Table,Protected,add_cafe_table_api_cafe_tables_post,native_web_service
+operational,PUT,/api/cafe/tables/{table_id},cafe,Edit Cafe Table,Protected,edit_cafe_table_api_cafe_tables__table_id__put,native_web_service
+operational,POST,/api/cafe/tables/{table_id}/deactivate,cafe,Deactivate Cafe Table,Protected,deactivate_cafe_table_api_cafe_tables__table_id__deactivate_post,native_web_service
+operational,POST,/api/cafe/tables/{table_id}/qr/rotate,cafe,Rotate Qr,Protected,rotate_qr_api_cafe_tables__table_id__qr_rotate_post,native_web_service
+operational,GET,/api/cafe/tables/{table_id}/qr/status,cafe,Read Qr Status,Protected,read_qr_status_api_cafe_tables__table_id__qr_status_get,native_web_service
+operational,POST,/api/cafe/tables/{table_id}/qr/revoke,cafe,Revoke Qr,Protected,revoke_qr_api_cafe_tables__table_id__qr_revoke_post,native_web_service
+operational,POST,/api/cafe/tables/{table_id}/qr/print-data,cafe,Print Qr Data,Protected,print_qr_data_api_cafe_tables__table_id__qr_print_data_post,native_web_service
+operational,POST,/api/cafe/table-sessions,cafe,Open Session,Protected,open_session_api_cafe_table_sessions_post,native_web_service
+operational,GET,/api/cafe/table-sessions/{public_id},cafe,Read Session,Protected,read_session_api_cafe_table_sessions__public_id__get,native_web_service
+operational,GET,/api/cafe/tables/{table_id}/active-session,cafe,Read Active Session,Protected,read_active_session_api_cafe_tables__table_id__active_session_get,native_web_service
+operational,POST,/api/cafe/table-sessions/{public_id}/close,cafe,Close Session,Protected,close_session_api_cafe_table_sessions__public_id__close_post,native_web_service
+operational,POST,/api/cafe/tables/{table_id}/qr/render,cafe,Render Table Qr,Protected,render_table_qr_api_cafe_tables__table_id__qr_render_post,native_web_service
+operational,GET,/api/sync/status,sync-status,Sync Status,Protected,sync_status_api_sync_status_get,native_single_database_replacement
+operational,GET,/api/sync/continuity,hc4-continuity,Continuity State,Protected,continuity_state_api_sync_continuity_get,native_single_database_replacement
+operational,GET,/api/sync/reconciliation,hc4-continuity,Read Reconciliation,Protected,read_reconciliation_api_sync_reconciliation_get,native_single_database_replacement
+operational,POST,/api/sync/reconcile,hc4-continuity,Reconcile,Protected,reconcile_api_sync_reconcile_post,native_single_database_replacement
+operational,GET,/api/sync/dead-letters,hc4-continuity,List Dead Letters,Protected,list_dead_letters_api_sync_dead_letters_get,native_single_database_replacement
+operational,POST,/api/sync/dead-letters/{dead_letter_id}/retry,hc4-continuity,Retry Failed Sync,Protected,retry_failed_sync_api_sync_dead_letters__dead_letter_id__retry_post,retired_local_hub_interface
+operational,GET,/api/tax-operation,tax-operation,Read Tax Operation,Protected,read_tax_operation_api_tax_operation_get,native_web_service
+operational,PUT,/api/tax-operation/settings,tax-operation,Update Tax Settings,Protected,update_tax_settings_api_tax_operation_settings_put,native_web_service
+operational,POST,/api/tax-operation/activate-gst,tax-operation,Activate Gst,Protected,activate_gst_api_tax_operation_activate_gst_post,native_web_service
+operational,GET,/api/tax-operation/combined-turnover,tax-operation,Read Combined Turnover,Protected,read_combined_turnover_api_tax_operation_combined_turnover_get,native_web_service
+operational,GET,/api/business-profile,business settings,Read Business Profile,Protected,read_business_profile_api_business_profile_get,native_web_service
+operational,PUT,/api/business-profile,business settings,Update Business Profile,Protected,update_business_profile_api_business_profile_put,native_web_service
+operational,GET,/api/tax-rates,business settings,Read Tax Rates,Protected,read_tax_rates_api_tax_rates_get,native_web_service
+operational,POST,/api/tax-rates,business settings,Add Tax Rate,Protected,add_tax_rate_api_tax_rates_post,native_web_service
+operational,PUT,/api/tax-rates/{tax_rate_id},business settings,Edit Tax Rate,Protected,edit_tax_rate_api_tax_rates__tax_rate_id__put,native_web_service
+operational,GET,/api/payment-modes,business settings,Read Payment Modes,Protected,read_payment_modes_api_payment_modes_get,native_web_service
+operational,POST,/api/payment-modes,business settings,Add Payment Mode,Protected,add_payment_mode_api_payment_modes_post,native_web_service
+operational,PUT,/api/payment-modes/{payment_mode_id},business settings,Edit Payment Mode,Protected,edit_payment_mode_api_payment_modes__payment_mode_id__put,native_web_service
+operational,GET,/api/invoice-sequences,business settings,Read Invoice Sequences,Protected,read_invoice_sequences_api_invoice_sequences_get,native_web_service
+operational,POST,/api/invoice-sequences,business settings,Add Invoice Sequence,Protected,add_invoice_sequence_api_invoice_sequences_post,native_web_service
+operational,PUT,/api/invoice-sequences/{sequence_id},business settings,Edit Invoice Sequence,Protected,edit_invoice_sequence_api_invoice_sequences__sequence_id__put,native_web_service
+operational,GET,/api/categories,categories,List Categories,Protected,list_categories_api_categories_get,native_web_service
+operational,POST,/api/categories,categories,Create Category,Protected,create_category_api_categories_post,native_web_service
+operational,PUT,/api/categories/{category_id},categories,Update Category,Protected,update_category_api_categories__category_id__put,native_web_service
+operational,GET,/api/suppliers,suppliers,List Suppliers,Protected,list_suppliers_api_suppliers_get,native_web_service
+operational,POST,/api/suppliers,suppliers,Create Supplier,Protected,create_supplier_api_suppliers_post,native_web_service
+operational,GET,/api/suppliers/{supplier_id},suppliers,Get Supplier,Protected,get_supplier_api_suppliers__supplier_id__get,native_web_service
+operational,PUT,/api/suppliers/{supplier_id},suppliers,Update Supplier,Protected,update_supplier_api_suppliers__supplier_id__put,native_web_service
+operational,GET,/api/branches,branches,List Branches,Protected,list_branches_api_branches_get,native_web_service
+operational,POST,/api/branches,branches,Create Branch,Protected,create_branch_api_branches_post,native_web_service
+operational,PUT,/api/branches/{branch_id},branches,Update Branch,Protected,update_branch_api_branches__branch_id__put,native_web_service
+operational,GET,/api/products,products,List Products,Protected,list_products_api_products_get,native_web_service
+operational,POST,/api/products,products,Create Product,Protected,create_product_api_products_post,native_web_service
+operational,GET,/api/products/search,products,Search Products,Protected,search_products_api_products_search_get,native_web_service
+operational,GET,/api/products/{product_id},products,Get Product,Protected,get_product_api_products__product_id__get,native_web_service
+operational,PUT,/api/products/{product_id},products,Update Product,Protected,update_product_api_products__product_id__put,native_web_service
+operational,PATCH,/api/products/{product_id}/deactivate,products,Deactivate Product,Protected,deactivate_product_api_products__product_id__deactivate_patch,native_web_service
+operational,GET,/api/customers,customers,Read Customers,Protected,read_customers_api_customers_get,native_web_service
+operational,POST,/api/customers,customers,Add Customer,Protected,add_customer_api_customers_post,native_web_service
+operational,GET,/api/customers/{customer_id},customers,Read Customer,Protected,read_customer_api_customers__customer_id__get,native_web_service
+operational,PUT,/api/customers/{customer_id},customers,Edit Customer,Protected,edit_customer_api_customers__customer_id__put,native_web_service
+operational,PATCH,/api/customers/{customer_id}/deactivate,customers,Disable Customer,Protected,disable_customer_api_customers__customer_id__deactivate_patch,native_web_service
+operational,GET,/api/customers/{customer_id}/ledger,customers,Read Customer Ledger,Protected,read_customer_ledger_api_customers__customer_id__ledger_get,native_web_service
+operational,POST,/api/customers/{customer_id}/payments,customers,Add Customer Payment,Protected,add_customer_payment_api_customers__customer_id__payments_post,native_web_service
+operational,GET,/api/customer-ledger/outstanding,customers,Read Customer Outstanding,Protected,read_customer_outstanding_api_customer_ledger_outstanding_get,native_web_service
+operational,GET,/api/invoices,invoices,Read Invoices,Protected,read_invoices_api_invoices_get,native_web_service
+operational,POST,/api/invoices,invoices,Add Invoice,Protected,add_invoice_api_invoices_post,native_web_service
+operational,GET,/api/invoices/{invoice_id},invoices,Read Invoice,Protected,read_invoice_api_invoices__invoice_id__get,native_web_service
+operational,POST,/api/invoices/{invoice_id}/issue,invoices,Issue Draft Invoice,Protected,issue_draft_invoice_api_invoices__invoice_id__issue_post,native_web_service
+operational,POST,/api/invoices/{invoice_id}/cancel,invoices,Cancel Draft Invoice,Protected,cancel_draft_invoice_api_invoices__invoice_id__cancel_post,native_web_service
+operational,POST,/api/invoices/{invoice_id}/payments,invoices,Collect Invoice Payment,Protected,collect_invoice_payment_api_invoices__invoice_id__payments_post,native_web_service
+operational,GET,/api/pos/products/search,invoices,Search Products For Pos,Protected,search_products_for_pos_api_pos_products_search_get,native_web_service
+operational,POST,/api/pos/quote,invoices,Quote Pos Invoice,Protected,quote_pos_invoice_api_pos_quote_post,native_web_service
+operational,POST,/api/pos/checkout,invoices,Checkout Pos Invoice,Protected,checkout_pos_invoice_api_pos_checkout_post,native_web_service
+operational,GET,/api/inventory,inventory,List Inventory,Protected,list_inventory_api_inventory_get,native_web_service
+operational,GET,/api/inventory/low-stock,inventory,List Low Stock Inventory,Protected,list_low_stock_inventory_api_inventory_low_stock_get,native_web_service
+operational,POST,/api/inventory/adjustments,inventory,Create Stock Adjustment,Protected,create_stock_adjustment_api_inventory_adjustments_post,native_web_service
+operational,GET,/api/inventory/movements,inventory,List Stock Movements,Protected,list_stock_movements_api_inventory_movements_get,native_web_service
+operational,GET,/api/inventory/reorder-recommendations,inventory,List Reorder Recommendations,Protected,list_reorder_recommendations_api_inventory_reorder_recommendations_get,native_web_service
+operational,GET,/api/inventory/{product_id},inventory,Get Product Inventory,Protected,get_product_inventory_api_inventory__product_id__get,native_web_service
+operational,GET,/api/sales,sales,List Sales,Protected,list_sales_api_sales_get,native_web_service
+operational,POST,/api/sales,sales,Record Sale,Protected,record_sale_api_sales_post,native_web_service
+operational,GET,/api/sales/summary,sales,Get Sales Summary,Protected,get_sales_summary_api_sales_summary_get,native_web_service
+operational,GET,/api/sales/trends,sales,Get Sales Trends,Protected,get_sales_trends_api_sales_trends_get,native_web_service
+operational,GET,/api/sales/{sale_id},sales,Get Sale,Protected,get_sale_api_sales__sale_id__get,native_web_service
+operational,GET,/api/dashboard/overview,dashboard,Overview Dashboard,Protected,overview_dashboard_api_dashboard_overview_get,native_web_service
+operational,GET,/api/dashboard/sales,dashboard,Sales Dashboard,Protected,sales_dashboard_api_dashboard_sales_get,native_web_service
+operational,GET,/api/dashboard/inventory,dashboard,Inventory Dashboard,Protected,inventory_dashboard_api_dashboard_inventory_get,native_web_service
+operational,GET,/api/dashboard/purchase-orders,dashboard,Purchase Orders Dashboard,Protected,purchase_orders_dashboard_api_dashboard_purchase_orders_get,native_web_service
+operational,GET,/api/dashboard/cafe,dashboard,Cafe Dashboard,Protected,cafe_dashboard_api_dashboard_cafe_get,native_web_service
+operational,GET,/api/dashboard/consolidated,dashboard,Consolidated Dashboard,Protected,consolidated_dashboard_api_dashboard_consolidated_get,native_web_service
+operational,GET,/api/purchase-orders,purchase-orders,List Purchase Orders,Protected,list_purchase_orders_api_purchase_orders_get,native_web_service
+operational,POST,/api/purchase-orders,purchase-orders,Create Manual Purchase Order,Protected,create_manual_purchase_order_api_purchase_orders_post,native_web_service
+operational,POST,/api/purchase-orders/from-recommendations,purchase-orders,Create From Recommendations,Protected,create_from_recommendations_api_purchase_orders_from_recommendations_post,native_web_service
+operational,GET,/api/purchase-orders/{purchase_order_id},purchase-orders,Get Purchase Order,Protected,get_purchase_order_api_purchase_orders__purchase_order_id__get,native_web_service
+operational,PUT,/api/purchase-orders/{purchase_order_id},purchase-orders,Update Purchase Order Route,Protected,update_purchase_order_route_api_purchase_orders__purchase_order_id__put,native_web_service
+operational,POST,/api/purchase-orders/{purchase_order_id}/submit,purchase-orders,Submit Purchase Order Route,Protected,submit_purchase_order_route_api_purchase_orders__purchase_order_id__submit_post,native_web_service
+operational,POST,/api/purchase-orders/{purchase_order_id}/approve,purchase-orders,Approve Purchase Order Route,Protected,approve_purchase_order_route_api_purchase_orders__purchase_order_id__approve_post,native_web_service
+operational,POST,/api/purchase-orders/{purchase_order_id}/cancel,purchase-orders,Cancel Purchase Order Route,Protected,cancel_purchase_order_route_api_purchase_orders__purchase_order_id__cancel_post,native_web_service
+operational,POST,/api/purchase-orders/{purchase_order_id}/mark-ordered,purchase-orders,Mark Purchase Order Ordered Route,Protected,mark_purchase_order_ordered_route_api_purchase_orders__purchase_order_id__mark_ordered_post,native_web_service
+operational,POST,/api/purchase-orders/{purchase_order_id}/receive,purchase-orders,Receive Purchase Order Route,Protected,receive_purchase_order_route_api_purchase_orders__purchase_order_id__receive_post,native_web_service
+operational,POST,/api/forecasts/run,forecasts,Run Forecast Route,Protected,run_forecast_route_api_forecasts_run_post,native_web_service
+operational,GET,/api/forecasts,forecasts,List Forecasts,Protected,list_forecasts_api_forecasts_get,native_web_service
+operational,GET,/api/forecasts/products/{product_id},forecasts,List Product Forecasts,Protected,list_product_forecasts_api_forecasts_products__product_id__get,native_web_service
+operational,POST,/api/governance/step-up,governance,Step Up,Protected,step_up_api_governance_step_up_post,native_web_service
+operational,GET,/api/governance/closings,governance,Get Closing,Protected,get_closing_api_governance_closings_get,native_web_service
+operational,POST,/api/governance/closings,governance,Create Closing,Protected,create_closing_api_governance_closings_post,native_web_service
+operational,POST,/api/governance/closings/{closing_id}/submit,governance,Submit,Protected,submit_api_governance_closings__closing_id__submit_post,native_web_service
+operational,POST,/api/governance/closings/{closing_id}/close,governance,Close,Protected,close_api_governance_closings__closing_id__close_post,native_web_service
+operational,POST,/api/governance/closings/{closing_id}/reopen,governance,Reopen,Protected,reopen_api_governance_closings__closing_id__reopen_post,native_web_service
+operational,POST,/api/governance/voids/invoices/{invoice_id},governance,Void,Protected,void_api_governance_voids_invoices__invoice_id__post,native_web_service
+operational,POST,/api/governance/purges,governance,Create Purge,Protected,create_purge_api_governance_purges_post,native_web_service
+operational,POST,/api/governance/purges/{purge_id}/approve,governance,Approve,Protected,approve_api_governance_purges__purge_id__approve_post,native_web_service
+operational,POST,/api/governance/purges/{purge_id}/execute,governance,Execute,Protected,execute_api_governance_purges__purge_id__execute_post,native_web_service
+operational,GET,/api/exports/sales,exports,Export Sales,Protected,export_sales_api_exports_sales_get,native_web_service
+operational,GET,/api/exports/inventory,exports,Export Inventory,Protected,export_inventory_api_exports_inventory_get,native_web_service
+operational,GET,/api/exports/purchase-orders,exports,Export Purchase Orders,Protected,export_purchase_orders_api_exports_purchase_orders_get,native_web_service
+operational,GET,/api/exports/forecasts,exports,Export Forecasts,Protected,export_forecasts_api_exports_forecasts_get,native_web_service
+operational,GET,/api/exports/cafe,exports,Export Cafe,Protected,export_cafe_api_exports_cafe_get,native_web_service
+operational,GET,/api/exports/consolidated,exports,Export Consolidated,Protected,export_consolidated_api_exports_consolidated_get,native_web_service
+operational,POST,/api/ai/chat,ai,Chat,Protected,chat_api_ai_chat_post,native_web_service
+operational,GET,/api/ai/sessions,ai,List Ai Sessions,Protected,list_ai_sessions_api_ai_sessions_get,native_web_service
+operational,GET,/api/ai/sessions/{session_id},ai,Get Ai Session,Protected,get_ai_session_api_ai_sessions__session_id__get,native_web_service
+cloud,GET,/api/health,health,Health Check,See source policy,health_check_api_health_get,native_web_service
+cloud,GET,/api/cloud/readiness,cloud-gateway,Readiness,See source policy,readiness_api_cloud_readiness_get,retired_local_hub_interface
+cloud,POST,/api/cloud/devices/heartbeat,cloud-gateway,Heartbeat,See source policy,heartbeat_api_cloud_devices_heartbeat_post,retired_local_hub_interface
+cloud,POST,/api/cloud/publications/menu,cloud-gateway,Publish Menu,See source policy,publish_menu_api_cloud_publications_menu_post,retired_local_hub_interface
+cloud,GET,/api/cloud/public/cafe/menu/{publication_id},cloud-gateway,Public Menu,See source policy,public_menu_api_cloud_public_cafe_menu__publication_id__get,retired_local_hub_interface
+cloud,POST,/api/cloud/public/cafe/qr/resolve,cloud-gateway,Public Qr Resolve,See source policy,public_qr_resolve_api_cloud_public_cafe_qr_resolve_post,retired_local_hub_interface
+cloud,POST,/api/cloud/public/cafe/orders,hc3-cloud-orders,Submit Cloud Order,See source policy,submit_cloud_order_api_cloud_public_cafe_orders_post,retired_local_hub_interface
+cloud,GET,/api/cloud/public/cafe/orders/{public_id},hc3-cloud-orders,Read Cloud Order,See source policy,read_cloud_order_api_cloud_public_cafe_orders__public_id__get,retired_local_hub_interface
+cloud,POST,/api/cloud/public/cafe/orders/{public_id}/bill-request,hc3-cloud-orders,Submit Cloud Bill Request,See source policy,submit_cloud_bill_request_api_cloud_public_cafe_orders__public_id__bill_request_post,retired_local_hub_interface
+cloud,GET,/api/cloud/sync/commands,hc3-cloud-orders,Pull Commands,See source policy,pull_commands_api_cloud_sync_commands_get,retired_local_hub_interface
+cloud,POST,/api/cloud/sync/receipts,hc3-cloud-orders,Push Receipt,See source policy,push_receipt_api_cloud_sync_receipts_post,retired_local_hub_interface
+cloud,POST,/api/cloud/sync/events,hc3-cloud-orders,Push Local Event,See source policy,push_local_event_api_cloud_sync_events_post,retired_local_hub_interface
+cloud,POST,/api/cloud/continuity/lease/acquire,hc4-continuity,Acquire Writer Lease,See source policy,acquire_writer_lease_api_cloud_continuity_lease_acquire_post,retired_local_hub_interface
+cloud,POST,/api/cloud/continuity/lease/renew,hc4-continuity,Renew Writer Lease,See source policy,renew_writer_lease_api_cloud_continuity_lease_renew_post,retired_local_hub_interface
+cloud,POST,/api/cloud/continuity/references,hc4-continuity,Create Continuity Reference,See source policy,create_continuity_reference_api_cloud_continuity_references_post,retired_local_hub_interface

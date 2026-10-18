@@ -10,34 +10,45 @@ export async function inventoryRows(db: Db, scope: Scope, branchId?: number) {
     ...scope.filter,
     ...(branchId ? { branch_id: branchId } : {}),
   };
-  const rows = await db
-    .collection<Row>("inventory")
-    .find(filter)
-    .limit(500)
-    .toArray();
-  const result = [];
-  for (const row of rows) {
-    const product = await db
+  const rows = await db.collection<Row>("inventory").find(filter).toArray();
+  const [products, branches, categories, suppliers] = await Promise.all([
+    db
       .collection<Row>("products")
-      .findOne({ id: row.product_id, company_id: scope.company.id });
-    const branch = await db
-      .collection("branches")
-      .findOne({ id: row.branch_id, company_id: scope.company.id });
+      .find({ company_id: scope.company.id })
+      .toArray(),
+    db
+      .collection<Row>("branches")
+      .find({ company_id: scope.company.id })
+      .toArray(),
+    db
+      .collection<Row>("categories")
+      .find({ company_id: scope.company.id })
+      .toArray(),
+    db
+      .collection<Row>("suppliers")
+      .find({ company_id: scope.company.id })
+      .toArray(),
+  ]);
+  const pm = new Map(products.map((p) => [p.id, p])),
+    bm = new Map(branches.map((b) => [b.id, b])),
+    cm = new Map(categories.map((c) => [c.id, c])),
+    sm = new Map(suppliers.map((s) => [s.id, s]));
+  const result: Row[] = [];
+  for (const row of rows) {
+    const product = pm.get(row.product_id),
+      branch = bm.get(row.branch_id);
     if (!product || !branch)
       throw new HttpError(
         409,
         "scope_integrity",
         "Inventory has an invalid product or branch reference.",
       );
-    const category = await db
-      .collection("categories")
-      .findOne({ id: product.category_id, company_id: scope.company.id });
-    const supplier = await db
-      .collection("suppliers")
-      .findOne({ id: product.supplier_id, company_id: scope.company.id });
+    const category = cm.get(product.category_id),
+      supplier = sm.get(product.supplier_id);
     result.push({
       ...row,
       product_id: Number(row.product_id),
+      branch_id: Number(row.branch_id),
       product_name: product.name,
       product_sku: product.sku,
       category_id: product.category_id,
@@ -46,8 +57,8 @@ export async function inventoryRows(db: Db, scope: Scope, branchId?: number) {
       supplier_name: supplier?.name ?? "",
       branch_name: branch.name,
       quantity_on_hand: decimal(row.quantity_scaled),
-      quantity_reserved: "0.00",
-      quantity_on_order: "0.00",
+      quantity_reserved: decimal(row.reserved_scaled ?? 0),
+      quantity_on_order: decimal(row.on_order_scaled ?? 0),
       reorder_threshold: product.reorder_threshold ?? "0.00",
       target_stock_level: product.target_stock_level ?? "0.00",
       unit_cost: product.unit_cost,

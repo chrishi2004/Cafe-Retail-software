@@ -1,3 +1,4 @@
+import { CafeClosingPage } from "./pages/CafeClosingPage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -27,6 +28,7 @@ import "./styles.css";
 
 const ROUTE_KEYS: RouteKey[] = [
   "overview",
+  "closing",
   "products",
   "customers",
   "pos",
@@ -110,6 +112,8 @@ function App() {
         <CustomersPage />
       ) : availableRoute === "pos" ? (
         <POSPage />
+      ) : availableRoute === "closing" ? (
+        <CafeClosingPage title="Retail cash reconciliation" />
       ) : availableRoute === "overview" ? (
         <OverviewDashboardPage />
       ) : availableRoute === "inventory" ? (

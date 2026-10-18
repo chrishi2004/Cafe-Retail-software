@@ -1,3 +1,24 @@
+import { invoiceHistory } from "./history";
+import { consistency } from "./consistency";
+import { assistant } from "./assistant";
+import { forecasts, recommendations } from "./planning";
+import { queryScope, requiredRow, transaction, signed } from "./query";
+import { governance } from "./governance";
+import { publicCafe, qrRoutes } from "./public-cafe";
+import { cafeBillingRoutes } from "./cafe-billing";
+import { cafeRoutes } from "./cafe";
+import { authActions, ventureUsers } from "./accounts";
+import { financial } from "./financial";
+import { customerRoutes } from "./ledger";
+import {
+  dashboard,
+  salesRows,
+  salesAnalytics,
+  salesSummary,
+} from "./dashboards";
+import { purchases } from "./purchasing";
+import { settings } from "./settings";
+import { csv } from "./query";
 import { z } from "zod";
 import { database, type Row } from "./db";
 import {
@@ -12,20 +33,36 @@ import {
 import { catalog, resourceNames } from "./catalog";
 import { checkout, quote, receipt, authorizedBranch } from "./billing";
 import { inventoryRows, adjust } from "./inventory";
-import { cafeReport, range } from "./reports";
+import { cafeReport, range, consolidated } from "./reports";
 import { closing } from "./closing";
-import { HttpError, pending, requireValue } from "./errors";
+import { HttpError, requireValue } from "./errors";
 import { businessDate, decimal, scaled } from "./money";
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
-async function boundedBody(request:Request) {
- const reader=request.body?.getReader(); if(!reader)return '';
- const chunks:Uint8Array[]=[];let size=0;
- try { while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
-  if(size>65536){await reader.cancel();throw new HttpError(413,'payload_too_large','Request body exceeds 64 KiB.');}
-  chunks.push(value);
- } } finally { reader.releaseLock(); }
- return new TextDecoder().decode(Buffer.concat(chunks));
+async function boundedBody(request: Request) {
+  const reader = request.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 65536) {
+        await reader.cancel();
+        throw new HttpError(
+          413,
+          "payload_too_large",
+          "Request body exceeds 64 KiB.",
+        );
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
 }
 export async function handle(request: Request, path: string[]) {
   try {
@@ -85,14 +122,24 @@ export async function handle(request: Request, path: string[]) {
           email: z.email().max(255),
           password: z.string().min(1).max(256),
           totp_code: z.string().optional(),
-          recovery_code: z.string().optional(),
+          recovery_code: z.string().max(128).optional(),
         })
         .parse(body);
       return json(await login(db, credentials));
     }
+    if (route.startsWith("public/")) {
+      const value = await publicCafe(db, route, request, body);
+      if (value !== undefined) return json(value);
+    }
     // Public QR endpoints cannot fall through into financial/catalog handlers.
-    if (route.startsWith("public/") || route.startsWith("cloud/"))
-      pending("Public/cloud coordination API");
+    if (route.startsWith("cloud/"))
+      throw new HttpError(
+        410,
+        "local_hub_gateway_retired",
+        "The hosted Next.js application uses /api/public/cafe directly. Local Hub device, lease and synchronization APIs belong to the preserved original application.",
+      );
+    if (route.startsWith("public/"))
+      throw new HttpError(404, "not_found", "Public endpoint unavailable.");
     const user = await currentUser(db, request);
     if (route === "auth/me" && method === "GET")
       return json(await publicUser(db, user));
@@ -102,8 +149,16 @@ export async function handle(request: Request, path: string[]) {
         .updateOne({ id: user.id }, { $inc: { token_version: 1 } });
       return json({ message: "Logged out." });
     }
+    const authResult = await authActions(db, user, route, method, body);
+    if (authResult !== undefined) return json(authResult);
+    const userResult = await ventureUsers(db, user, route, method, body);
+    if (userResult !== undefined) return json(userResult);
     if (route.startsWith("auth/"))
-      pending("Step-up, MFA management and account-administration API");
+      throw new HttpError(
+        404,
+        "not_found",
+        "Authentication endpoint unavailable.",
+      );
     if (route === "ventures" && method === "GET") {
       allow(user, ["super_admin"]);
       return json(
@@ -132,7 +187,10 @@ export async function handle(request: Request, path: string[]) {
         let value = 0;
         for (const invoice of await db
           .collection("invoices")
-          .find({ company_id: company.id })
+          .find({
+            company_id: company.id,
+            status: { $nin: ["draft", "cancelled", "returned"] },
+          })
           .toArray())
           value += scaled(invoice.grand_total);
         total += value;
@@ -151,7 +209,356 @@ export async function handle(request: Request, path: string[]) {
           "Recorded native web invoices only; legacy PostgreSQL history is not imported.",
       });
     }
+    if (
+      ["dashboard/consolidated", "exports/consolidated"].includes(route) &&
+      method === "GET"
+    ) {
+      const report = await consolidated(db, user, url);
+      return route.startsWith("exports/")
+        ? csv(report.venture_summaries, "kalpvriksh-consolidated")
+        : json(report);
+    }
+    if (
+      user.role === "kitchen" &&
+      !/^(cafe\/kitchen\/orders|cafe\/orders\/[^/]+\/(start-preparing|mark-ready)|cafe\/menu\/items\/\d+\/availability)$/.test(
+        route,
+      )
+    )
+      throw new HttpError(
+        403,
+        "forbidden",
+        "Kitchen accounts can only access kitchen work.",
+      );
     const scope = await scoped(db, user, request);
+    if (
+      method === "GET" &&
+      /^dashboard\/(overview|sales|inventory|purchase-orders)$/.test(route)
+    )
+      return json(await dashboard(db, scope, url, route.split("/")[1]));
+    if (route === "purchase-orders/from-recommendations" && method === "POST") {
+      allow(user, managers);
+      requireValue(
+        Array.isArray(body.items) &&
+          body.items.length > 0 &&
+          body.items.length <= 100,
+        "Select 1–100 reorder lines.",
+      );
+      return json(
+        await transaction(async (db, session) => {
+          const groups = new Map<string, Row[]>();
+          for (const item of body.items) {
+            const product = await requiredRow(
+              db,
+              "products",
+              {
+                company_id: scope.company.id,
+                id: Number(item.product_id),
+                is_active: true,
+              },
+              session,
+            );
+            await authorizedBranch(db, scope, item.branch_id, session);
+            const key = `${item.branch_id}:${product.supplier_id}`;
+            const list = groups.get(key) ?? [];
+            list.push({ ...item, supplier_id: product.supplier_id });
+            groups.set(key, list);
+          }
+          const result = [];
+          for (const items of groups.values())
+            result.push(
+              await purchases(
+                db,
+                scope,
+                "purchase-orders",
+                "POST",
+                {
+                  id: 0,
+                  branch_id: items[0].branch_id,
+                  supplier_id: items[0].supplier_id,
+                  items,
+                },
+                url,
+                null,
+                { db, session },
+              ),
+            );
+          return result;
+        }),
+      );
+    }
+    if (route.startsWith("purchase-orders")) {
+      const value = await purchases(
+        db,
+        scope,
+        route,
+        method,
+        body,
+        url,
+        request.headers.get("idempotency-key"),
+      );
+      if (value !== undefined) return json(value);
+    }
+    if (route === "sales" && method === "POST") {
+      allow(user, sellers);
+      requireValue(
+        scaled(body.tax_rate ?? "0") === 0,
+        "Use GST POS checkout for taxed sales; manual tax-rate overrides are disabled.",
+      );
+      const items = Array.isArray(body.items)
+        ? body.items.map((i: Row) => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            discount: i.discount_amount ?? "0",
+          }))
+        : [];
+      const payload = {
+        id: 0,
+        branch_id: body.branch_id,
+        invoice_type: "non_gst",
+        invoice_date: body.sale_datetime,
+        items,
+      } as Row;
+      const calculated = await quote(db, scope, payload, false);
+      const cash = await db.collection<Row>("payment_modes").findOne({
+        company_id: scope.company.id,
+        is_active: true,
+        mode_type: "cash",
+      });
+      requireValue(cash, "Configure a Cash payment mode.");
+      const result = await checkout(
+        scope,
+        {
+          ...payload,
+          payments: [
+            { payment_mode_id: cash.id, amount: calculated.grand_total },
+          ],
+        },
+        request.headers.get("idempotency-key"),
+        false,
+      );
+      requireValue(result, "Sale did not complete.");
+      return json({
+        ...result.invoice,
+        sale_number: result.invoice.invoice_number,
+        sale_datetime: result.invoice.invoice_date,
+        total_amount: result.invoice.grand_total,
+        tax_total: decimal(
+          scaled(result.invoice.cgst_total) +
+            scaled(result.invoice.sgst_total) +
+            scaled(result.invoice.igst_total) +
+            scaled(result.invoice.cess_total),
+        ),
+        units_sold: decimal(
+          result.invoice.items.reduce(
+            (n: number, i: Row) => n + scaled(i.quantity),
+            0,
+          ),
+        ),
+        item_count: result.invoice.items.length,
+        gross_profit: decimal(
+          result.invoice.items.reduce(
+            (n: number, i: Row) => n + signed(i.gross_profit),
+            0,
+          ),
+        ),
+        items: result.invoice.items.map((i: Row) => ({
+          ...i,
+          product_sku: i.sku_snapshot,
+          product_name: i.product_name_snapshot,
+          discount_amount: i.discount,
+        })),
+      });
+    }
+    if (method === "GET" && /^sales(?:\/(summary|trends|\d+))?$/.test(route)) {
+      allow(user, [...sellers, "analyst"]);
+      if (route === "sales/summary")
+        return json(await salesSummary(db, scope, url));
+      if (route === "sales/trends")
+        return json((await salesAnalytics(db, scope, url)).sales_trend);
+      const rows = await salesRows(
+        db,
+        scope,
+        url,
+        url.searchParams.has("start_date") || url.searchParams.has("end_date")
+          ? undefined
+          : { start: "1970-01-01", end: businessDate() },
+      );
+      if (route === "sales")
+        return json(
+          rows.slice(
+            0,
+            Math.min(500, Number(url.searchParams.get("limit") ?? 100)),
+          ),
+        );
+      const row = rows.find((r) => r.id === Number(route.split("/")[1]));
+      if (!row) throw new HttpError(404, "not_found", "Sale unavailable.");
+      return json(row);
+    }
+    if (
+      method === "GET" &&
+      [
+        "exports/sales",
+        "exports/inventory",
+        "exports/purchase-orders",
+        "exports/forecasts",
+      ].includes(route)
+    ) {
+      allow(user, [...managers, "analyst"]);
+      const name = route.split("/")[1];
+      const rows =
+        name === "forecasts"
+          ? await forecasts(db, scope, "forecasts", "GET", body, url)
+          : name === "sales"
+            ? await salesRows(db, scope, url)
+            : name === "inventory"
+              ? await inventoryRows(
+                  db,
+                  scope,
+                  url.searchParams.has("branch_id")
+                    ? Number(url.searchParams.get("branch_id"))
+                    : undefined,
+                )
+              : await purchases(
+                  db,
+                  scope,
+                  "purchase-orders",
+                  "GET",
+                  body,
+                  url,
+                  null,
+                );
+      requireValue(Array.isArray(rows), "Export rows unavailable.");
+      const exportRows =
+        name === "sales"
+          ? rows.flatMap((row) =>
+              (row.items as Row[]).map((item) => ({
+                sale_number: row.sale_number,
+                sale_datetime: row.sale_datetime,
+                branch_id: row.branch_id,
+                branch_name: row.branch_name,
+                product_id: item.product_id,
+                sku: item.product_sku,
+                product_name: item.product_name,
+                category_name: item.category_name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                discount: item.discount,
+                line_total: item.line_total,
+                gross_profit: item.gross_profit,
+              })),
+            )
+          : name === "purchase-orders"
+            ? rows.flatMap((row) =>
+                (row.items as Row[]).map((item) => ({
+                  po_number: row.po_number,
+                  status: row.status,
+                  order_date: row.order_date,
+                  branch_name: row.branch_name,
+                  supplier_name: row.supplier_name,
+                  ...item,
+                })),
+              )
+            : rows;
+      return csv(exportRows, name);
+    }
+    if (
+      route.startsWith("customers/") ||
+      route === "customer-ledger/outstanding"
+    ) {
+      const value = await customerRoutes(db, scope, route, method, body, url);
+      if (value !== undefined) return json(value);
+    }
+    if (
+      route.startsWith("invoices") ||
+      route.startsWith("cafe/billing/invoices/")
+    ) {
+      const value = await financial(
+        db,
+        scope,
+        route,
+        method,
+        body,
+        request.headers.get("idempotency-key"),
+      );
+      if (value !== undefined) return json(value);
+    }
+    const billResult = await cafeBillingRoutes(
+      db,
+      scope,
+      route,
+      method,
+      body,
+      request.headers.get("idempotency-key"),
+    );
+    if (billResult !== undefined) return json(billResult);
+    const qrResult = await qrRoutes(db, scope, route, method, body, url.origin);
+    if (qrResult !== undefined) return json(qrResult);
+    const cafeResult = await cafeRoutes(db, scope, route, method, body, url);
+    if (cafeResult !== undefined) return json(cafeResult);
+    const governanceResult = await governance(
+      db,
+      scope,
+      route,
+      method,
+      body,
+      request.headers.get("idempotency-key"),
+    );
+    if (governanceResult !== undefined) return json(governanceResult);
+    if (route.startsWith("ai/")) {
+      const value = await assistant(db, scope, route, method, body, url);
+      if (value !== undefined) return json(value);
+    }
+    if (route.startsWith("forecasts")) {
+      const value = await forecasts(db, scope, route, method, body, url);
+      if (value !== undefined) return json(value);
+    }
+    if (route === "inventory/reorder-recommendations" && method === "GET")
+      return json(await recommendations(db, scope, url));
+    const inventoryDetail = route.match(/^inventory\/(\d+)$/);
+    if (inventoryDetail && method === "GET") {
+      const product = await requiredRow(db, "products", {
+        company_id: scope.company.id,
+        id: Number(inventoryDetail[1]),
+      });
+      const rows = (await inventoryRows(db, scope)).filter(
+        (r) => r.product_id === product.id,
+      );
+      return json({
+        product_id: product.id,
+        product_sku: product.sku,
+        product_name: product.name,
+        category_name: rows[0]?.category_name ?? "",
+        supplier_name: rows[0]?.supplier_name ?? "",
+        total_quantity_on_hand: decimal(
+          rows.reduce((n, r) => n + scaled(r.quantity_on_hand), 0),
+        ),
+        total_stock_value: decimal(
+          rows.reduce((n, r) => n + scaled(r.stock_value), 0),
+        ),
+        is_low_stock_any_branch: rows.some((r) => r.is_low_stock),
+        inventory: rows,
+      });
+    }
+    const deactivateResource = route.match(
+      /^(products|customers)\/(\d+)\/deactivate$/,
+    );
+    if (deactivateResource && method === "PATCH")
+      return json(
+        await catalog(
+          db,
+          scope,
+          deactivateResource[1],
+          deactivateResource[2],
+          "PATCH",
+          { id: 0, is_active: false },
+          url,
+        ),
+      );
+    const consistencyResult = await consistency(db, scope, route, method);
+    if (consistencyResult !== undefined) return json(consistencyResult);
+    const settingsResult = await settings(db, scope, route, method, body, url);
+    if (settingsResult !== undefined) return json(settingsResult);
     if (route === "ventures/current" && method === "GET")
       return json(scope.company);
     if (route === "business-profile" && method === "GET")
@@ -202,51 +609,16 @@ export async function handle(request: Request, path: string[]) {
       const invoice = await db.collection<Row>("invoices").findOne({
         ...scope.filter,
         id: Number(receiptMatch[1]),
-        source_type: "cafe_takeaway",
+        source_type: { $in: ["cafe_takeaway", "cafe_table_session"] },
       });
       if (!invoice)
         throw new HttpError(404, "not_found", "Invoice unavailable.");
       return json(receipt(invoice));
     }
-    if (route === "cafe/billing/invoices" && method === "GET") {
-      const { start, end } = range(url);
-      const rows = await db
-        .collection<Row>("invoices")
-        .find({ ...scope.filter, source_type: "cafe_takeaway" })
-        .sort({ id: -1 })
-        .limit(500)
-        .toArray();
-      const items = rows
-        .filter(
-          (i) =>
-            businessDate(new Date(i.invoice_date)) >= start &&
-            businessDate(new Date(i.invoice_date)) <= end,
-        )
-        .map((i) => ({
-          invoice_id: i.id,
-          invoice_number: i.invoice_number,
-          branch_id: i.branch_id,
-          branch_name: i.branch_name,
-          issued_at: i.issued_at,
-          grand_total: i.grand_total,
-          paid_amount: i.paid_amount,
-          balance_due: i.balance_due,
-          payment_status: i.payment_status,
-          invoice_status: i.status,
-          source_type: i.source_type,
-          source_id: i.source_id,
-        }));
-      return json({ items, total: items.length, limit: 500, offset: 0 });
-    }
+    if (route === "cafe/billing/invoices" && method === "GET")
+      return json(await invoiceHistory(db, scope, url, true));
     if (route === "invoices" && method === "GET")
-      return json(
-        await db
-          .collection("invoices")
-          .find(scope.filter)
-          .sort({ id: -1 })
-          .limit(500)
-          .toArray(),
-      );
+      return json(await invoiceHistory(db, scope, url));
     const invoiceMatch = route.match(/^invoices\/(\d+)$/);
     if (invoiceMatch && method === "GET") {
       const row = await db
@@ -255,6 +627,10 @@ export async function handle(request: Request, path: string[]) {
       if (!row) throw new HttpError(404, "not_found", "Invoice unavailable.");
       return json(row);
     }
+    if (route === "products/search" && method === "GET")
+      return json(
+        await catalog(db, scope, "products", undefined, "GET", body, url),
+      );
     if (route === "pos/products/search" && method === "GET") {
       const branch = await authorizedBranch(
         db,
@@ -283,7 +659,9 @@ export async function handle(request: Request, path: string[]) {
           primary_barcode: p.primary_barcode ?? p.barcode ?? null,
           quantity_on_hand: decimal(stock?.quantity_scaled ?? 0),
           available_quantity: decimal(stock?.quantity_scaled ?? 0),
-          gst_rate: "0.00",
+          branch_id: branch.id,
+          branch_name: branch.name,
+          gst_rate: p.gst_rate_percent ?? "0.00",
         });
       }
       return json(result.slice(0, 50));
@@ -292,12 +670,24 @@ export async function handle(request: Request, path: string[]) {
       ["inventory", "inventory/low-stock"].includes(route) &&
       method === "GET"
     ) {
-      const rows = await inventoryRows(
+      let rows = await inventoryRows(
         db,
         scope,
         url.searchParams.has("branch_id")
           ? Number(url.searchParams.get("branch_id"))
           : undefined,
+      );
+      rows = rows.filter(
+        (r) =>
+          ["category_id", "supplier_id"].every(
+            (k) =>
+              !url.searchParams.has(k) ||
+              Number(url.searchParams.get(k)) === r[k],
+          ) &&
+          (!url.searchParams.get("search") ||
+            `${r.product_name} ${r.product_sku}`
+              .toLowerCase()
+              .includes(url.searchParams.get("search")!.toLowerCase())),
       );
       return json(
         route.endsWith("low-stock") ? rows.filter((r) => r.is_low_stock) : rows,
@@ -305,21 +695,39 @@ export async function handle(request: Request, path: string[]) {
     }
     if (route === "inventory/adjustments" && method === "POST") {
       const result = await adjust(scope, body);
-      const rows = await inventoryRows(db, scope, Number(body.branch_id));
+      let rows = await inventoryRows(db, scope, Number(body.branch_id));
       return json({
         ...result,
         inventory: rows.find((r) => r.product_id === Number(body.product_id)),
       });
     }
-    if (route === "inventory/movements" && method === "GET")
-      return json(
-        await db
-          .collection("stock_movements")
-          .find(scope.filter)
-          .sort({ id: -1 })
-          .limit(500)
-          .toArray(),
-      );
+    if (route === "inventory/movements" && method === "GET") {
+      const filter = await queryScope(db, scope, url);
+      for (const field of ["product_id", "movement_type"])
+        if (url.searchParams.has(field))
+          filter[field] =
+            field === "product_id"
+              ? Number(url.searchParams.get(field))
+              : url.searchParams.get(field);
+      const rows = await db
+        .collection<Row>("stock_movements")
+        .find(filter)
+        .sort({ id: -1 })
+        .limit(500)
+        .toArray();
+      for (const row of rows) {
+        const product = await db
+          .collection("products")
+          .findOne({ id: row.product_id, company_id: scope.company.id });
+        const branch = await db
+          .collection("branches")
+          .findOne({ id: row.branch_id, company_id: scope.company.id });
+        row.product_name = product?.name ?? "";
+        row.product_sku = product?.sku ?? "";
+        row.branch_name = branch?.name ?? "";
+      }
+      return json(rows);
+    }
     if (route === "cafe/orders" && method === "GET") {
       if (scope.company.business_type !== "cafe")
         throw new HttpError(403, "forbidden", "Cafe venture required.");
@@ -396,7 +804,11 @@ export async function handle(request: Request, path: string[]) {
           );
       }
     }
-    pending(`API ${method} /api/${route}`);
+    throw new HttpError(
+      404,
+      "not_found",
+      `API ${method} /api/${route} is not defined.`,
+    );
   } catch (error) {
     if (error instanceof HttpError)
       return json(

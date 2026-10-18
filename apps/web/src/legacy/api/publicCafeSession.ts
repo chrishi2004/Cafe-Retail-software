@@ -30,7 +30,7 @@ export type PublicCafeIdentity = {
 
 export type PublicCafeSession = {
   identity: PublicCafeIdentity;
-  continuityMode: "local" | "cloud";
+  continuityMode: "local" | "cloud" | "web";
   menu: () => Promise<PublicMenu>;
   orders: () => Promise<PublicSessionOrders>;
   submit: (retryKey: string, payload: PublicOrderInput) => Promise<PublicOrder>;
@@ -44,36 +44,55 @@ function cloudOrderStorageKey(qrValue: string): string {
   return `${CLOUD_ORDER_STORAGE_PREFIX}${qrValue}`;
 }
 
-function cloudBillKeyStorageKey(qrValue: string, orderPublicId: string): string {
+function cloudBillKeyStorageKey(
+  qrValue: string,
+  orderPublicId: string,
+): string {
   return `${CLOUD_BILL_KEY_PREFIX}${qrValue}:${orderPublicId}`;
 }
 
 function readCloudOrderIds(qrValue: string): string[] {
   try {
-    const value = JSON.parse(window.sessionStorage.getItem(cloudOrderStorageKey(qrValue)) ?? "[]");
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(-20) : [];
+    const value = JSON.parse(
+      window.sessionStorage.getItem(cloudOrderStorageKey(qrValue)) ?? "[]",
+    );
+    return Array.isArray(value)
+      ? value
+          .filter((item): item is string => typeof item === "string")
+          .slice(-20)
+      : [];
   } catch {
     return [];
   }
 }
 
 function rememberCloudOrder(qrValue: string, publicId: string): void {
-  const next = [...readCloudOrderIds(qrValue).filter((item) => item !== publicId), publicId].slice(-20);
+  const next = [
+    ...readCloudOrderIds(qrValue).filter((item) => item !== publicId),
+    publicId,
+  ].slice(-20);
   try {
-    window.sessionStorage.setItem(cloudOrderStorageKey(qrValue), JSON.stringify(next));
+    window.sessionStorage.setItem(
+      cloudOrderStorageKey(qrValue),
+      JSON.stringify(next),
+    );
   } catch {
     // Order status remains available for the current page even if storage is blocked.
   }
 }
 
-function cloudBillIdempotencyKey(qrValue: string, orderPublicId: string): string {
+function cloudBillIdempotencyKey(
+  qrValue: string,
+  orderPublicId: string,
+): string {
   const storageKey = cloudBillKeyStorageKey(qrValue, orderPublicId);
   try {
     const existing = window.sessionStorage.getItem(storageKey);
     if (existing && existing.length >= 8) return existing;
-    const created = typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `bill-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const created =
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `bill-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     window.sessionStorage.setItem(storageKey, created);
     return created;
   } catch {
@@ -119,10 +138,16 @@ async function loadCloudOrders(qrValue: string): Promise<PublicOrder[]> {
   return results.filter((order): order is PublicOrder => order !== null);
 }
 
-export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeSession> {
+export async function openCloudCafeSession(
+  qrValue: string,
+): Promise<PublicCafeSession> {
   const resolved = await resolveCloudQr(qrValue);
   if (!resolved.ordering_enabled) {
-    throw new PublicCafeApiError(409, "cloud_ordering_disabled", "Cloud Cafe ordering is not enabled for this publication.");
+    throw new PublicCafeApiError(
+      409,
+      "cloud_ordering_disabled",
+      "Cloud Cafe ordering is not enabled for this publication.",
+    );
   }
   const sessionId = `cloud:${resolved.publication_id}:${resolved.table_code}`;
   const menu = async (): Promise<PublicMenu> => {
@@ -170,7 +195,12 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
       orders: await loadCloudOrders(qrValue),
     }),
     submit: async (retryKey, payload) => {
-      const order = await submitCloudOrder(resolved.publication_id, qrValue, retryKey, payload);
+      const order = await submitCloudOrder(
+        resolved.publication_id,
+        qrValue,
+        retryKey,
+        payload,
+      );
       rememberCloudOrder(qrValue, order.public_id);
       return toPublicCloudOrder(order);
     },
@@ -178,7 +208,11 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
       const ids = readCloudOrderIds(qrValue);
       const orderPublicId = ids.at(-1);
       if (!orderPublicId) {
-        throw new PublicCafeApiError(409, "cloud_bill_requires_order", "Place an order before requesting the bill.");
+        throw new PublicCafeApiError(
+          409,
+          "cloud_bill_requires_order",
+          "Place an order before requesting the bill.",
+        );
       }
       const queued = await requestCloudBill(
         orderPublicId,
@@ -197,12 +231,14 @@ export async function openCloudCafeSession(qrValue: string): Promise<PublicCafeS
 
 // Retained only for local-network/PWA operation and regression coverage. The
 // public hosted `/order/:qr-token` release path does not call this helper.
-export async function openPublicCafeSession(qrValue: string): Promise<PublicCafeSession> {
+export async function openPublicCafeSession(
+  qrValue: string,
+): Promise<PublicCafeSession> {
   const resolved = await resolvePublicQr(qrValue);
   const sessionId = resolved.session_public_id;
   const access = resolved.guest_access;
   return {
-    continuityMode: "local",
+    continuityMode: "web",
     identity: {
       cafe_name: resolved.cafe_name,
       table_code: resolved.table_code,
@@ -212,7 +248,8 @@ export async function openPublicCafeSession(qrValue: string): Promise<PublicCafe
     },
     menu: () => getPublicMenu(sessionId, access),
     orders: () => getPublicOrders(sessionId, access),
-    submit: (retryKey, payload) => submitPublicOrder(sessionId, access, retryKey, payload),
+    submit: (retryKey, payload) =>
+      submitPublicOrder(sessionId, access, retryKey, payload),
     requestBill: () => requestPublicBill(sessionId, access),
   };
 }
@@ -223,5 +260,5 @@ export async function openCurrentPublicCafeSession(): Promise<PublicCafeSession>
   if (!path.startsWith(prefix) || path.length <= prefix.length) {
     throw new Error("Public Cafe route is not available.");
   }
-  return openCloudCafeSession(decodeURIComponent(path.slice(prefix.length)));
+  return openPublicCafeSession(decodeURIComponent(path.slice(prefix.length)));
 }

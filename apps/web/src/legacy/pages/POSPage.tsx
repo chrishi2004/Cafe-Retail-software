@@ -1,13 +1,40 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CreditCard, Plus, ReceiptText, RotateCw, Search, Send, Trash2 } from "lucide-react";
+import { cafeToday } from "../utils/cafeDates";
+import { RetailReceipt } from "../components/RetailReceipt";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  CreditCard,
+  Plus,
+  ReceiptText,
+  RotateCw,
+  Search,
+  Send,
+  Trash2,
+} from "lucide-react";
 
 import { listPaymentModes, getBusinessProfile } from "../api/businessSettings";
 import { ApiError } from "../api/client";
 import { createCustomer, listCustomers } from "../api/customers";
 import { listBranches } from "../api/masterData";
-import { checkoutPosInvoice, holdDraftInvoice, quotePosInvoice, searchPosProducts } from "../api/pos";
+import {
+  checkoutPosInvoice,
+  holdDraftInvoice,
+  quotePosInvoice,
+  searchPosProducts,
+} from "../api/pos";
 import { useAuth } from "../auth/AuthContext";
-import { EmptyState, ErrorState, LoadingState, MetricCard } from "../components/ui";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  MetricCard,
+} from "../components/ui";
 import type {
   Branch,
   BusinessProfile,
@@ -93,26 +120,31 @@ function invoiceTypeLabel(value: InvoiceType): string {
 
 export function POSPage() {
   const { token, user } = useAuth();
-  const checkoutKey = useRef<{payload: string; key: string} | null>(null);
+  const checkoutKey = useRef<{ payload: string; key: string } | null>(null);
   const checkoutBusy = useRef(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [businessProfile, setBusinessProfile] =
+    useState<BusinessProfile | null>(null);
   const [branchId, setBranchId] = useState(0);
   const [customerId, setCustomerId] = useState(0);
   const [invoiceType, setInvoiceType] = useState<InvoiceType>("non_gst");
   const [placeState, setPlaceState] = useState("");
   const [placeStateCode, setPlaceStateCode] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState<POSProductSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<POSProductSearchResult[]>(
+    [],
+  );
   const [cart, setCart] = useState<CartLine[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [quote, setQuote] = useState<InvoiceQuote | null>(null);
   const [lastInvoice, setLastInvoice] = useState<Invoice | null>(null);
   const [quickCustomerOpen, setQuickCustomerOpen] = useState(false);
-  const [quickCustomer, setQuickCustomer] = useState<CustomerPayload>(quickCustomerDefaults);
+  const [quickCustomer, setQuickCustomer] = useState<CustomerPayload>(
+    quickCustomerDefaults,
+  );
   const [loading, setLoading] = useState(true);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -124,8 +156,12 @@ export function POSPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canUsePOS = user?.role === "admin" || user?.role === "store_manager" || user?.role === "staff";
-  const canQuickCreateCustomer = user?.role === "admin" || user?.role === "store_manager";
+  const canUsePOS =
+    user?.role === "admin" ||
+    user?.role === "store_manager" ||
+    user?.role === "staff";
+  const canQuickCreateCustomer =
+    user?.role === "admin" || user?.role === "store_manager";
   const branchLocked = user?.role === "store_manager" || user?.role === "staff";
 
   const selectedCustomer = useMemo(
@@ -139,12 +175,17 @@ export function POSPage() {
   );
 
   const activePaymentModes = useMemo(
-    () => paymentModes.filter((mode) => mode.is_active && mode.mode_type !== "credit"),
+    () =>
+      paymentModes.filter(
+        (mode) => mode.is_active && mode.mode_type !== "credit",
+      ),
     [paymentModes],
   );
 
   const cashMode = useMemo(
-    () => activePaymentModes.find((mode) => mode.mode_type === "cash") ?? activePaymentModes[0],
+    () =>
+      activePaymentModes.find((mode) => mode.mode_type === "cash") ??
+      activePaymentModes[0],
     [activePaymentModes],
   );
 
@@ -183,20 +224,27 @@ export function POSPage() {
       {
         label: "Cart Lines",
         value: String(cart.length),
-        detail: branchId ? selectedBranch?.name ?? "Selected branch" : "Select branch",
+        detail: branchId
+          ? (selectedBranch?.name ?? "Selected branch")
+          : "Select branch",
         tone: "blue" as const,
       },
       {
         label: "Backend Total",
         value: quote ? formatCurrency(quote.grand_total) : "Not quoted",
-        detail: quote ? `${invoiceTypeLabel(quote.invoice_type)} backend quote` : "Add items to quote",
+        detail: quote
+          ? `${invoiceTypeLabel(quote.invoice_type)} backend quote`
+          : "Add items to quote",
         tone: "green" as const,
       },
       {
         label: "Tax Total",
         value: quote
           ? formatCurrency(
-              Number(quote.cgst_total) + Number(quote.sgst_total) + Number(quote.igst_total) + Number(quote.cess_total),
+              Number(quote.cgst_total) +
+                Number(quote.sgst_total) +
+                Number(quote.igst_total) +
+                Number(quote.cess_total),
             )
           : formatCurrency(0),
         detail: quote ? "Stored tax rows after checkout" : "Awaiting quote",
@@ -204,12 +252,26 @@ export function POSPage() {
       },
       {
         label: "Balance",
-        value: quote ? formatCurrency(Math.max(Number(quote.grand_total) - paymentTotal, 0)) : formatCurrency(0),
-        detail: selectedCustomer ? "Customer credit allowed" : "Walk-in must be paid",
-        tone: selectedCustomer ? "slate" as const : "rose" as const,
+        value: quote
+          ? formatCurrency(
+              Math.max(Number(quote.grand_total) - paymentTotal, 0),
+            )
+          : formatCurrency(0),
+        detail: selectedCustomer
+          ? "Customer credit allowed"
+          : "Walk-in must be paid",
+        tone: selectedCustomer ? ("slate" as const) : ("rose" as const),
       },
     ],
-    [branchId, cart.length, invoiceType, paymentTotal, quote, selectedBranch?.name, selectedCustomer],
+    [
+      branchId,
+      cart.length,
+      invoiceType,
+      paymentTotal,
+      quote,
+      selectedBranch?.name,
+      selectedCustomer,
+    ],
   );
 
   const buildQuotePayload = useCallback((): POSQuotePayload | null => {
@@ -221,7 +283,8 @@ export function POSPage() {
       customer_id: customerId || null,
       invoice_type: invoiceType,
       place_of_supply_state: cleanOptional(placeState),
-      place_of_supply_state_code: cleanOptional(placeStateCode)?.toUpperCase() ?? null,
+      place_of_supply_state_code:
+        cleanOptional(placeStateCode)?.toUpperCase() ?? null,
       invoice_date: new Date().toISOString(),
       items: cart.map((line) => ({
         product_id: line.product.product_id,
@@ -245,11 +308,23 @@ export function POSPage() {
       setBranches(branchRows);
       setPaymentModes(modes);
       setBusinessProfile(profile);
-      const defaultBranchId = user.role === "admin" ? branchRows[0]?.id ?? 0 : user.branch_id ?? branchRows[0]?.id ?? 0;
+      setInvoiceType(
+        profile.default_tax_mode === "gst" &&
+          profile.gst_effective_from &&
+          profile.gst_effective_from <= cafeToday()
+          ? "gst"
+          : "non_gst",
+      );
+      const defaultBranchId =
+        user.role === "admin"
+          ? (branchRows[0]?.id ?? 0)
+          : (user.branch_id ?? branchRows[0]?.id ?? 0);
       setBranchId(defaultBranchId);
       setPlaceState(profile.state ?? "");
       setPlaceStateCode(profile.state_code ?? "");
-      const defaultMode = modes.find((mode) => mode.is_active && mode.mode_type === "cash") ?? modes.find((mode) => mode.is_active);
+      const defaultMode =
+        modes.find((mode) => mode.is_active && mode.mode_type === "cash") ??
+        modes.find((mode) => mode.is_active);
       setPayments(defaultMode ? [paymentRow(defaultMode.id)] : []);
     } catch (loadError) {
       setError(errorMessage(loadError));
@@ -288,7 +363,9 @@ export function POSPage() {
   useEffect(() => {
     if (selectedCustomer) {
       setPlaceState(selectedCustomer.state ?? businessProfile?.state ?? "");
-      setPlaceStateCode(selectedCustomer.state_code ?? businessProfile?.state_code ?? "");
+      setPlaceStateCode(
+        selectedCustomer.state_code ?? businessProfile?.state_code ?? "",
+      );
     } else if (businessProfile) {
       setPlaceState(businessProfile.state ?? "");
       setPlaceStateCode(businessProfile.state_code ?? "");
@@ -296,7 +373,10 @@ export function POSPage() {
   }, [businessProfile, selectedCustomer]);
 
   useEffect(() => {
-    if (customerId && !customers.some((customer) => customer.id === customerId)) {
+    if (
+      customerId &&
+      !customers.some((customer) => customer.id === customerId)
+    ) {
       setCustomerId(0);
     }
   }, [customerId, customers]);
@@ -326,11 +406,16 @@ export function POSPage() {
 
   const addProductToCart = (product: POSProductSearchResult) => {
     setCart((current) => {
-      const existing = current.find((line) => line.product.product_id === product.product_id);
+      const existing = current.find(
+        (line) => line.product.product_id === product.product_id,
+      );
       if (existing) {
         return current.map((line) =>
           line.product.product_id === product.product_id
-            ? { ...line, quantity: asMoneyInput((Number(line.quantity) || 0) + 1) }
+            ? {
+                ...line,
+                quantity: asMoneyInput((Number(line.quantity) || 0) + 1),
+              }
             : line,
         );
       }
@@ -359,7 +444,10 @@ export function POSPage() {
     setSuccess(null);
     setLastInvoice(null);
     try {
-      const rows = await searchPosProducts(token, searchTerm.trim(), { branchId, limit: 12 });
+      const rows = await searchPosProducts(token, searchTerm.trim(), {
+        branchId,
+        limit: 12,
+      });
       setSearchResults(rows);
       const exact = rows.find(
         (row) =>
@@ -385,27 +473,40 @@ export function POSPage() {
 
   const updateCartLine = (productId: number, changes: Partial<CartLine>) => {
     setCart((current) =>
-      current.map((line) => (line.product.product_id === productId ? { ...line, ...changes } : line)),
+      current.map((line) =>
+        line.product.product_id === productId ? { ...line, ...changes } : line,
+      ),
     );
   };
 
   const removeCartLine = (productId: number) => {
-    setCart((current) => current.filter((line) => line.product.product_id !== productId));
+    setCart((current) =>
+      current.filter((line) => line.product.product_id !== productId),
+    );
   };
 
   const addPaymentRow = () => {
-    setPayments((current) => [...current, paymentRow(cashMode?.id ?? activePaymentModes[0]?.id ?? 0)]);
+    setPayments((current) => [
+      ...current,
+      paymentRow(cashMode?.id ?? activePaymentModes[0]?.id ?? 0),
+    ]);
   };
 
   const updatePaymentRow = (id: string, changes: Partial<PaymentRow>) => {
-    setPayments((current) => current.map((row) => (row.id === id ? { ...row, ...changes } : row)));
+    setPayments((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...changes } : row)),
+    );
   };
 
   const removePaymentRow = (id: string) => {
-    setPayments((current) => (current.length === 1 ? current : current.filter((row) => row.id !== id)));
+    setPayments((current) =>
+      current.length === 1 ? current : current.filter((row) => row.id !== id),
+    );
   };
 
-  const buildCheckoutPayload = (paymentPayloads: POSPaymentPayload[]): POSCheckoutPayload | null => {
+  const buildCheckoutPayload = (
+    paymentPayloads: POSPaymentPayload[],
+  ): POSCheckoutPayload | null => {
     const quotePayload = buildQuotePayload();
     if (!quotePayload) {
       return null;
@@ -418,7 +519,9 @@ export function POSPage() {
 
   const resetAfterInvoice = (invoice: Invoice) => {
     setLastInvoice(invoice);
-    setSuccess(`Invoice ${invoice.invoice_number} completed. Backend total ${formatCurrency(invoice.grand_total)}.`);
+    setSuccess(
+      `Invoice ${invoice.invoice_number} completed. Backend total ${formatCurrency(invoice.grand_total)}.`,
+    );
     setCart([]);
     setSearchResults([]);
     setSearchTerm("");
@@ -443,8 +546,13 @@ export function POSPage() {
     setSuccess(null);
     try {
       const serialized = JSON.stringify(payload);
-      if (checkoutKey.current?.payload !== serialized) checkoutKey.current = {payload: serialized, key: crypto.randomUUID()};
-      const invoice = await checkoutPosInvoice(token, payload, checkoutKey.current.key);
+      if (checkoutKey.current?.payload !== serialized)
+        checkoutKey.current = { payload: serialized, key: crypto.randomUUID() };
+      const invoice = await checkoutPosInvoice(
+        token,
+        payload,
+        checkoutKey.current.key,
+      );
       checkoutKey.current = null;
       resetAfterInvoice(invoice);
     } catch (checkoutError) {
@@ -503,7 +611,9 @@ export function POSPage() {
     try {
       const invoice = await holdDraftInvoice(token, payload);
       setLastInvoice(invoice);
-      setSuccess(`Draft ${invoice.invoice_number} held. Stock was not reduced.`);
+      setSuccess(
+        `Draft ${invoice.invoice_number} held. Stock was not reduced.`,
+      );
       setCart([]);
       setQuote(null);
     } catch (holdError) {
@@ -529,7 +639,10 @@ export function POSPage() {
         shipping_address: cleanOptional(quickCustomer.shipping_address),
         city: cleanOptional(quickCustomer.city),
         state: cleanOptional(quickCustomer.state || businessProfile?.state),
-        state_code: cleanOptional(quickCustomer.state_code || businessProfile?.state_code)?.toUpperCase() ?? null,
+        state_code:
+          cleanOptional(
+            quickCustomer.state_code || businessProfile?.state_code,
+          )?.toUpperCase() ?? null,
         pincode: cleanOptional(quickCustomer.pincode),
         branch_id: branchId || null,
         company_id: null,
@@ -538,7 +651,11 @@ export function POSPage() {
         is_active: true,
       };
       const customer = await createCustomer(token, payload);
-      setCustomers((current) => [...current, customer].sort((left, right) => left.name.localeCompare(right.name)));
+      setCustomers((current) =>
+        [...current, customer].sort((left, right) =>
+          left.name.localeCompare(right.name),
+        ),
+      );
       setCustomerId(customer.id);
       setQuickCustomer(quickCustomerDefaults);
       setQuickCustomerOpen(false);
@@ -555,7 +672,12 @@ export function POSPage() {
   }
 
   if (!canUsePOS) {
-    return <ErrorState title="POS access blocked" message="This role cannot issue sales or POS invoices." />;
+    return (
+      <ErrorState
+        title="POS access blocked"
+        message="This role cannot issue sales or POS invoices."
+      />
+    );
   }
 
   return (
@@ -565,12 +687,17 @@ export function POSPage() {
           <p className="eyebrow">Counter billing</p>
           <h2>POS Billing</h2>
           <p className="page-description">
-            Barcode-first invoice checkout with backend-calculated GST, stock reduction, payment rows, and customer credit handling.
+            Barcode-first invoice checkout with backend-calculated GST, stock
+            reduction, payment rows, and customer credit handling.
           </p>
         </div>
         <div className="page-header-side">
           <span className="role-scope">POS enabled</span>
-          <button className="action-button secondary" onClick={() => void loadInitial()} type="button">
+          <button
+            className="action-button secondary"
+            onClick={() => void loadInitial()}
+            type="button"
+          >
             <RotateCw aria-hidden="true" size={16} />
             Refresh setup
           </button>
@@ -584,7 +711,9 @@ export function POSPage() {
       </section>
 
       {error ? <ErrorState message={error} title="POS action failed" /> : null}
-      {quoteError ? <ErrorState message={quoteError} title="Quote blocked" /> : null}
+      {quoteError ? (
+        <ErrorState message={quoteError} title="Quote blocked" />
+      ) : null}
       {success ? <div className="success-banner">{success}</div> : null}
 
       {lastInvoice ? (
@@ -599,14 +728,15 @@ export function POSPage() {
             <span>Paid {formatCurrency(lastInvoice.paid_amount)}</span>
             <span>Due {formatCurrency(lastInvoice.balance_due)}</span>
           </div>
-          <div className="sale-button-row">
-            <button className="action-button secondary" disabled type="button">
-              Print in Phase 6
-            </button>
-            <button className="action-button secondary" disabled type="button">
-              PDF in Phase 6
-            </button>
-          </div>
+          {lastInvoice.status !== "draft" ? (
+            <RetailReceipt
+              invoice={lastInvoice}
+              onDone={() => {
+                setLastInvoice(null);
+                setSuccess(null);
+              }}
+            />
+          ) : null}
         </article>
       ) : null}
 
@@ -638,7 +768,11 @@ export function POSPage() {
             </label>
             <label>
               Invoice type
-              <select onChange={(event) => setInvoiceType(event.target.value as InvoiceType)} value={invoiceType}>
+              <select
+                disabled
+                aria-label="Active invoice tax mode"
+                value={invoiceType}
+              >
                 <option value="gst">GST</option>
                 <option value="non_gst">Non-GST</option>
               </select>
@@ -647,7 +781,9 @@ export function POSPage() {
               Place of supply
               <select
                 onChange={(event) => {
-                  const option = placeOptions.find((row) => row.stateCode === event.target.value);
+                  const option = placeOptions.find(
+                    (row) => row.stateCode === event.target.value,
+                  );
                   setPlaceState(option?.state ?? "");
                   setPlaceStateCode(option?.stateCode ?? "");
                 }}
@@ -665,7 +801,9 @@ export function POSPage() {
               State code
               <input
                 maxLength={2}
-                onChange={(event) => setPlaceStateCode(event.target.value.toUpperCase())}
+                onChange={(event) =>
+                  setPlaceStateCode(event.target.value.toUpperCase())
+                }
                 value={placeStateCode}
               />
             </label>
@@ -684,7 +822,11 @@ export function POSPage() {
                 value={searchTerm}
               />
             </div>
-            <button className="action-button primary" disabled={!branchId || searching} type="submit">
+            <button
+              className="action-button primary"
+              disabled={!branchId || searching}
+              type="submit"
+            >
               <Plus aria-hidden="true" size={16} />
               {searching ? "Searching" : "Add"}
             </button>
@@ -693,10 +835,22 @@ export function POSPage() {
           {searchResults.length > 1 ? (
             <div className="pos-search-results">
               {searchResults.map((product) => (
-                <button key={product.product_id} onClick={() => addProductToCart(product)} type="button">
+                <button
+                  key={product.product_id}
+                  onClick={() => addProductToCart(product)}
+                  type="button"
+                >
                   <strong>{product.name}</strong>
-                  <span>{product.sku} {product.primary_barcode ? `| ${product.primary_barcode}` : ""}</span>
-                  <b>{formatCurrency(product.selling_price)} | {formatQuantity(product.quantity_on_hand)} in stock</b>
+                  <span>
+                    {product.sku}{" "}
+                    {product.primary_barcode
+                      ? `| ${product.primary_barcode}`
+                      : ""}
+                  </span>
+                  <b>
+                    {formatCurrency(product.selling_price)} |{" "}
+                    {formatQuantity(product.quantity_on_hand)} in stock
+                  </b>
                 </button>
               ))}
             </div>
@@ -711,7 +865,10 @@ export function POSPage() {
           </div>
 
           {cart.length === 0 ? (
-            <EmptyState title="Cart is empty" message="Scan a barcode or search by SKU/name to add products." />
+            <EmptyState
+              title="Cart is empty"
+              message="Scan a barcode or search by SKU/name to add products."
+            />
           ) : (
             <div className="table-shell pos-cart-table">
               <table>
@@ -733,29 +890,54 @@ export function POSPage() {
                 </thead>
                 <tbody>
                   {cart.map((line) => {
-                    const quotedLine = quoteByProductId.get(line.product.product_id);
+                    const quotedLine = quoteByProductId.get(
+                      line.product.product_id,
+                    );
                     const taxTotal = quotedLine
                       ? Number(quotedLine.cgst_total) +
                         Number(quotedLine.sgst_total) +
                         Number(quotedLine.igst_total) +
                         Number(quotedLine.cess_total)
                       : 0;
-                    const stockAvailable = quotedLine?.quantity_on_hand ?? line.product.quantity_on_hand;
-                    const isInsufficient = Number(line.quantity) > Number(stockAvailable);
+                    const stockAvailable =
+                      quotedLine?.quantity_on_hand ??
+                      line.product.quantity_on_hand;
+                    const isInsufficient =
+                      Number(line.quantity) > Number(stockAvailable);
                     return (
-                      <tr className={isInsufficient ? "stock-warning-row" : ""} key={line.product.product_id}>
+                      <tr
+                        className={isInsufficient ? "stock-warning-row" : ""}
+                        key={line.product.product_id}
+                      >
                         <td>
                           <strong>{line.product.name}</strong>
-                          <span>{line.product.sku} {line.product.primary_barcode ? `| ${line.product.primary_barcode}` : ""}</span>
+                          <span>
+                            {line.product.sku}{" "}
+                            {line.product.primary_barcode
+                              ? `| ${line.product.primary_barcode}`
+                              : ""}
+                          </span>
                         </td>
                         <td>{line.product.hsn_sac_code ?? "Not set"}</td>
-                        <td>{quotedLine ? `${quotedLine.gst_rate}%` : `${line.product.gst_rate}%`}</td>
-                        <td>{line.product.mrp ? formatCurrency(line.product.mrp) : "Not set"}</td>
+                        <td>
+                          {quotedLine
+                            ? `${quotedLine.gst_rate}%`
+                            : `${line.product.gst_rate}%`}
+                        </td>
+                        <td>
+                          {line.product.mrp
+                            ? formatCurrency(line.product.mrp)
+                            : "Not set"}
+                        </td>
                         <td>
                           <input
                             aria-label={`Unit price for ${line.product.name}`}
                             inputMode="decimal"
-                            onChange={(event) => updateCartLine(line.product.product_id, { unitPrice: event.target.value })}
+                            onChange={(event) =>
+                              updateCartLine(line.product.product_id, {
+                                unitPrice: event.target.value,
+                              })
+                            }
                             value={line.unitPrice}
                           />
                         </td>
@@ -763,7 +945,11 @@ export function POSPage() {
                           <input
                             aria-label={`Quantity for ${line.product.name}`}
                             inputMode="decimal"
-                            onChange={(event) => updateCartLine(line.product.product_id, { quantity: event.target.value })}
+                            onChange={(event) =>
+                              updateCartLine(line.product.product_id, {
+                                quantity: event.target.value,
+                              })
+                            }
                             value={line.quantity}
                           />
                         </td>
@@ -771,15 +957,35 @@ export function POSPage() {
                           <input
                             aria-label={`Discount for ${line.product.name}`}
                             inputMode="decimal"
-                            onChange={(event) => updateCartLine(line.product.product_id, { discount: event.target.value })}
+                            onChange={(event) =>
+                              updateCartLine(line.product.product_id, {
+                                discount: event.target.value,
+                              })
+                            }
                             value={line.discount}
                           />
                         </td>
-                        <td>{quotedLine ? formatCurrency(quotedLine.taxable_value) : "Quote"}</td>
-                        <td>{quotedLine ? formatCurrency(taxTotal) : "Quote"}</td>
-                        <td>{quotedLine ? formatCurrency(quotedLine.line_total) : "Quote"}</td>
                         <td>
-                          <span className={isInsufficient ? "status-badge warning" : "status-badge ok"}>
+                          {quotedLine
+                            ? formatCurrency(quotedLine.taxable_value)
+                            : "Quote"}
+                        </td>
+                        <td>
+                          {quotedLine ? formatCurrency(taxTotal) : "Quote"}
+                        </td>
+                        <td>
+                          {quotedLine
+                            ? formatCurrency(quotedLine.line_total)
+                            : "Quote"}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              isInsufficient
+                                ? "status-badge warning"
+                                : "status-badge ok"
+                            }
+                          >
                             {formatQuantity(stockAvailable)}
                           </span>
                         </td>
@@ -787,7 +993,9 @@ export function POSPage() {
                           <button
                             aria-label={`Remove ${line.product.name}`}
                             className="icon-button"
-                            onClick={() => removeCartLine(line.product.product_id)}
+                            onClick={() =>
+                              removeCartLine(line.product.product_id)
+                            }
                             type="button"
                           >
                             <Trash2 aria-hidden="true" size={16} />
@@ -826,9 +1034,22 @@ export function POSPage() {
           </label>
           {selectedCustomer ? (
             <div className="detail-list pos-customer-detail">
-              <div><span>Outstanding</span><strong>{formatCurrency(selectedCustomer.outstanding_balance)}</strong></div>
-              <div><span>Available credit</span><strong>{formatCurrency(selectedCustomer.available_credit)}</strong></div>
-              <div><span>GSTIN</span><strong>{selectedCustomer.gstin ?? "B2C"}</strong></div>
+              <div>
+                <span>Outstanding</span>
+                <strong>
+                  {formatCurrency(selectedCustomer.outstanding_balance)}
+                </strong>
+              </div>
+              <div>
+                <span>Available credit</span>
+                <strong>
+                  {formatCurrency(selectedCustomer.available_credit)}
+                </strong>
+              </div>
+              <div>
+                <span>GSTIN</span>
+                <strong>{selectedCustomer.gstin ?? "B2C"}</strong>
+              </div>
             </div>
           ) : null}
 
@@ -843,17 +1064,112 @@ export function POSPage() {
                 Quick customer
               </button>
               {quickCustomerOpen ? (
-                <form className="master-form quick-customer-form" onSubmit={submitQuickCustomer}>
-                  <label>Name<input required value={quickCustomer.name} onChange={(event) => setQuickCustomer({ ...quickCustomer, name: event.target.value })} /></label>
+                <form
+                  className="master-form quick-customer-form"
+                  onSubmit={submitQuickCustomer}
+                >
+                  <label>
+                    Name
+                    <input
+                      required
+                      value={quickCustomer.name}
+                      onChange={(event) =>
+                        setQuickCustomer({
+                          ...quickCustomer,
+                          name: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
                   <div className="form-grid two">
-                    <label>Phone<input value={quickCustomer.phone ?? ""} onChange={(event) => setQuickCustomer({ ...quickCustomer, phone: event.target.value })} /></label>
-                    <label>GSTIN<input value={quickCustomer.gstin ?? ""} onChange={(event) => setQuickCustomer({ ...quickCustomer, gstin: event.target.value })} /></label>
-                    <label>State<input value={quickCustomer.state ?? businessProfile?.state ?? ""} onChange={(event) => setQuickCustomer({ ...quickCustomer, state: event.target.value })} /></label>
-                    <label>Code<input maxLength={2} value={quickCustomer.state_code ?? businessProfile?.state_code ?? ""} onChange={(event) => setQuickCustomer({ ...quickCustomer, state_code: event.target.value })} /></label>
-                    <label>Credit limit<input min="0" step="0.01" type="number" value={quickCustomer.credit_limit} onChange={(event) => setQuickCustomer({ ...quickCustomer, credit_limit: event.target.value })} /></label>
+                    <label>
+                      Phone
+                      <input
+                        value={quickCustomer.phone ?? ""}
+                        onChange={(event) =>
+                          setQuickCustomer({
+                            ...quickCustomer,
+                            phone: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      GSTIN
+                      <input
+                        value={quickCustomer.gstin ?? ""}
+                        onChange={(event) =>
+                          setQuickCustomer({
+                            ...quickCustomer,
+                            gstin: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      State
+                      <input
+                        value={
+                          quickCustomer.state ?? businessProfile?.state ?? ""
+                        }
+                        onChange={(event) =>
+                          setQuickCustomer({
+                            ...quickCustomer,
+                            state: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Code
+                      <input
+                        maxLength={2}
+                        value={
+                          quickCustomer.state_code ??
+                          businessProfile?.state_code ??
+                          ""
+                        }
+                        onChange={(event) =>
+                          setQuickCustomer({
+                            ...quickCustomer,
+                            state_code: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Credit limit
+                      <input
+                        min="0"
+                        step="0.01"
+                        type="number"
+                        value={quickCustomer.credit_limit}
+                        onChange={(event) =>
+                          setQuickCustomer({
+                            ...quickCustomer,
+                            credit_limit: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
                   </div>
-                  <label>Billing address<textarea value={quickCustomer.billing_address ?? ""} onChange={(event) => setQuickCustomer({ ...quickCustomer, billing_address: event.target.value })} /></label>
-                  <button className="action-button primary" disabled={savingCustomer} type="submit">
+                  <label>
+                    Billing address
+                    <textarea
+                      value={quickCustomer.billing_address ?? ""}
+                      onChange={(event) =>
+                        setQuickCustomer({
+                          ...quickCustomer,
+                          billing_address: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    className="action-button primary"
+                    disabled={savingCustomer}
+                    type="submit"
+                  >
                     {savingCustomer ? "Saving" : "Add customer"}
                   </button>
                 </form>
@@ -873,23 +1189,35 @@ export function POSPage() {
               <div className="payment-row" key={row.id}>
                 <select
                   aria-label="Payment mode"
-                  onChange={(event) => updatePaymentRow(row.id, { paymentModeId: Number(event.target.value) })}
+                  onChange={(event) =>
+                    updatePaymentRow(row.id, {
+                      paymentModeId: Number(event.target.value),
+                    })
+                  }
                   value={row.paymentModeId}
                 >
                   <option value={0}>Mode</option>
                   {activePaymentModes.map((mode) => (
-                    <option key={mode.id} value={mode.id}>{mode.name}</option>
+                    <option key={mode.id} value={mode.id}>
+                      {mode.name}
+                    </option>
                   ))}
                 </select>
                 <input
                   aria-label="Payment amount"
                   inputMode="decimal"
-                  onChange={(event) => updatePaymentRow(row.id, { amount: event.target.value })}
+                  onChange={(event) =>
+                    updatePaymentRow(row.id, { amount: event.target.value })
+                  }
                   value={row.amount}
                 />
                 <input
                   aria-label="Payment reference"
-                  onChange={(event) => updatePaymentRow(row.id, { referenceNumber: event.target.value })}
+                  onChange={(event) =>
+                    updatePaymentRow(row.id, {
+                      referenceNumber: event.target.value,
+                    })
+                  }
                   placeholder="Ref"
                   value={row.referenceNumber}
                 />
@@ -905,34 +1233,105 @@ export function POSPage() {
               </div>
             ))}
           </div>
-          <button className="action-button secondary full-width" onClick={addPaymentRow} type="button">
+          <button
+            className="action-button secondary full-width"
+            onClick={addPaymentRow}
+            type="button"
+          >
             <Plus aria-hidden="true" size={16} />
             Split payment
           </button>
 
           <div className="pos-total-panel">
-            <div><span>Subtotal</span><strong>{quote ? formatCurrency(quote.subtotal) : formatCurrency(0)}</strong></div>
-            <div><span>Discount</span><strong>{quote ? formatCurrency(quote.discount_total) : formatCurrency(0)}</strong></div>
-            <div><span>Taxable</span><strong>{quote ? formatCurrency(quote.taxable_total) : formatCurrency(0)}</strong></div>
-            <div><span>CGST</span><strong>{quote ? formatCurrency(quote.cgst_total) : formatCurrency(0)}</strong></div>
-            <div><span>SGST</span><strong>{quote ? formatCurrency(quote.sgst_total) : formatCurrency(0)}</strong></div>
-            <div><span>IGST</span><strong>{quote ? formatCurrency(quote.igst_total) : formatCurrency(0)}</strong></div>
-            <div className="grand"><span>Total</span><strong>{quote ? formatCurrency(quote.grand_total) : formatCurrency(0)}</strong></div>
-            <div><span>Entered payment</span><strong>{formatCurrency(paymentTotal)}</strong></div>
+            <div>
+              <span>Subtotal</span>
+              <strong>
+                {quote ? formatCurrency(quote.subtotal) : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>Discount</span>
+              <strong>
+                {quote
+                  ? formatCurrency(quote.discount_total)
+                  : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>Taxable</span>
+              <strong>
+                {quote
+                  ? formatCurrency(quote.taxable_total)
+                  : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>CGST</span>
+              <strong>
+                {quote ? formatCurrency(quote.cgst_total) : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>SGST</span>
+              <strong>
+                {quote ? formatCurrency(quote.sgst_total) : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>IGST</span>
+              <strong>
+                {quote ? formatCurrency(quote.igst_total) : formatCurrency(0)}
+              </strong>
+            </div>
+            <div className="grand">
+              <span>Total</span>
+              <strong>
+                {quote ? formatCurrency(quote.grand_total) : formatCurrency(0)}
+              </strong>
+            </div>
+            <div>
+              <span>Entered payment</span>
+              <strong>{formatCurrency(paymentTotal)}</strong>
+            </div>
           </div>
 
           <div className="pos-actions">
-            <button className="action-button primary full-width" disabled={!quote || checkingOut || Boolean(quoteError)} onClick={cashCheckout} type="button">
+            <button
+              className="action-button primary full-width"
+              disabled={!quote || checkingOut || Boolean(quoteError)}
+              onClick={cashCheckout}
+              type="button"
+            >
               <Send aria-hidden="true" size={16} />
               Cash checkout
             </button>
-            <button className="action-button secondary full-width" disabled={!quote || checkingOut || Boolean(quoteError)} onClick={() => void submitCheckout()} type="button">
+            <button
+              className="action-button secondary full-width"
+              disabled={!quote || checkingOut || Boolean(quoteError)}
+              onClick={() => void submitCheckout()}
+              type="button"
+            >
               Checkout split
             </button>
-            <button className="action-button secondary full-width" disabled={!quote || checkingOut || !selectedCustomer || Boolean(quoteError)} onClick={creditCheckout} type="button">
+            <button
+              className="action-button secondary full-width"
+              disabled={
+                !quote ||
+                checkingOut ||
+                !selectedCustomer ||
+                Boolean(quoteError)
+              }
+              onClick={creditCheckout}
+              type="button"
+            >
               Customer credit
             </button>
-            <button className="action-button secondary full-width" disabled={!quote || holding || Boolean(quoteError)} onClick={holdDraft} type="button">
+            <button
+              className="action-button secondary full-width"
+              disabled={!quote || holding || Boolean(quoteError)}
+              onClick={holdDraft}
+              type="button"
+            >
               {holding ? "Holding" : "Hold draft"}
             </button>
           </div>

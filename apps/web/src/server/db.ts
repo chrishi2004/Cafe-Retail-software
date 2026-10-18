@@ -6,6 +6,7 @@ import {
 } from "mongodb";
 export type Row = Document & { id: number };
 let connection: Promise<MongoClient> | undefined;
+let schemaReady: Promise<void> | undefined;
 export function databaseName() {
   const name = process.env.MONGODB_DB;
   if (!name || !/^kalpvriksh_web_[a-z0-9_]+$/.test(name))
@@ -28,7 +29,14 @@ export async function database() {
         throw error;
       });
   const client = await connection;
-  return { client, db: client.db(databaseName()) };
+  const db = client.db(databaseName());
+  if (!schemaReady)
+    schemaReady = indexes(db).catch((error) => {
+      schemaReady = undefined;
+      throw error;
+    });
+  await schemaReady;
+  return { client, db };
 }
 export async function nextId(db: Db, name: string, session?: ClientSession) {
   const counter = await db
@@ -63,8 +71,38 @@ export async function indexes(db: Db) {
     "invoices",
     "invoice_payments",
     "business_day_closures",
+    "table_sessions",
+    "qr_tokens",
+    "guest_access",
+    "customer_ledger",
+    "customer_payments",
+    "purchase_orders",
+    "tax_rates",
+    "financial_reversals",
+    "forecasts",
+    "ai_sessions",
+    "ai_messages",
+    "purge_requests",
+    "record_tombstones",
+    "audit_events",
+    "reconciliations",
   ])
     await db.collection(name).createIndex({ id: 1 }, { unique: true });
+  await db
+    .collection("inventory")
+    .createIndex(
+      { company_id: 1, branch_id: 1, product_id: 1 },
+      { unique: true },
+    );
+  await db
+    .collection("invoices")
+    .createIndex({ company_id: 1, invoice_number: 1 }, { unique: true });
+  await db
+    .collection("qr_tokens")
+    .createIndex({ token_hash: 1 }, { unique: true });
+  await db
+    .collection("public_limits")
+    .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db
     .collection("companies")
@@ -98,5 +136,6 @@ export async function disconnect() {
   if (connection) {
     await (await connection).close();
     connection = undefined;
+    schemaReady = undefined;
   }
 }

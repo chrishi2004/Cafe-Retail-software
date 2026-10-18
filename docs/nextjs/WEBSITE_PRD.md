@@ -1,12 +1,12 @@
 # Kalpvriksh Group — Website Product Requirements Document
 
-**Document version:** 1.0 · **Source audit:** 18 October 2026
+**Document version:** 1.1 · **Source audit:** 18 October 2026
 **Source repository:** `chrishi2004/Cafe-Retail-software`
 **Preserved source commit:** `5d36734d4c104d21f92fc35ac6b7d595bba65187`
-**Rewrite branch:** `rewrite/nextjs-atlas`
+**Current development branch:** `main` (merged rewrite baseline `9a80860`)
 **Target:** Next.js App Router + TypeScript server Route Handlers + MongoDB Atlas; deployable as a separate Vercel project.
 
-> This document specifies the whole existing product and the web rewrite. It distinguishes existing functionality from native Next.js implementation. The branch is an experimental conversion, not a completed production replacement. A compiled page is not evidence that every API used by that page has been ported. The installed Café, PostgreSQL data and existing release branches are unchanged.
+> This document specifies the whole existing product and the web rewrite. It distinguishes existing functionality from native Next.js implementation. Native web workflows are implemented on main; full legacy parity and production acceptance are not claimed. See the implementation report for explicit compatibility decisions and verification results. A compiled page is not evidence that every API used by that page has been ported. The installed Café, PostgreSQL data and existing release branches are unchanged.
 
 ## 1. Product purpose and success criteria
 
@@ -26,7 +26,7 @@ An Atlas-hosted application requires working internet connectivity for authorita
 
 | Inventory | Actual count | Interpretation |
 | --- | ---: | --- |
-| Logical user screens | **34** | 15 Retail + 13 Café + 4 owner + login + public QR ordering |
+| Logical user screens | **35** | 16 Retail (including Daily Closing) + 13 Café + 4 owner + login + public QR ordering |
 | Existing page component modules | **29** | Shared/generic components render multiple logical screens; not 29 distinct URLs |
 | Operational API paths | **140** | Distinct OpenAPI paths, excluding method multiplicity |
 | Operational API operations | **163** | Each HTTP method/path pair counted separately |
@@ -213,24 +213,11 @@ Use multi-document transactions on a replica-set-capable deployment. Never imple
 
 ## 12. Current conversion status — honest parity boundary
 
-The [endpoint parity CSV](NEXTJS_API_PARITY.csv) records **59 source operations with native subsets** and **119 operations pending a native port**, across the 178 operational/cloud operation entries. None of the 59 is labelled full reference-engine parity. The [page inventory CSV](PAGE_INVENTORY.csv) provides a sortable list of all 34 screen purposes and navigation flows.
+The [endpoint parity CSV](NEXTJS_API_PARITY.csv) records 158 native-service operation entries, five single-database status/check replacements and 15 explicitly retired Local Hub interfaces. Among the 163 operational operations, 162 dispatch natively and the obsolete Local Hub retry interface is retired. The shared health operation appears in both original inventories. These are implementation classifications, not claims that every legacy edge case is certified.
 
-| Area | Current branch implementation | Remaining release gate |
-| --- | --- | --- |
-| Next.js application | New `apps/web`; existing visual modules copied; Next.js navigation and same-origin API URLs | Browser flow and usability certification |
-| Native TypeScript backend | Route Handler dispatcher + MongoDB driver; no Python proxy or runtime dependency | Full endpoint/schema/role/error parity |
-| Authentication | Native password derivation, signed tokens, revocation, scope checks, owner bootstrap TOTP | MFA lifecycle/recovery/step-up and broad security review |
-| New installation | Explicit empty-web-database bootstrap for group, two companies/branches, owner and cashiers, Cash/UPI/Card and separate sequences; no fake sales/stock | Actual Atlas execution and recovery/bootstrap-failure drill |
-| Catalogue | Scoped product/category/supplier/branch/customer/menu/table/payment configuration subset | All filters, response enrichments, lifecycle actions and validation parity |
-| Checkout | Native non-GST immediate fully paid Retail/Café path, paise arithmetic, stock transaction and idempotency | Local disposable replica-set integration passed for the tested immediate-sales subset; Atlas/GST/credit/partial/change/refund/draft/reservation parity pending |
-| Receipts | Existing Café receipt/80mm CSS carried across; native read-only Café history/receipt read | History pagination/filter parity, Retail thermal/history UX, physical printer |
-| Inventory | Native balance/low-stock read and audited-reason adjustment subset | Complete movement enrichment, reservations/on-order, receiving/costing/purchase workflow |
-| Reporting/closing | Native immediate-sales Café totals, date range, simple CSV, group turnover; current-day open/submit/close | Existing full report/export contracts, reversals, reopen, full Retail/consolidated UI parity |
-| Tables, kitchen, QR/cloud | UI/reference contracts retained | Native state machines and all restricted customer coordination not yet ported |
-| Forecasts/AI/BI/governance | UI/reference contracts retained | Native implementation and provider/model tests pending |
-| Existing customer data | No changes/import | Reviewed export/map/import/reconciliation and approved cutover |
+The current route inventory contains **35 logical screens**. The additional `/retail/closing` screen reuses the closing workflow for independently scoped Retail cash counts and owner/admin correction with password/MFA step-up. The source gateway's QR functionality now uses native `/api/public/cafe/*` APIs; old device/writer-lease/sync gateway paths are not part of the hosted-only architecture.
 
-Unimplemented operations return **HTTP 501 `migration_pending`**. This is deliberate fail-closed migration behavior, not a working backend conversion for those operations. HTTP build success or route presence must not be used to claim complete parity. Existing surfaces may display a pending-operation error until their API port is complete.
+See [the implementation and acceptance report](NATIVE_COMPLETION_REPORT.md) for native modules, automated evidence, inherited Python date-boundary failure, deployment setup, rollback boundaries and remaining production gates. The original local-first source remains preserved. Physical printing, Atlas backup/restore, payment-provider settlement and statutory A4 GST acceptance are not established by automated builds.
 
 ## 13. Nonfunctional requirements and release gates
 

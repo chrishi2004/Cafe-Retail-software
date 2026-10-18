@@ -1,4 +1,6 @@
 {
-  "native_subset_not_full_parity": 59,
-  "pending_native_port": 119
+  "native_web_service": 158,
+  "native_single_database_replacement": 5,
+  "retired_local_hub_interface": 15,
+  "full_legacy_parity_claimed": false
 }

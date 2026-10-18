@@ -1,6 +1,6 @@
 import type { AuthUser } from "../auth/types";
 import { activeVentureStorage } from "../api/client";
-import { TaxOperationPanel } from "../components/TaxOperationPanel";
+import { SettingsWithTaxPage } from "../pages/SettingsWithTaxPage";
 import { CafeBillingPage } from "../pages/CafeBillingPage";
 import { CafePOSPage } from "../pages/CafePOSPage";
 import { CafeClosingPage } from "../pages/CafeClosingPage";
@@ -39,12 +39,35 @@ type CafePortalProps = {
   onLogout: () => void;
 };
 
-export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalProps) {
-  const sections = user.server_role === "super_admin"
-    ? ["dashboard", "orders", "pos", "new-order", "tables", "menu", "inventory", "billing", "receipts", "reports", "settings", "closing", "kitchen"]
-    : allowedCafeSections(user.server_role);
-  const requested = pathname.split("/").filter(Boolean)[1] ?? sections[0] ?? "dashboard";
-  const active = sections.includes(requested) ? requested : sections[0] ?? "dashboard";
+export function CafePortal({
+  user,
+  pathname,
+  onNavigate,
+  onLogout,
+}: CafePortalProps) {
+  const sections =
+    user.server_role === "super_admin"
+      ? [
+          "dashboard",
+          "orders",
+          "pos",
+          "new-order",
+          "tables",
+          "menu",
+          "inventory",
+          "billing",
+          "receipts",
+          "reports",
+          "settings",
+          "closing",
+          "kitchen",
+        ]
+      : allowedCafeSections(user.server_role);
+  const requested =
+    pathname.split("/").filter(Boolean)[1] ?? sections[0] ?? "dashboard";
+  const active = sections.includes(requested)
+    ? requested
+    : (sections[0] ?? "dashboard");
 
   let content;
   if (active === "dashboard") content = <CafeDashboardPage />;
@@ -58,7 +81,7 @@ export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalP
   else if (active === "tables") content = <CafeTablesPage />;
   else if (active === "receipts") content = <CafeReceiptHistoryPage />;
   else if (active === "reports") content = <CafeReportsPage />;
-  else if (active === "settings") content = <TaxOperationPanel />;
+  else if (active === "settings") content = <SettingsWithTaxPage />;
   else if (active === "closing") content = <CafeClosingPage />;
   else content = <CafeDashboardPage />;
 
@@ -71,10 +94,14 @@ export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalP
       activeKey={active}
       onNavigate={(key) => onNavigate(`/cafe/${key}`)}
       onLogout={onLogout}
-      onSwitchVenture={user.server_role === "super_admin" ? () => {
-        activeVentureStorage.clear();
-        onNavigate("/super-admin/ventures");
-      } : undefined}
+      onSwitchVenture={
+        user.server_role === "super_admin"
+          ? () => {
+              activeVentureStorage.clear();
+              onNavigate("/super-admin/ventures");
+            }
+          : undefined
+      }
     >
       {content}
     </PortalFrame>

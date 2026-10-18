@@ -45,8 +45,8 @@ import type {
 const settingsMetrics: PageMetric[] = [
   {
     label: "Database",
-    value: "Local only",
-    detail: "PostgreSQL is not exposed to remote browsers.",
+    value: "MongoDB Atlas",
+    detail: "Database credentials stay on the server.",
     tone: "blue",
   },
   {
@@ -70,10 +70,10 @@ const settingsMetrics: PageMetric[] = [
 ];
 
 const checklist = [
-  "Change demo admin credentials before sharing a remote URL.",
-  "Expose the dashboard/API only; keep database port 5432 private.",
-  "Take a fresh local backup before migrations, seed resets, or remote demos.",
-  "Use HTTPS, Cloudflare Access, Tailscale ACLs, or ngrok access controls where practical.",
+  "Use strong account passwords and owner authenticator protection.",
+  "Keep Atlas credentials and AUTH_SECRET private; never use NEXT_PUBLIC_ for secrets.",
+  "Keep verified database backups before importing or changing business data.",
+  "Use HTTPS and separate test and production Atlas databases.",
   "Have GST settings and reports reviewed by a CA before any real filing.",
 ];
 
@@ -95,7 +95,12 @@ const invoiceTypes: InvoiceSequenceType[] = [
   "purchase_bill",
 ];
 
-const resetRules: InvoiceSequenceResetRule[] = ["never", "fiscal_year", "calendar_year", "monthly"];
+const resetRules: InvoiceSequenceResetRule[] = [
+  "never",
+  "fiscal_year",
+  "calendar_year",
+  "monthly",
+];
 
 const profileDefaults: BusinessProfilePayload = {
   company_code: "HYBRID_RETAIL",
@@ -156,7 +161,9 @@ function errorMessage(error: unknown): string {
 }
 
 function labelize(value: string): string {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter: string) => letter.toUpperCase());
 }
 
 function profilePayload(form: BusinessProfilePayload): BusinessProfilePayload {
@@ -215,16 +222,23 @@ function sequencePayload(form: InvoiceSequencePayload): InvoiceSequencePayload {
 
 export function SettingsPage() {
   const { token, user } = useAuth();
-  const [profileForm, setProfileForm] = useState<BusinessProfilePayload>(profileDefaults);
+  const [profileForm, setProfileForm] =
+    useState<BusinessProfilePayload>(profileDefaults);
   const [taxForm, setTaxForm] = useState<TaxRatePayload>(taxDefaults);
-  const [paymentForm, setPaymentForm] = useState<PaymentModePayload>(paymentDefaults);
-  const [sequenceForm, setSequenceForm] = useState<InvoiceSequencePayload>(sequenceDefaults);
+  const [paymentForm, setPaymentForm] =
+    useState<PaymentModePayload>(paymentDefaults);
+  const [sequenceForm, setSequenceForm] =
+    useState<InvoiceSequencePayload>(sequenceDefaults);
   const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
-  const [invoiceSequences, setInvoiceSequences] = useState<InvoiceSequence[]>([]);
+  const [invoiceSequences, setInvoiceSequences] = useState<InvoiceSequence[]>(
+    [],
+  );
   const [editingTaxId, setEditingTaxId] = useState<number | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
-  const [editingSequenceId, setEditingSequenceId] = useState<number | null>(null);
+  const [editingSequenceId, setEditingSequenceId] = useState<number | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -274,7 +288,10 @@ export function SettingsPage() {
     void loadSettings();
   }, [token]);
 
-  const activeTaxRateCount = useMemo(() => taxRates.filter((rate) => rate.is_active).length, [taxRates]);
+  const activeTaxRateCount = useMemo(
+    () => taxRates.filter((rate) => rate.is_active).length,
+    [taxRates],
+  );
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -283,7 +300,10 @@ export function SettingsPage() {
     setError(null);
     setSuccess(null);
     try {
-      const profile = await updateBusinessProfile(token, profilePayload(profileForm));
+      const profile = await updateBusinessProfile(
+        token,
+        profilePayload(profileForm),
+      );
       setProfileForm({
         company_code: profile.company_code,
         legal_name: profile.legal_name,
@@ -340,7 +360,11 @@ export function SettingsPage() {
     setSuccess(null);
     try {
       if (editingPaymentId) {
-        await updatePaymentMode(token, editingPaymentId, paymentPayload(paymentForm));
+        await updatePaymentMode(
+          token,
+          editingPaymentId,
+          paymentPayload(paymentForm),
+        );
       } else {
         await createPaymentMode(token, paymentPayload(paymentForm));
       }
@@ -363,7 +387,11 @@ export function SettingsPage() {
     setSuccess(null);
     try {
       if (editingSequenceId) {
-        await updateInvoiceSequence(token, editingSequenceId, sequencePayload(sequenceForm));
+        await updateInvoiceSequence(
+          token,
+          editingSequenceId,
+          sequencePayload(sequenceForm),
+        );
       } else {
         await createInvoiceSequence(token, sequencePayload(sequenceForm));
       }
@@ -389,13 +417,19 @@ export function SettingsPage() {
           <p className="eyebrow">Administration</p>
           <h2 id="settings-title">Settings</h2>
           <p className="page-description">
-            Configure the local-first business profile, GST foundation, payment modes, invoice
-            numbering, and deployment guidance for the expanded retail billing system.
+            Configure the business profile, GST foundation, payment modes,
+            invoice numbering, and deployment guidance for the expanded retail
+            billing system.
           </p>
         </div>
         <div className="page-header-side">
           <span className="role-scope">Admin only</span>
-          <a className="action-button secondary" href="/docs/REMOTE_ACCESS.md" rel="noreferrer" target="_blank">
+          <a
+            className="action-button secondary"
+            href="https://github.com/chrishi2004/Cafe-Retail-software/blob/main/apps/web/README.md"
+            rel="noreferrer"
+            target="_blank"
+          >
             <ExternalLink aria-hidden="true" size={16} />
             Remote access guide
           </a>
@@ -432,7 +466,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.company_code}
-                  onChange={(event) => setProfileForm({ ...profileForm, company_code: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      company_code: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -441,7 +480,12 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   required
                   value={profileForm.legal_name}
-                  onChange={(event) => setProfileForm({ ...profileForm, legal_name: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      legal_name: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -449,7 +493,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.trade_name ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, trade_name: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      trade_name: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -458,7 +507,12 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   maxLength={15}
                   value={profileForm.gstin ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, gstin: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      gstin: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -466,16 +520,21 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.pan ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, pan: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({ ...profileForm, pan: event.target.value })
+                  }
                 />
               </label>
               <label>
-                Default tax mode
+                Default tax mode (controlled by GST activation above)
                 <select
-                  disabled={!canEdit || saving}
+                  disabled
                   value={profileForm.default_tax_mode}
                   onChange={(event) =>
-                    setProfileForm({ ...profileForm, default_tax_mode: event.target.value as TaxMode })
+                    setProfileForm({
+                      ...profileForm,
+                      default_tax_mode: event.target.value as TaxMode,
+                    })
                   }
                 >
                   <option value="gst">GST</option>
@@ -487,7 +546,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.state ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, state: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      state: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -496,7 +560,12 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   maxLength={2}
                   value={profileForm.state_code ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, state_code: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      state_code: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -504,7 +573,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.email ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      email: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -512,7 +586,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={profileForm.phone ?? ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })}
+                  onChange={(event) =>
+                    setProfileForm({
+                      ...profileForm,
+                      phone: event.target.value,
+                    })
+                  }
                 />
               </label>
             </div>
@@ -521,7 +600,12 @@ export function SettingsPage() {
               <textarea
                 disabled={!canEdit || saving}
                 value={profileForm.address ?? ""}
-                onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    address: event.target.value,
+                  })
+                }
               />
             </label>
             <label>
@@ -529,11 +613,20 @@ export function SettingsPage() {
               <textarea
                 disabled={!canEdit || saving}
                 value={profileForm.terms_and_conditions ?? ""}
-                onChange={(event) => setProfileForm({ ...profileForm, terms_and_conditions: event.target.value })}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    terms_and_conditions: event.target.value,
+                  })
+                }
               />
             </label>
             <div className="form-actions">
-              <button className="action-button primary" disabled={!canEdit || saving} type="submit">
+              <button
+                className="action-button primary"
+                disabled={!canEdit || saving}
+                type="submit"
+              >
                 <Save aria-hidden="true" size={16} />
                 Save business profile
               </button>
@@ -557,7 +650,9 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   required
                   value={taxForm.name}
-                  onChange={(event) => setTaxForm({ ...taxForm, name: event.target.value })}
+                  onChange={(event) =>
+                    setTaxForm({ ...taxForm, name: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -568,7 +663,9 @@ export function SettingsPage() {
                   step="0.01"
                   type="number"
                   value={taxForm.rate_percent}
-                  onChange={(event) => setTaxForm({ ...taxForm, rate_percent: event.target.value })}
+                  onChange={(event) =>
+                    setTaxForm({ ...taxForm, rate_percent: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -579,7 +676,9 @@ export function SettingsPage() {
                   step="0.01"
                   type="number"
                   value={taxForm.cess_percent}
-                  onChange={(event) => setTaxForm({ ...taxForm, cess_percent: event.target.value })}
+                  onChange={(event) =>
+                    setTaxForm({ ...taxForm, cess_percent: event.target.value })
+                  }
                 />
               </label>
               <label className="checkbox-row compact">
@@ -587,7 +686,9 @@ export function SettingsPage() {
                   checked={taxForm.is_active}
                   disabled={!canEdit || saving}
                   type="checkbox"
-                  onChange={(event) => setTaxForm({ ...taxForm, is_active: event.target.checked })}
+                  onChange={(event) =>
+                    setTaxForm({ ...taxForm, is_active: event.target.checked })
+                  }
                 />
                 Active
               </label>
@@ -597,11 +698,17 @@ export function SettingsPage() {
               <textarea
                 disabled={!canEdit || saving}
                 value={taxForm.description ?? ""}
-                onChange={(event) => setTaxForm({ ...taxForm, description: event.target.value })}
+                onChange={(event) =>
+                  setTaxForm({ ...taxForm, description: event.target.value })
+                }
               />
             </label>
             <div className="form-actions">
-              <button className="action-button primary" disabled={!canEdit || saving} type="submit">
+              <button
+                className="action-button primary"
+                disabled={!canEdit || saving}
+                type="submit"
+              >
                 {editingTaxId ? "Update tax rate" : "Add tax rate"}
               </button>
               {editingTaxId ? (
@@ -618,7 +725,9 @@ export function SettingsPage() {
               ) : null}
             </div>
           </form>
-          <p className="page-description">{activeTaxRateCount} active tax rates configured.</p>
+          <p className="page-description">
+            {activeTaxRateCount} active tax rates configured.
+          </p>
           <div className="table-shell">
             <table>
               <thead>
@@ -679,7 +788,9 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   required
                   value={paymentForm.name}
-                  onChange={(event) => setPaymentForm({ ...paymentForm, name: event.target.value })}
+                  onChange={(event) =>
+                    setPaymentForm({ ...paymentForm, name: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -688,7 +799,10 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   value={paymentForm.mode_type}
                   onChange={(event) =>
-                    setPaymentForm({ ...paymentForm, mode_type: event.target.value as PaymentModeType })
+                    setPaymentForm({
+                      ...paymentForm,
+                      mode_type: event.target.value as PaymentModeType,
+                    })
                   }
                 >
                   {paymentModeTypes.map((type) => (
@@ -705,7 +819,12 @@ export function SettingsPage() {
                   min="0"
                   type="number"
                   value={paymentForm.display_order}
-                  onChange={(event) => setPaymentForm({ ...paymentForm, display_order: Number(event.target.value) })}
+                  onChange={(event) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      display_order: Number(event.target.value),
+                    })
+                  }
                 />
               </label>
               <label className="checkbox-row compact">
@@ -713,7 +832,12 @@ export function SettingsPage() {
                   checked={paymentForm.requires_reference}
                   disabled={!canEdit || saving}
                   type="checkbox"
-                  onChange={(event) => setPaymentForm({ ...paymentForm, requires_reference: event.target.checked })}
+                  onChange={(event) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      requires_reference: event.target.checked,
+                    })
+                  }
                 />
                 Requires reference
               </label>
@@ -723,12 +847,21 @@ export function SettingsPage() {
                 checked={paymentForm.is_active}
                 disabled={!canEdit || saving}
                 type="checkbox"
-                onChange={(event) => setPaymentForm({ ...paymentForm, is_active: event.target.checked })}
+                onChange={(event) =>
+                  setPaymentForm({
+                    ...paymentForm,
+                    is_active: event.target.checked,
+                  })
+                }
               />
               Active
             </label>
             <div className="form-actions">
-              <button className="action-button primary" disabled={!canEdit || saving} type="submit">
+              <button
+                className="action-button primary"
+                disabled={!canEdit || saving}
+                type="submit"
+              >
                 {editingPaymentId ? "Update payment mode" : "Add payment mode"}
               </button>
               {editingPaymentId ? (
@@ -805,7 +938,10 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   value={sequenceForm.invoice_type}
                   onChange={(event) =>
-                    setSequenceForm({ ...sequenceForm, invoice_type: event.target.value as InvoiceSequenceType })
+                    setSequenceForm({
+                      ...sequenceForm,
+                      invoice_type: event.target.value as InvoiceSequenceType,
+                    })
                   }
                 >
                   {invoiceTypes.map((type) => (
@@ -821,7 +957,12 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   required
                   value={sequenceForm.fiscal_year}
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, fiscal_year: event.target.value })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      fiscal_year: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -830,7 +971,12 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   required
                   value={sequenceForm.prefix}
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, prefix: event.target.value })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      prefix: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -838,7 +984,12 @@ export function SettingsPage() {
                 <input
                   disabled={!canEdit || saving}
                   value={sequenceForm.suffix ?? ""}
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, suffix: event.target.value })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      suffix: event.target.value,
+                    })
+                  }
                 />
               </label>
               <label>
@@ -848,7 +999,12 @@ export function SettingsPage() {
                   min="1"
                   type="number"
                   value={sequenceForm.next_number}
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, next_number: Number(event.target.value) })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      next_number: Number(event.target.value),
+                    })
+                  }
                 />
               </label>
               <label>
@@ -859,7 +1015,12 @@ export function SettingsPage() {
                   max="12"
                   type="number"
                   value={sequenceForm.padding}
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, padding: Number(event.target.value) })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      padding: Number(event.target.value),
+                    })
+                  }
                 />
               </label>
               <label>
@@ -868,7 +1029,11 @@ export function SettingsPage() {
                   disabled={!canEdit || saving}
                   value={sequenceForm.reset_rule}
                   onChange={(event) =>
-                    setSequenceForm({ ...sequenceForm, reset_rule: event.target.value as InvoiceSequenceResetRule })
+                    setSequenceForm({
+                      ...sequenceForm,
+                      reset_rule: event.target
+                        .value as InvoiceSequenceResetRule,
+                    })
                   }
                 >
                   {resetRules.map((rule) => (
@@ -883,13 +1048,22 @@ export function SettingsPage() {
                   checked={sequenceForm.is_active}
                   disabled={!canEdit || saving}
                   type="checkbox"
-                  onChange={(event) => setSequenceForm({ ...sequenceForm, is_active: event.target.checked })}
+                  onChange={(event) =>
+                    setSequenceForm({
+                      ...sequenceForm,
+                      is_active: event.target.checked,
+                    })
+                  }
                 />
                 Active
               </label>
             </div>
             <div className="form-actions">
-              <button className="action-button primary" disabled={!canEdit || saving} type="submit">
+              <button
+                className="action-button primary"
+                disabled={!canEdit || saving}
+                type="submit"
+              >
                 {editingSequenceId ? "Update sequence" : "Add sequence"}
               </button>
               {editingSequenceId ? (
@@ -965,39 +1139,52 @@ export function SettingsPage() {
             <ReceiptText aria-hidden="true" size={20} />
           </div>
           <p className="page-description">
-            Template records are seeded for A4 GST invoices and 80mm POS receipts. Full print
-            preview and PDF rendering arrives in the invoice print phase.
+            The application renders invoice snapshots and 80mm receipts.
+            Physical print preview and PDF rendering arrives in the invoice
+            print phase.
           </p>
         </article>
 
         <article className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">Hybrid deployment</p>
-              <h3>Remote access documentation</h3>
+              <p className="eyebrow">Hosted deployment</p>
+              <h3>Setup documentation</h3>
             </div>
             <Network aria-hidden="true" size={20} />
           </div>
           <div className="settings-link-list">
-            <a href="/docs/REMOTE_ACCESS.md" rel="noreferrer" target="_blank">
+            <a
+              href="https://github.com/chrishi2004/Cafe-Retail-software/blob/main/apps/web/README.md"
+              rel="noreferrer"
+              target="_blank"
+            >
               <ShieldCheck aria-hidden="true" size={18} />
               <span>
                 <strong>Remote access guide</strong>
-                <small>Cloudflare Tunnel, Tailscale, ngrok, and security checklist.</small>
+                <small>
+                  Vercel setup, Atlas configuration and account setup.
+                </small>
               </span>
             </a>
-            <a href="/docs/POWER_BI_SETUP.md" rel="noreferrer" target="_blank">
+            <a href="/retail/power-bi" rel="noreferrer" target="_blank">
               <Server aria-hidden="true" size={18} />
               <span>
                 <strong>Power BI setup guide</strong>
-                <small>Local PostgreSQL views, CSV exports, and reporting workflow.</small>
+                <small>Authenticated CSV exports for Power BI Desktop.</small>
               </span>
             </a>
-            <a href="/docs/BACKUP_RESTORE.md" rel="noreferrer" target="_blank">
+            <a
+              href="https://github.com/chrishi2004/Cafe-Retail-software/blob/main/docs/nextjs/NATIVE_COMPLETION_REPORT.md"
+              rel="noreferrer"
+              target="_blank"
+            >
               <Server aria-hidden="true" size={18} />
               <span>
                 <strong>Backup and restore guide</strong>
-                <small>PostgreSQL backup scripts, restore commands, and reliability checklist.</small>
+                <small>
+                  Hosted data protection and deployment limitations.
+                </small>
               </span>
             </a>
           </div>

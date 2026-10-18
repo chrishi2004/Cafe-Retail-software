@@ -1,7 +1,9 @@
+import { requireStepUp } from "./accounts";
+import { audit } from "./query";
 import { database, nextId, type Row } from "./db";
 import { authorizedBranch } from "./billing";
 import { allow, managers, type Scope } from "./security";
-import { HttpError, requireValue, pending } from "./errors";
+import { HttpError, requireValue } from "./errors";
 import { businessDate, decimal, scaled } from "./money";
 export async function closing(
   scope: Scope,
@@ -67,26 +69,65 @@ export async function closing(
           .insertOne(record, { session });
         return record;
       }
-      if (action === "reopen")
-        pending("Audited closed-day reopening and reconciliation");
+      if (action === "reopen") {
+        allow(scope.user, ["super_admin", "admin"]);
+        requireStepUp(scope.user);
+        requireValue(
+          ["submitted", "closed"].includes(record.status),
+          "Only submitted or closed days can reopen.",
+        );
+        requireValue(
+          String(body.reason ?? "").trim().length >= 3,
+          "Reopening reason required.",
+        );
+        Object.assign(record, {
+          status: "reopened",
+          reopened_by: scope.user.id,
+          reopened_reason: body.reason,
+          updated_at: new Date().toISOString(),
+        });
+        await db
+          .collection("business_day_closures")
+          .replaceOne({ id: record.id }, record, { session });
+        await audit(
+          db,
+          scope,
+          "reopen",
+          "business_day_closure",
+          record.id,
+          { reason: body.reason },
+          session,
+        );
+        return record;
+      }
       if (action === "submit") {
         requireValue(
-          record.status === "open",
+          ["open", "reopened"].includes(record.status),
           "Only open days can be submitted.",
         );
         let cash = 0,
           nonCash = 0;
-        const payments = await db
+        let payments = await db
           .collection("invoice_payments")
           .find(
             { company_id: scope.company.id, branch_id: branch.id },
             { session },
           )
           .toArray();
+        payments = payments.concat(
+          await db
+            .collection("customer_payments")
+            .find(
+              { company_id: scope.company.id, branch_id: branch.id },
+              { session },
+            )
+            .toArray(),
+        );
         for (const payment of payments)
           if (
+            !payment.is_credit_marker &&
             businessDate(new Date(payment.payment_datetime)) ===
-            record.business_date
+              record.business_date
           ) {
             if (payment.mode_type === "cash") cash += scaled(payment.amount);
             else nonCash += scaled(payment.amount);

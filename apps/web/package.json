@@ -11,13 +11,15 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "test:integration": "node --import tsx --test tests/*.integration.ts",
     "bootstrap": "node --env-file=.env.local --import tsx src/server/bootstrap.ts",
-    "test:browser": "node --import tsx --test tests/*.browser.ts"
+    "test:browser": "node --import tsx --test tests/*.browser.ts",
+    "mfa": "node --env-file=.env.local --import tsx src/server/mfa-console.ts"
   },
   "dependencies": {
     "jose": "^6.0.0",
     "lucide-react": "^0.468.0",
     "mongodb": "7.7.0",
     "next": "16.4.2",
+    "qrcode": "^1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "recharts": "^2.15.0",
@@ -26,6 +28,7 @@
   "devDependencies": {
     "@playwright/test": "1.55.1",
     "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "mongodb-memory-server": "^10.0.0",
