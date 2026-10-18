@@ -1,0 +1,9 @@
+{
+  "source_commit": "5d36734d4c104d21f92fc35ac6b7d595bba65187",
+  "operational_paths": 140,
+  "operational_operations": 163,
+  "cloud_operations": 15,
+  "service_files": 34,
+  "top_level_service_functions_and_classes": 474,
+  "page_modules": 29
+}
