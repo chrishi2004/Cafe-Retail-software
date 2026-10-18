@@ -1,0 +1,141 @@
+import { FormEvent, useState } from "react";
+import { KeyRound, LockKeyhole, LogIn, Server } from "lucide-react";
+
+import { ApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
+
+export function LoginPage() {
+  const { login } = useAuth();
+  const [email, setEmail] = useState("admin@hybridretail.test");
+  const [password, setPassword] = useState("RetailDemo@123");
+  const [totpCode, setTotpCode] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await login(
+        email,
+        password,
+        useRecovery ? undefined : totpCode,
+        useRecovery ? recoveryCode : undefined,
+      );
+    } catch (loginError) {
+      if (loginError instanceof ApiError) {
+        setError(loginError.message);
+      } else {
+        setError("Could not reach the backend API. Check that FastAPI is running.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="login-page">
+      <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-brand">
+          <div className="brand-mark">KV</div>
+          <div>
+            <p className="brand-name">Kalpvriksh Group</p>
+            <p className="brand-subtitle">Retail and Cafe operations</p>
+          </div>
+        </div>
+
+        <div className="login-copy">
+          <p className="eyebrow">Secure team access</p>
+          <h1 id="login-title">Sign in to your workspace</h1>
+          <p>
+            Owners choose a business after login. Retail and Cafe team members open directly in
+            the workspace allowed for their role and branch.
+          </p>
+        </div>
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label htmlFor="email">Email</label>
+          <input
+            autoComplete="email"
+            id="email"
+            inputMode="email"
+            onChange={(event) => setEmail(event.target.value)}
+            type="text"
+            value={email}
+          />
+
+          <label htmlFor="password">Password</label>
+          <input
+            autoComplete="current-password"
+            id="password"
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            value={password}
+          />
+
+          {useRecovery ? (
+            <>
+              <label htmlFor="recovery-code">Recovery code</label>
+              <input
+                autoComplete="one-time-code"
+                id="recovery-code"
+                onChange={(event) => setRecoveryCode(event.target.value)}
+                placeholder="xxxx-xxxx"
+                type="text"
+                value={recoveryCode}
+              />
+            </>
+          ) : (
+            <>
+              <label htmlFor="totp-code">Authenticator code</label>
+              <input
+                autoComplete="one-time-code"
+                id="totp-code"
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6-digit code (if enabled)"
+                type="text"
+                value={totpCode}
+              />
+            </>
+          )}
+
+          <button
+            className="text-button"
+            onClick={() => setUseRecovery((current) => !current)}
+            type="button"
+          >
+            <KeyRound aria-hidden="true" size={16} />
+            {useRecovery ? "Use authenticator code" : "Use a recovery code"}
+          </button>
+
+          {error ? (
+            <div className="form-error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <button className="login-button" disabled={isSubmitting} type="submit">
+            <LogIn aria-hidden="true" size={18} />
+            <span>{isSubmitting ? "Signing in" : "Sign in"}</span>
+          </button>
+        </form>
+
+        <div className="login-notes" aria-label="Sign-in help">
+          <div>
+            <LockKeyhole aria-hidden="true" size={17} />
+            <span>Privileged production accounts require MFA.</span>
+          </div>
+          <div>
+            <Server aria-hidden="true" size={17} />
+            <span>Use the account provided by your business administrator.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
