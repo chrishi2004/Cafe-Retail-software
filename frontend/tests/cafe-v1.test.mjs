@@ -15,7 +15,7 @@ const cafe = (role) => ({ server_role: role, company_business_type: 'cafe' });
 test('cashier and owner land in their own workflows; restricted deep links redirect', () => {
   for (const role of ['staff', 'order_taker']) {
     assert.equal(routing.defaultPathForUser(cafe(role)), '/cafe/pos');
-    for (const path of ['/cafe/dashboard', '/cafe/reports', '/cafe/closing', '/cafe/menu', '/retail/overview']) {
+    for (const path of ['/cafe/dashboard', '/cafe/reports', '/cafe/closing', '/cafe/menu', '/cafe/inventory', '/retail/overview']) {
       assert.equal(routing.safePathForUser(cafe(role), path), '/cafe/pos');
     }
     assert.equal(routing.safePathForUser(cafe(role), '/cafe/billing'), '/cafe/billing');
@@ -25,6 +25,7 @@ test('cashier and owner land in their own workflows; restricted deep links redir
     assert.equal(routing.safePathForUser(cafe(role), '/cafe/receipts'), routing.defaultPathForUser(cafe(role)));
   }
   assert.equal(routing.defaultPathForUser(cafe('admin')), '/cafe/dashboard');
+  assert.equal(routing.safePathForUser(cafe('admin'), '/cafe/inventory'), '/cafe/inventory');
   assert.equal(routing.defaultPathForUser(cafe('kitchen')), '/cafe/kitchen');
   assert.equal(routing.safePathForUser(cafe('store_manager'), '/cafe/closing'), '/cafe/dashboard');
   assert.equal(routing.defaultPathForUser({ server_role: 'staff', company_business_type: 'retail' }), '/retail/overview');
