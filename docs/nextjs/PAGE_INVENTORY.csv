@@ -33,3 +33,4 @@ O01,/super-admin/ventures,"Active ventures, separate/combined turnover and works
 O02,/super-admin/dashboard,Consolidated financial/item/payment view with period filters and venture summaries,Compare ventures; export consolidated report; open selected venture,"`/dashboard/consolidated`, `/exports/consolidated`"
 O03,/super-admin/users,"Group users, role, company and active state",Review assignments; target authorized user provisioning/update UI,"`/venture-users`, `/venture-users/{id}`"
 O04,/super-admin/purge,"Protected data-removal review, dependency report, backup reference and approvals",Request/review/approve/execute only with appropriate governance and step-up,"`/governance/purges/*`, step-up"
+R16,/retail/closing,"Retail opening cash, counted cash, collection totals, variance and audited reopen",Owner/manager → Daily Closing; reopen requires owner password and authenticator,/governance/closings; /auth/step-up
