@@ -19,6 +19,10 @@ test('cashier and owner land in their own workflows; restricted deep links redir
       assert.equal(routing.safePathForUser(cafe(role), path), '/cafe/pos');
     }
     assert.equal(routing.safePathForUser(cafe(role), '/cafe/billing'), '/cafe/billing');
+    assert.equal(routing.safePathForUser(cafe(role), '/cafe/receipts'), '/cafe/receipts');
+  }
+  for (const role of ['analyst', 'kitchen']) {
+    assert.equal(routing.safePathForUser(cafe(role), '/cafe/receipts'), routing.defaultPathForUser(cafe(role)));
   }
   assert.equal(routing.defaultPathForUser(cafe('admin')), '/cafe/dashboard');
   assert.equal(routing.defaultPathForUser(cafe('kitchen')), '/cafe/kitchen');

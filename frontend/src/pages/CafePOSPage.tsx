@@ -6,6 +6,7 @@ import { type CafeBillResult, type CafeReceipt } from "../api/cafeBilling";
 import { activeVentureStorage, apiRequest, ApiError } from "../api/client";
 import { listBranches } from "../api/masterData";
 import { useAuth } from "../auth/AuthContext";
+import { CafeReceiptView } from "../components/CafeReceipt";
 import { ErrorState, LoadingState } from "../components/ui";
 import type { Branch, PaymentMode } from "../types";
 
@@ -95,13 +96,9 @@ export function CafePOSPage() {
   return <section className="page-stack">
     <div className="page-header"><div><p className="eyebrow">Café counter</p><h2>Bill a customer</h2></div></div>
     {error ? <ErrorState message={error} /> : null}
-    {receipt ? <article className="panel" aria-live="polite">
-      <h3>Paid · {receipt.invoice_number}</h3><p>{receipt.cafe_name} · {receipt.branch_name}</p>
-      {receipt.items.map((item, index) => <p key={index}>{item.name} × {item.quantity} · {money(item.line_total)}</p>)}
-      <p><strong>Total {money(receipt.grand_total)}</strong> · Paid {money(receipt.paid_amount)} · Due {money(receipt.balance_due)}</p>
-      {receipt.payments.map((payment, index) => <p key={index}>{payment.mode_name}: {money(payment.amount)}</p>)}
+    {receipt ? <CafeReceiptView receipt={receipt}>
       <button type="button" onClick={() => setReceipt(null)}>Next customer</button>
-    </article> : null}
+    </CafeReceiptView> : null}
     {pending ? <article className="panel"><h3>Sale awaiting confirmation</h3><p>Branch: {branches.find((branch) => branch.id === pending.payload.branch_id)?.name ?? pending.payload.branch_id} · {pending.payload.order_type}. Retry to retrieve the invoice safely.</p><button type="button" disabled={saving} onClick={() => void submit()}>{saving ? "Confirming…" : "Retry same sale"}</button></article> : null}
     <fieldset disabled={saving || !!pending || !!receipt} className="page-stack cafe-pos-fields">
       <div className="filter-bar">

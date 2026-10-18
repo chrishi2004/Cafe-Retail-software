@@ -131,3 +131,23 @@ class CafeBillingSourceRead(BaseModel):
         if value not in {"cafe_table_session", "cafe_takeaway"}:
             raise ValueError("Unsupported Cafe billing source.")
         return value
+
+
+class CafeInvoiceHistoryItem(BaseModel):
+    invoice_id: int
+    invoice_number: str
+    branch_id: int
+    branch_name: str
+    issued_at: datetime
+    invoice_status: InvoiceStatus
+    payment_status: InvoicePaymentStatus
+    grand_total: Decimal
+    paid_amount: Decimal
+    balance_due: Decimal
+
+
+class CafeInvoiceHistoryRead(BaseModel):
+    items: list[CafeInvoiceHistoryItem]
+    total: int
+    limit: int
+    offset: int

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from fastapi import Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -54,6 +54,8 @@ from app.schemas.cafe_billing import (
     CafePaymentCollectRequest,
     CafeReceiptItemRead,
     CafeReceiptRead,
+    CafeInvoiceHistoryItem,
+    CafeInvoiceHistoryRead,
 )
 from app.services.audit import write_audit_log
 from app.services.business_settings import generate_next_invoice_number
@@ -747,17 +749,20 @@ def receipt_for_invoice(
         raise_not_found("Cafe invoice not found.")
     _ensure_branch(scope, invoice.branch_id)
     branch = db.get(Branch, invoice.branch_id)
+    if branch is None:
+        raise_not_found("Invoice branch not found.")
+    issued_at = invoice.issued_at or invoice.invoice_date
     return CafeReceiptRead(
         invoice_id=invoice.id,
         invoice_number=invoice.invoice_number,
         source_type=invoice.source_type or "",
         source_id=invoice.source_id or "",
         cafe_name=company.trade_name or company.name,
-        branch_name=branch.name if branch else "Cafe",
+        branch_name=branch.name,
         invoice_type=invoice.invoice_type.value,
         invoice_status=invoice.status,
         payment_status=invoice.payment_status,
-        issued_at=invoice.issued_at,
+        issued_at=issued_at.replace(tzinfo=UTC) if issued_at.tzinfo is None else issued_at,
         subtotal=invoice.subtotal,
         discount_total=invoice.discount_total,
         taxable_total=invoice.taxable_total,
@@ -1141,3 +1146,48 @@ def collect_invoice_payment(
     except Exception:
         db.rollback()
         raise
+
+
+def list_cafe_invoice_history(
+    db: Session, *, scope: ScopeContext, search: str | None = None,
+    branch_id: int | None = None, start_date: date | None = None,
+    end_date: date | None = None, limit: int = 50, offset: int = 0,
+) -> CafeInvoiceHistoryRead:
+    """Read existing invoices only; this path never calls a financial write service."""
+    from app.services.business_day import business_bounds
+
+    company = _require_cafe_company(db, scope)
+    statement = select(Invoice).where(
+        Invoice.company_id == company.id,
+        Invoice.source_type.in_([SOURCE_TABLE, SOURCE_TAKEAWAY]),
+        Invoice.issued_at.is_not(None),
+    )
+    if scope.branch_ids:
+        statement = statement.where(Invoice.branch_id.in_(scope.branch_ids))
+    if branch_id is not None:
+        _ensure_branch(scope, branch_id)
+        statement = statement.where(Invoice.branch_id == branch_id)
+    if start_date and end_date and start_date > end_date:
+        raise_bad_request("Start date must not be after end date.")
+    if start_date:
+        statement = statement.where(Invoice.issued_at >= business_bounds(start_date)[0])
+    if end_date:
+        statement = statement.where(Invoice.issued_at < business_bounds(end_date)[1])
+    if search and search.strip():
+        # Treat user input literally, including SQL LIKE wildcard characters.
+        statement = statement.where(Invoice.invoice_number.contains(search.strip(), autoescape=True))
+    total = db.scalar(select(func.count()).select_from(statement.subquery())) or 0
+    invoices = list(db.scalars(statement.order_by(Invoice.issued_at.desc(), Invoice.id.desc())
+                              .limit(limit).offset(offset)))
+    branch_ids = {invoice.branch_id for invoice in invoices}
+    branches = {branch.id: branch.name for branch in db.scalars(select(Branch).where(
+        Branch.company_id == company.id, Branch.id.in_(branch_ids)))} if branch_ids else {}
+    return CafeInvoiceHistoryRead(
+        items=[CafeInvoiceHistoryItem(
+            invoice_id=invoice.id, invoice_number=invoice.invoice_number,
+            branch_id=invoice.branch_id, branch_name=branches[invoice.branch_id],
+            issued_at=invoice.issued_at.replace(tzinfo=UTC) if invoice.issued_at.tzinfo is None else invoice.issued_at,
+            invoice_status=invoice.status, payment_status=invoice.payment_status,
+            grand_total=invoice.grand_total, paid_amount=invoice.paid_amount, balance_due=invoice.balance_due,
+        ) for invoice in invoices], total=total, limit=limit, offset=offset,
+    )

@@ -43,3 +43,21 @@ Retail, QR ordering, cloud continuity, AI and other future modules remain in the
 - Chromium against the production frontend and actual local FastAPI/SQLite database: cashier login → menu → paid invoice → next customer → logout → owner login/dashboard → date presets → CSV download → authorized branch closing → submit → close → reload. All passed; no browser runtime errors.
 
 The browser/database smoke check uses isolated test data, not a customer installation. PostgreSQL concurrency and physical receipt-printer acceptance still need verification on the deployment hardware; the automated environment-dependent database tests were skipped.
+
+## 80mm thermal receipts and reprinting
+
+Use **Print receipt** after a Café POS checkout or existing table/takeaway billing. **Receipt history** is available to Café Staff, Order Taker, Store Manager, Admin and a group owner operating in the Café venture. Kitchen and Analyst roles cannot read or reprint Café invoices.
+
+History supports invoice-number search, authorized branch selection, date range and pagination. **View / reprint** retrieves the existing receipt; **Reprint receipt** opens the browser print dialog. Both the history and receipt retrieval endpoints are authenticated GET requests. Reprinting does not invoke checkout, create invoices/payments or change stock/accounting records. Cancelled and partially paid invoice statuses remain visible on the receipt, and outstanding balance appears when nonzero. Reprints are marked **REPRINT** and retain the original invoice number and issue time.
+
+The receipt uses the configured company trade name/name and branch name from the existing Café receipt API. It includes invoice/date/time (IST), item/quantity/unit price/line total, grand total, payment modes, amount paid and applicable balance. The same component is used for original receipts and reprints.
+
+Printer setup:
+
+1. Install/select the actual **80mm thermal printer** and its 80mm roll paper profile.
+2. Use 100% scale, one page per sheet, and disable browser headers/footers. Avoid "fit to A4" or Letter.
+3. Print one short and one long receipt on the deployment printer to confirm cutting and paper-feed settings. Driver settings may override browser page dimensions.
+
+Print CSS uses a named 80mm page with 4mm margins (72mm content). A dedicated print copy lives outside the app layout; print media hides every other body child, including navigation and buttons. The measured receipt height sets the roll length, with a valid fixed-size CSS fallback for drivers that ignore custom lengths. No PDF generation is involved.
+
+Validation for printing: 10 targeted history/checkout tests passed; 10 existing billing/stock/idempotency/non-GST/history tests passed; frontend typecheck and production build passed. Two Chromium print-layout regressions passed (including an 80-item receipt), as did the real local API/database browser flow: double-click checkout, original print, history selection and three reprints with unchanged financial/inventory tables and no browser runtime errors. Physical printer acceptance remains a deployment step.

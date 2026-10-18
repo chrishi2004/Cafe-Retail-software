@@ -32,11 +32,11 @@ export function defaultPathForUser(user: AuthUser): string {
 
 export function allowedCafeSections(role: ServerUserRole): string[] {
   if (role === "kitchen") return ["kitchen"];
-  if (role === "order_taker") return ["pos", "orders", "billing"];
+  if (role === "order_taker") return ["pos", "orders", "billing", "receipts"];
   if (role === "analyst") return ["dashboard", "reports"];
-  if (role === "staff") return ["pos", "orders", "billing"];
-  if (role === "store_manager") return ["dashboard", "orders", "pos", "new-order", "tables", "billing", "reports"];
-  return ["dashboard", "orders", "pos", "new-order", "tables", "menu", "billing", "reports", "settings", "closing"];
+  if (role === "staff") return ["pos", "orders", "billing", "receipts"];
+  if (role === "store_manager") return ["dashboard", "orders", "pos", "new-order", "tables", "billing", "receipts", "reports"];
+  return ["dashboard", "orders", "pos", "new-order", "tables", "menu", "billing", "receipts", "reports", "settings", "closing"];
 }
 
 export function safePathForUser(user: AuthUser, pathname: string): string {

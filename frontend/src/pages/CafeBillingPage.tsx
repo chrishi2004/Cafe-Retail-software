@@ -14,6 +14,7 @@ import { listCafeOrders, type CafeOrder } from "../api/cafeOrders";
 import { ApiError } from "../api/client";
 import { listCustomers } from "../api/customers";
 import { useAuth } from "../auth/AuthContext";
+import { CafeReceiptView } from "../components/CafeReceipt";
 import { ErrorState, LoadingState } from "../components/ui";
 import type { Customer } from "../types";
 
@@ -264,19 +265,8 @@ export function CafeBillingPage() {
         </>
       ) : null}
 
-      {result ? (
-        <article className="panel wide" id="cafe-receipt">
-          <div className="panel-header">
-            <div><p className="eyebrow">Invoice issued</p><h3>{result.receipt.invoice_number}</h3></div>
-            <button type="button" className="secondary-button" onClick={() => window.print()}>Print receipt</button>
-          </div>
-          <p>{result.receipt.cafe_name} · {result.receipt.branch_name}</p>
-          <p>Non-GST invoice · GSTIN not displayed</p>
-          <div className="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>{result.receipt.items.map((item, index) => <tr key={`${item.sku}-${index}`}><td>{item.name}</td><td>{item.quantity}</td><td>₹{item.unit_price}</td><td>₹{item.line_total}</td></tr>)}</tbody></table></div>
-          <div className="metric-row"><strong>Total ₹{result.receipt.grand_total}</strong><strong>Paid ₹{result.receipt.paid_amount}</strong><strong>Balance ₹{result.receipt.balance_due}</strong><strong>{result.closed ? "Source closed" : "Awaiting settlement"}</strong></div>
-          {result.idempotent_replay ? <p className="page-description">Safe retry: original invoice returned, no duplicate effects created.</p> : null}
-        </article>
-      ) : null}
+      {result ? <CafeReceiptView receipt={result.receipt} /> : null}
+
     </section>
   );
 }

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Annotated
+from datetime import date
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_scope_context
@@ -15,6 +16,7 @@ from app.schemas.cafe_billing import (
     CafeBillResultRead,
     CafePaymentCollectRequest,
     CafeReceiptRead,
+    CafeInvoiceHistoryRead,
 )
 from app.services.cafe_billing import (
     bill_standalone_order,
@@ -23,6 +25,7 @@ from app.services.cafe_billing import (
     quote_standalone_order,
     quote_table_session,
     receipt_for_invoice,
+    list_cafe_invoice_history,
 )
 
 router = APIRouter(prefix="/cafe/billing", tags=["cafe-billing"])
@@ -138,3 +141,19 @@ def checkout_pos(
 ) -> CafeBillResultRead:
     return checkout(db, scope=scope, user=user, payload=payload,
                     idempotency_key=idempotency_key, request=request)
+
+
+@router.get('/invoices', response_model=CafeInvoiceHistoryRead)
+def read_invoice_history(
+    _user: CurrentUser,
+    scope: CurrentScope,
+    db: Database,
+    search: str | None = Query(default=None, max_length=100),
+    branch_id: int | None = Query(default=None, ge=1),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> CafeInvoiceHistoryRead:
+    return list_cafe_invoice_history(db, scope=scope, search=search, branch_id=branch_id,
+        start_date=start_date, end_date=end_date, limit=limit, offset=offset)
