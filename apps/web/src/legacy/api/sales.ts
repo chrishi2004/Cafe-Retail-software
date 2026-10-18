@@ -1,5 +1,11 @@
 import { apiRequest } from "./client";
-import type { Sale, SaleListItem, SalePayload, SalesSummary, SalesTrendPoint } from "../types";
+import type {
+  Sale,
+  SaleListItem,
+  SalePayload,
+  SalesSummary,
+  SalesTrendPoint,
+} from "../types";
 
 type SalesListOptions = {
   branchId?: number;
@@ -11,7 +17,9 @@ type SalesListOptions = {
   limit?: number;
 };
 
-function queryString(params: Record<string, string | number | boolean | undefined>): string {
+function queryString(
+  params: Record<string, string | number | boolean | undefined>,
+): string {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
@@ -34,7 +42,10 @@ function salesQuery(options: SalesListOptions): string {
   });
 }
 
-export function listSales(token: string, options: SalesListOptions = {}): Promise<SaleListItem[]> {
+export function listSales(
+  token: string,
+  options: SalesListOptions = {},
+): Promise<SaleListItem[]> {
   return apiRequest<SaleListItem[]>(`/sales${salesQuery(options)}`, {}, token);
 }
 
@@ -43,6 +54,7 @@ export function createSale(token: string, payload: SalePayload): Promise<Sale> {
     "/sales",
     {
       method: "POST",
+      headers: { "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify(payload),
     },
     token,
@@ -53,10 +65,24 @@ export function getSale(token: string, saleId: number): Promise<Sale> {
   return apiRequest<Sale>(`/sales/${saleId}`, {}, token);
 }
 
-export function getSalesSummary(token: string, options: SalesListOptions = {}): Promise<SalesSummary> {
-  return apiRequest<SalesSummary>(`/sales/summary${salesQuery(options)}`, {}, token);
+export function getSalesSummary(
+  token: string,
+  options: SalesListOptions = {},
+): Promise<SalesSummary> {
+  return apiRequest<SalesSummary>(
+    `/sales/summary${salesQuery(options)}`,
+    {},
+    token,
+  );
 }
 
-export function getSalesTrends(token: string, options: SalesListOptions = {}): Promise<SalesTrendPoint[]> {
-  return apiRequest<SalesTrendPoint[]>(`/sales/trends${salesQuery(options)}`, {}, token);
+export function getSalesTrends(
+  token: string,
+  options: SalesListOptions = {},
+): Promise<SalesTrendPoint[]> {
+  return apiRequest<SalesTrendPoint[]>(
+    `/sales/trends${salesQuery(options)}`,
+    {},
+    token,
+  );
 }
