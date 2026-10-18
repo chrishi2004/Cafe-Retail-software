@@ -32,5 +32,6 @@
   "/super-admin/ventures",
   "/super-admin/dashboard",
   "/super-admin/users",
-  "/super-admin/purge"
+  "/super-admin/purge",
+  "/retail/closing"
 ]
