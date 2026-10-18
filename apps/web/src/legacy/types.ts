@@ -26,6 +26,7 @@ export type ApiErrorResponse = {
 
 export type RouteKey =
   | "overview"
+  | "closing"
   | "products"
   | "customers"
   | "pos"
@@ -136,7 +137,12 @@ export type CategoryPayload = Omit<Category, "id">;
 export type BranchPayload = Omit<Branch, "id">;
 
 export type CustomerAddressType = "billing" | "shipping";
-export type CustomerLedgerEntryType = "opening_balance" | "invoice" | "payment" | "credit_note" | "adjustment";
+export type CustomerLedgerEntryType =
+  | "opening_balance"
+  | "invoice"
+  | "payment"
+  | "credit_note"
+  | "adjustment";
 
 export type CustomerAddress = {
   id: number;
@@ -179,7 +185,13 @@ export type Customer = {
 
 export type CustomerPayload = Omit<
   Customer,
-  "id" | "branch_name" | "outstanding_balance" | "available_credit" | "addresses" | "created_at" | "updated_at"
+  | "id"
+  | "branch_name"
+  | "outstanding_balance"
+  | "available_credit"
+  | "addresses"
+  | "created_at"
+  | "updated_at"
 >;
 
 export type CustomerLedgerEntry = {
@@ -243,8 +255,19 @@ export type CustomerOutstanding = {
 };
 
 export type InvoiceType = "gst" | "non_gst";
-export type InvoiceStatus = "draft" | "issued" | "paid" | "partial_paid" | "credit" | "cancelled" | "returned";
-export type InvoicePaymentStatus = "unpaid" | "paid" | "partial_paid" | "credit";
+export type InvoiceStatus =
+  | "draft"
+  | "issued"
+  | "paid"
+  | "partial_paid"
+  | "credit"
+  | "cancelled"
+  | "returned";
+export type InvoicePaymentStatus =
+  | "unpaid"
+  | "paid"
+  | "partial_paid"
+  | "credit";
 export type InvoiceTaxType = "cgst" | "sgst" | "igst" | "cess";
 
 export type POSProductSearchResult = {
@@ -440,7 +463,11 @@ export type InvoiceSequenceType =
   | "non_gst_invoice"
   | "credit_note"
   | "purchase_bill";
-export type InvoiceSequenceResetRule = "never" | "fiscal_year" | "calendar_year" | "monthly";
+export type InvoiceSequenceResetRule =
+  | "never"
+  | "fiscal_year"
+  | "calendar_year"
+  | "monthly";
 
 export type BusinessProfile = {
   company_id: number;
@@ -459,6 +486,7 @@ export type BusinessProfile = {
   pincode: string | null;
   gstin: string | null;
   default_tax_mode: TaxMode;
+  gst_effective_from?: string | null;
   default_currency: string;
   terms_and_conditions: string | null;
   created_at: string;
@@ -467,7 +495,11 @@ export type BusinessProfile = {
 
 export type BusinessProfilePayload = Omit<
   BusinessProfile,
-  "company_id" | "business_profile_id" | "gst_registration_id" | "created_at" | "updated_at"
+  | "company_id"
+  | "business_profile_id"
+  | "gst_registration_id"
+  | "created_at"
+  | "updated_at"
 >;
 
 export type TaxRate = {
@@ -495,7 +527,10 @@ export type PaymentMode = {
   updated_at: string;
 };
 
-export type PaymentModePayload = Omit<PaymentMode, "id" | "company_id" | "created_at" | "updated_at"> & {
+export type PaymentModePayload = Omit<
+  PaymentMode,
+  "id" | "company_id" | "created_at" | "updated_at"
+> & {
   company_id?: number | null;
 };
 
@@ -519,7 +554,12 @@ export type InvoiceSequence = {
 
 export type InvoiceSequencePayload = Omit<
   InvoiceSequence,
-  "id" | "company_id" | "last_generated_at" | "preview_next_number" | "created_at" | "updated_at"
+  | "id"
+  | "company_id"
+  | "last_generated_at"
+  | "preview_next_number"
+  | "created_at"
+  | "updated_at"
 > & {
   company_id?: number | null;
 };
