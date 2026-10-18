@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from app.services.production_safety import assert_demo_seed_allowed
+
 from sqlalchemy import select
 
 from app.core.security import hash_password
@@ -21,6 +23,7 @@ USERS = [
 
 def seed_cafe_users() -> int:
     with SessionLocal() as db:
+        assert_demo_seed_allowed(db)
         cafe = db.scalar(
             select(Company).where(
                 Company.business_type == BusinessType.CAFE,

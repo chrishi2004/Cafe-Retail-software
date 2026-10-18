@@ -6,6 +6,8 @@ from collections import defaultdict
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
+from app.services.production_safety import assert_demo_seed_allowed
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -345,6 +347,7 @@ def table_counts(db: Session) -> dict[str, int]:
 
 
 def ensure_empty_or_reset(db: Session, reset: bool) -> None:
+    assert_demo_seed_allowed(db)
     counts = table_counts(db)
     has_data = any(counts.values())
     if has_data and not reset:

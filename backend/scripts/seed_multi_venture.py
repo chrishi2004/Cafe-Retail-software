@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
+from app.services.production_safety import assert_demo_seed_allowed
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -85,6 +87,7 @@ def _operational_count(db: Session) -> int:
 
 
 def reset_business_data(db: Session) -> None:
+    assert_demo_seed_allowed(db)
     # Child-first order is deliberate. P1 introduces company FKs across nearly
     # every root, so deleting Company before Branch/User would fail closed.
     for model in [
@@ -132,6 +135,7 @@ def reset_business_data(db: Session) -> None:
 
 
 def prepare_database(db: Session, *, reset: bool) -> None:
+    assert_demo_seed_allowed(db)
     if reset:
         reset_business_data(db)
         return

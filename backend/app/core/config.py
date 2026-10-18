@@ -1,4 +1,6 @@
 import enum
+import os
+from pathlib import Path
 from functools import lru_cache
 
 from pydantic import Field, SecretStr
@@ -72,6 +74,11 @@ class Settings(BaseSettings):
                 "CLOUD_RUNTIME_DATABASE_URL is required when DEPLOYMENT_MODE=cloud_gateway."
             )
 
+        if self.environment.lower() in {"production", "prod"} and self.deployment_mode == DeploymentMode.LOCAL_HUB:
+            url = make_url(self.local_runtime_database_url)
+            if url.get_backend_name() != "postgresql" or not url.database:
+                raise ValueError("Production Local Hub requires a persistent PostgreSQL database.")
+
         local_target = database_target_identity(self.local_runtime_database_url)
         for name, cloud_url in (
             ("CLOUD_RUNTIME_DATABASE_URL", self.cloud_runtime_database_url),
@@ -136,7 +143,10 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    external = os.environ.get("KALPVRIK_ENV_FILE")
+    if external and not Path(external).is_file():
+        raise RuntimeError("KALPVRIK_ENV_FILE does not exist; refusing fallback to development configuration.")
+    return Settings(_env_file=external or ".env")
 
 
 settings = get_settings()

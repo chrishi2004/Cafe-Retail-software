@@ -1,3 +1,4 @@
+from app.models.production_installation import ProductionInstallation
 from app.models.governance import (
     BusinessDayClosure,
     ClosingStatus,
@@ -172,6 +173,7 @@ __all__ = [
     "PaymentMode",
     "PaymentModeType",
     "PreparationArea",
+    "ProductionInstallation",
     "Product",
     "ProductBarcode",
     "ProductItemType",

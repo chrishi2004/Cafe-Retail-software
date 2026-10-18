@@ -30,7 +30,7 @@ Expected cash = opening cash + cash collections − recorded cash refunds − re
 
 ## Local setup and preservation
 
-Use the existing local-hub installation, migrations, backup scripts and database; this release does not replace or reset business data and adds no database migration. Configure the real Café company, active branch, employee assignments, menu, existing Café business profile, invoice sequence and payment modes before operational use. The existing Café engine currently requires its supported non-GST configuration; no separate GST billing engine is introduced here. Cash/UPI/Card records confirm cashier-entered collections; they do not integrate with a bank or card terminal.
+Use the existing local-hub installation, migrations, backup scripts and database; this release does not replace or reset business data and preserves the Alembic upgrade path. Configure the real Café company, active branch, employee assignments, menu, existing Café business profile, invoice sequence and payment modes before operational use. The existing Café engine currently requires its supported non-GST configuration; no separate GST billing engine is introduced here. Cash/UPI/Card records confirm cashier-entered collections; they do not integrate with a bank or card terminal.
 
 Retail, QR ordering, cloud continuity, AI and other future modules remain in the repository. The existing table-order page is retained as **Table Order** for operational roles that already support it. This release adds no QR/cloud/AI/Retail capability.
 
@@ -61,3 +61,7 @@ Printer setup:
 Print CSS uses a named 80mm page with 4mm margins (72mm content). A dedicated print copy lives outside the app layout; print media hides every other body child, including navigation and buttons. The measured receipt height sets the roll length, with a valid fixed-size CSS fallback for drivers that ignore custom lengths. No PDF generation is involved.
 
 Validation for printing: 10 targeted history/checkout tests passed; 10 existing billing/stock/idempotency/non-GST/history tests passed; frontend typecheck and production build passed. Two Chromium print-layout regressions passed (including an 80-item receipt), as did the real local API/database browser flow: double-click checkout, original print, history selection and three reprints with unchanged financial/inventory tables and no browser runtime errors. Physical printer acceptance remains a deployment step.
+
+## Persistent production data
+
+Use [Café production data and upgrades](CAFE_PRODUCTION_DATA.md) for the new-install bootstrap, external PostgreSQL backups, daily scheduling, disposable restores and safe Alembic upgrades. This release adds migration `20261018_0020` for the durable production marker; existing installations must run the guarded upgrade rather than bootstrap.
