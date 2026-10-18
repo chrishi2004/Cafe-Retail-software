@@ -72,7 +72,7 @@ export type CafeReceipt = {
   grand_total: string;
   paid_amount: string;
   balance_due: string;
-  gstin: null;
+  gstin: string | null;
   items: Array<{
     name: string;
     sku: string;
@@ -97,12 +97,26 @@ export type CafeBillResult = {
   idempotent_replay: boolean;
 };
 
-export function quoteCafeTableSession(token: string, publicId: string): Promise<CafeBillQuote> {
-  return apiRequest<CafeBillQuote>(`/cafe/billing/table-sessions/${publicId}/quote`, {}, token);
+export function quoteCafeTableSession(
+  token: string,
+  publicId: string,
+): Promise<CafeBillQuote> {
+  return apiRequest<CafeBillQuote>(
+    `/cafe/billing/table-sessions/${publicId}/quote`,
+    {},
+    token,
+  );
 }
 
-export function quoteCafeOrder(token: string, publicId: string): Promise<CafeBillQuote> {
-  return apiRequest<CafeBillQuote>(`/cafe/billing/orders/${publicId}/quote`, {}, token);
+export function quoteCafeOrder(
+  token: string,
+  publicId: string,
+): Promise<CafeBillQuote> {
+  return apiRequest<CafeBillQuote>(
+    `/cafe/billing/orders/${publicId}/quote`,
+    {},
+    token,
+  );
 }
 
 export function billCafeTableSession(
@@ -139,8 +153,15 @@ export function billCafeOrder(
   );
 }
 
-export function getCafeReceipt(token: string, invoiceId: number): Promise<CafeReceipt> {
-  return apiRequest<CafeReceipt>(`/cafe/billing/invoices/${invoiceId}/receipt`, {}, token);
+export function getCafeReceipt(
+  token: string,
+  invoiceId: number,
+): Promise<CafeReceipt> {
+  return apiRequest<CafeReceipt>(
+    `/cafe/billing/invoices/${invoiceId}/receipt`,
+    {},
+    token,
+  );
 }
 
 export function collectCafeInvoicePayment(
@@ -150,24 +171,44 @@ export function collectCafeInvoicePayment(
 ): Promise<CafeBillResult> {
   return apiRequest<CafeBillResult>(
     `/cafe/billing/invoices/${invoiceId}/payments`,
-    { method: "POST", body: JSON.stringify({ payment }) },
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ payment }),
+    },
     token,
   );
 }
 
 export type CafeInvoiceHistory = {
   items: Array<{
-    invoice_id: number; invoice_number: string; branch_id: number; branch_name: string;
-    issued_at: string; invoice_status: string; payment_status: string;
-    grand_total: string; paid_amount: string; balance_due: string;
+    invoice_id: number;
+    invoice_number: string;
+    branch_id: number;
+    branch_name: string;
+    issued_at: string;
+    invoice_status: string;
+    payment_status: string;
+    grand_total: string;
+    paid_amount: string;
+    balance_due: string;
   }>;
-  total: number; limit: number; offset: number;
+  total: number;
+  limit: number;
+  offset: number;
 };
 
-export function listCafeInvoiceHistory(token: string, filters: {
-  search?: string; branchId?: number; startDate?: string; endDate?: string;
-  limit?: number; offset?: number;
-} = {}): Promise<CafeInvoiceHistory> {
+export function listCafeInvoiceHistory(
+  token: string,
+  filters: {
+    search?: string;
+    branchId?: number;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<CafeInvoiceHistory> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.branchId) params.set("branch_id", String(filters.branchId));
@@ -175,5 +216,9 @@ export function listCafeInvoiceHistory(token: string, filters: {
   if (filters.endDate) params.set("end_date", filters.endDate);
   params.set("limit", String(filters.limit ?? 50));
   params.set("offset", String(filters.offset ?? 0));
-  return apiRequest<CafeInvoiceHistory>(`/cafe/billing/invoices?${params}`, {}, token);
+  return apiRequest<CafeInvoiceHistory>(
+    `/cafe/billing/invoices?${params}`,
+    {},
+    token,
+  );
 }
