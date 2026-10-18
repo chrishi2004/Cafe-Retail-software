@@ -31,52 +31,59 @@ type ExportAction = {
 
 const REPORTING_VIEWS: ReportingView[] = [
   {
-    name: "vw_sales_summary",
+    name: "Sales CSV",
     source: "sales, sale_items, branches",
     recommendedPage: "Executive Overview",
-    purpose: "Daily revenue, gross profit, units, transactions, and average order value by branch.",
+    purpose:
+      "Daily revenue, gross profit, units, transactions, and average order value by branch.",
   },
   {
-    name: "vw_sales_by_product",
+    name: "Sales CSV by product",
     source: "sales, products, categories, suppliers",
     recommendedPage: "Sales Performance",
-    purpose: "Product-level revenue, units sold, and gross profit for ranking and contribution analysis.",
+    purpose:
+      "Product-level revenue, units sold, and gross profit for ranking and contribution analysis.",
   },
   {
-    name: "vw_sales_by_category",
+    name: "Sales CSV by category",
     source: "sales, categories",
     recommendedPage: "Sales Performance",
-    purpose: "Category revenue mix, unit movement, and gross profit comparison.",
+    purpose:
+      "Category revenue mix, unit movement, and gross profit comparison.",
   },
   {
-    name: "vw_inventory_health",
+    name: "Inventory CSV",
     source: "inventory, products, suppliers",
     recommendedPage: "Inventory Health",
-    purpose: "Stock value, low-stock flag, quantity on order, and health status by product and branch.",
+    purpose:
+      "Stock value, low-stock flag, quantity on order, and health status by product and branch.",
   },
   {
-    name: "vw_low_stock",
+    name: "Inventory CSV low-stock filter",
     source: "inventory, products",
     recommendedPage: "Inventory Health",
-    purpose: "Focused reorder risk table for product-branch rows at or below threshold.",
+    purpose:
+      "Focused reorder risk table for product-branch rows at or below threshold.",
   },
   {
-    name: "vw_purchase_order_status",
+    name: "Purchase Orders CSV",
     source: "purchase_orders",
     recommendedPage: "Supplier and Purchase Orders",
     purpose: "Order counts and value by status, branch, and supplier.",
   },
   {
-    name: "vw_supplier_performance",
+    name: "Purchase Orders CSV by supplier",
     source: "suppliers, purchase_orders",
     recommendedPage: "Supplier and Purchase Orders",
-    purpose: "Supplier product coverage, order value, open order exposure, and received quantity.",
+    purpose:
+      "Supplier product coverage, order value, open order exposure, and received quantity.",
   },
   {
-    name: "vw_forecast_summary",
+    name: "Forecasts CSV",
     source: "forecasts",
     recommendedPage: "Forecast and Recommendations",
-    purpose: "Stored forecast totals, planning bands, scope labels, and model names.",
+    purpose:
+      "Stored forecast totals, planning bands, scope labels, and model names.",
   },
 ];
 
@@ -84,29 +91,33 @@ const EXPORT_ACTIONS: ExportAction[] = [
   {
     kind: "sales",
     label: "Sales CSV",
-    description: "Line-level sales with branch, category, revenue, discount, and gross profit fields.",
+    description:
+      "Line-level sales with branch, category, revenue, discount, and gross profit fields.",
   },
   {
     kind: "inventory",
     label: "Inventory CSV",
-    description: "Current stock, low-stock flag, stock value, supplier, and branch fields.",
+    description:
+      "Current stock, low-stock flag, stock value, supplier, and branch fields.",
   },
   {
     kind: "purchase-orders",
     label: "Purchase Orders CSV",
-    description: "Purchase order line items with status, supplier, quantities, costs, and approvals.",
+    description:
+      "Purchase order line items with status, supplier, quantities, costs, and approvals.",
   },
   {
     kind: "forecasts",
     label: "Forecasts CSV",
-    description: "Stored forecast scopes, horizons, values, confidence bands, and model names.",
+    description:
+      "Stored forecast scopes, horizons, values, confidence bands, and model names.",
   },
 ];
 
 const REFRESH_STEPS = [
-  "Run local migrations so the reporting views exist in PostgreSQL.",
-  "Connect Power BI Desktop to the local database or import CSV files from this page.",
-  "Refresh after seed data, sales, inventory adjustments, purchase order receiving, or forecast runs.",
+  "Download the scoped CSV export for the data you want to analyse.",
+  "In Power BI Desktop, use Get Data → Text/CSV to import the downloaded file.",
+  "Download a fresh export after sales, inventory adjustments, purchase order receiving, or forecast runs.",
   "Keep operational actions in this web dashboard; use Power BI for reporting and presentation.",
 ];
 
@@ -127,8 +138,8 @@ export function PowerBIReportsPage() {
     () => [
       {
         label: "Reporting Views",
-        value: "8 ready",
-        detail: "Power BI Desktop can read local SQL views.",
+        value: "CSV backed",
+        detail: "Import authenticated exports into Power BI Desktop.",
         tone: "blue",
       },
       {
@@ -144,9 +155,9 @@ export function PowerBIReportsPage() {
         tone: "amber",
       },
       {
-        label: "Cloud Cost",
-        value: "No paid DB",
-        detail: "MVP reports run from local PostgreSQL or CSV.",
+        label: "Data source",
+        value: "MongoDB Atlas",
+        detail: "Exports read the active venture in MongoDB Atlas.",
         tone: "slate",
       },
     ],
@@ -161,7 +172,9 @@ export function PowerBIReportsPage() {
       setExportError(null);
       try {
         await downloadExport(token, kind);
-        setExportMessage(`${EXPORT_ACTIONS.find((item) => item.kind === kind)?.label ?? "Export"} downloaded.`);
+        setExportMessage(
+          `${EXPORT_ACTIONS.find((item) => item.kind === kind)?.label ?? "Export"} downloaded.`,
+        );
       } catch (error) {
         setExportError(errorMessage(error));
       } finally {
@@ -178,27 +191,39 @@ export function PowerBIReportsPage() {
           <p className="eyebrow">Executive reporting</p>
           <h2 id="powerbi-title">Power BI reports</h2>
           <p className="page-description">
-            Prepare local PostgreSQL reporting views and authenticated CSV files for Power BI
-            Desktop. The web dashboard remains the place for sales, stock, and purchase order
+            Download authenticated CSV files for Power BI Desktop. The web
+            dashboard remains the place for sales, stock, and purchase order
             actions.
           </p>
         </div>
         <div className="page-header-side">
-          <span className="role-scope">{user?.role === "admin" ? "Admin reporting" : "Analyst reporting"}</span>
-          <a className="action-button secondary" href="/docs/POWER_BI_SETUP.md" rel="noreferrer" target="_blank">
+          <span className="role-scope">
+            {user?.role === "admin" ? "Admin reporting" : "Analyst reporting"}
+          </span>
+          <a
+            className="action-button secondary"
+            href="/docs/POWER_BI_SETUP.md"
+            rel="noreferrer"
+            target="_blank"
+          >
             <ExternalLink aria-hidden="true" size={16} />
             Setup guide
           </a>
         </div>
       </div>
 
-      <section className="metric-grid" aria-label="Power BI integration metrics">
+      <section
+        className="metric-grid"
+        aria-label="Power BI integration metrics"
+      >
         {metrics.map((metric) => (
           <MetricCard key={metric.label} metric={metric} />
         ))}
       </section>
 
-      {exportError ? <ErrorState message={exportError} title="Export failed" /> : null}
+      {exportError ? (
+        <ErrorState message={exportError} title="Export failed" />
+      ) : null}
       {exportMessage ? (
         <div className="state-panel success">
           <FileSpreadsheet aria-hidden="true" size={22} />
@@ -229,7 +254,11 @@ export function PowerBIReportsPage() {
                   <strong>{item.label}</strong>
                 </span>
                 <p>{item.description}</p>
-                <b>{activeExport === item.kind ? "Preparing file" : "Download CSV"}</b>
+                <b>
+                  {activeExport === item.kind
+                    ? "Preparing file"
+                    : "Download CSV"}
+                </b>
               </button>
             ))}
           </div>
@@ -250,11 +279,17 @@ export function PowerBIReportsPage() {
           </ol>
           <div className="powerbi-note">
             <ShieldCheck aria-hidden="true" size={18} />
-            <span>API exports respect role and branch permissions. Direct database exposure is not required.</span>
+            <span>
+              API exports respect role and branch permissions. Direct database
+              exposure is not required.
+            </span>
           </div>
           <div className="powerbi-note">
             <CloudOff aria-hidden="true" size={18} />
-            <span>Power BI Desktop can run locally for the MVP without Power BI Service or a cloud database.</span>
+            <span>
+              Power BI Desktop imports CSV files. An embedded Power BI report
+              requires a separately configured Power BI workspace.
+            </span>
           </div>
         </aside>
 
@@ -262,7 +297,7 @@ export function PowerBIReportsPage() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">SQL reporting layer</p>
-              <h3>Views for Power BI Desktop</h3>
+              <h3>Suggested Power BI report sections</h3>
             </div>
             <Database aria-hidden="true" size={20} />
           </div>
@@ -310,7 +345,10 @@ export function PowerBIReportsPage() {
             ].map((page) => (
               <article key={page}>
                 <strong>{page}</strong>
-                <span>Use local views or CSV imports, then refresh after operational changes.</span>
+                <span>
+                  Import CSV exports, then download fresh exports after
+                  operational changes.
+                </span>
               </article>
             ))}
           </div>
