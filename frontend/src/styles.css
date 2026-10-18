@@ -2197,3 +2197,7 @@ tbody tr:last-child td {
     padding: 20px;
   }
 }
+
+.cafe-pos-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.cafe-pos-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.cafe-pos-menu button { min-height: 72px; padding: 12px; }

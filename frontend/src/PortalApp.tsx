@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import App from "./App";
 import { activeVentureStorage } from "./api/client";
+import { ErrorState } from "./components/ui";
 import { useAuth } from "./auth/AuthContext";
 import { defaultPathForUser, portalFromPath, safePathForUser } from "./portalRouting";
 import { CafePortal } from "./portals/CafePortal";
@@ -23,6 +24,7 @@ function PublicOrderPlaceholder({ token }: { token: string }) {
 
 export default function PortalApp() {
   const auth = useAuth();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [pathname, setPathname] = useState(window.location.pathname || "/");
 
   useEffect(() => {
@@ -34,6 +36,12 @@ export default function PortalApp() {
   const navigate = (path: string) => {
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
     setPathname(path);
+  };
+
+  const handleLogout = async () => {
+    setLogoutError(null);
+    try { await auth.logout(); }
+    catch { setLogoutError("Logout could not reach the local hub. Please retry."); }
   };
 
   const publicOrderMatch = pathname.match(/^\/order\/([^/]+)$/);
@@ -75,19 +83,22 @@ export default function PortalApp() {
         token={auth.token}
         pathname={resolvedPath}
         onNavigate={navigate}
-        onLogout={() => void auth.logout()}
+        onLogout={() => void handleLogout()}
       />
     );
   }
 
   if (portal === "cafe") {
     return (
+      <>
+      {logoutError ? <ErrorState message={logoutError} /> : null}
       <CafePortal
         user={user}
         pathname={resolvedPath}
         onNavigate={navigate}
-        onLogout={() => void auth.logout()}
+        onLogout={() => void handleLogout()}
       />
+      </>
     );
   }
 

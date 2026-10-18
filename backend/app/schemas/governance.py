@@ -9,11 +9,11 @@ from pydantic import BaseModel, Field
 class ClosingCreate(BaseModel):
     branch_id: int
     business_date: date
-    opening_cash: Decimal = Decimal("0.00")
+    opening_cash: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=14, decimal_places=2)
 
 
 class ClosingSubmit(BaseModel):
-    counted_cash: Decimal
+    counted_cash: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
 
 
 class ClosingReopen(BaseModel):

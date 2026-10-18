@@ -1,40 +1,45 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { downloadExport } from "../api/exports";
 import { getCafeDashboard, type P9Dashboard } from "../api/p9";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorState, LoadingState } from "../components/ui";
+import { cafeRange, PRESETS, type CafePreset } from "../utils/cafeDates";
 
 const money = (value: string | number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(value) || 0);
 
 export function CafeReportsPage() {
   const { token, user } = useAuth();
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [preset, setPreset] = useState<CafePreset>("Today");
+  const [startDate, setStartDate] = useState(() => cafeRange("Today").startDate);
+  const [endDate, setEndDate] = useState(() => cafeRange("Today").endDate);
   const [report, setReport] = useState<P9Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const requestId = useRef(0);
+  const load = useCallback(async () => {
+    const id = ++requestId.current;
     if (!token) return;
+    if (!startDate || !endDate || startDate > endDate) { setError("Select a valid date range."); setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
-      setReport(await getCafeDashboard(token, { startDate: startDate || undefined, endDate: endDate || undefined }));
+      const data = await getCafeDashboard(token, { startDate, endDate });
+      if (id === requestId.current) setReport(data);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Cafe reporting could not be loaded.");
+      if (id === requestId.current) setError(failure instanceof Error ? failure.message : "Cafe reporting could not be loaded.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  };
+  }, [token, startDate, endDate]);
 
   useEffect(() => {
     void load();
-    // Initial report load intentionally uses the empty/default date range.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    return () => { requestId.current += 1; };
+  }, [load]);
 
   const exportCsv = async () => {
     if (!token) return;
@@ -64,12 +69,16 @@ export function CafeReportsPage() {
 
       <div className="filter-bar">
         <div className="filter-actions">
-          <label>From <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-          <label>To <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+          <label>Period <select value={preset} onChange={(event) => {
+            const next = event.target.value as CafePreset; setPreset(next);
+            if (next !== "Custom Range") { const range = cafeRange(next); setStartDate(range.startDate); setEndDate(range.endDate); }
+          }}>{PRESETS.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>From <input type="date" value={startDate} onChange={(event) =>  { setPreset("Custom Range"); setStartDate(event.target.value); }} /></label>
+          <label>To <input type="date" value={endDate} onChange={(event) =>  { setPreset("Custom Range"); setEndDate(event.target.value); }} /></label>
         </div>
         <div className="filter-actions">
           <button className="action-button secondary" onClick={() => void load()} type="button">Apply dates</button>
-          <button className="action-button primary" disabled={exporting} onClick={() => void exportCsv()} type="button">
+          <button className="action-button primary" disabled={exporting || loading || !report || report.period_start !== startDate || report.period_end !== endDate} onClick={() => void exportCsv()} type="button">
             {exporting ? "Preparing CSV" : "Download Cafe CSV"}
           </button>
         </div>

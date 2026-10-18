@@ -37,7 +37,7 @@ def _validate_assignment(db: Session, *, role: UserRole, company_id: int | None,
         raise_bad_request("A venture assignment is required for this role.")
     company = _load_company(db, company_id)
     allowed_roles = (
-        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
+        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
         if company.business_type == BusinessType.CAFE
         else {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ANALYST}
     )

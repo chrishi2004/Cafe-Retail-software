@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Kalpvrik Café
+Comment=Open the local Café counter and owner dashboard
+Exec=/usr/bin/bash /opt/kalpvrik/scripts/open_cafe.sh
+Icon=applications-office
+Terminal=false
+Categories=Office;
+StartupNotify=true

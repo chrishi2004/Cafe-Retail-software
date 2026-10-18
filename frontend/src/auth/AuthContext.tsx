@@ -15,6 +15,7 @@ import {
   authTokenStorage,
   loginRequest,
 } from "../api/client";
+import { defaultPathForUser } from "../portalRouting";
 import { normalizeAuthUser, type AuthUser, type ServerAuthUser } from "./types";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
@@ -68,6 +69,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const response = await loginRequest(email, password, totpCode, recoveryCode);
     activeVentureStorage.clear();
     authTokenStorage.set(response.access_token);
+    window.history.replaceState({}, "", defaultPathForUser(response.user));
+    window.dispatchEvent(new PopStateEvent("popstate"));
     setToken(response.access_token);
     setUser(response.user);
     setStatus("authenticated");

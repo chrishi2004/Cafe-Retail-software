@@ -154,3 +154,26 @@ export function collectCafeInvoicePayment(
     token,
   );
 }
+
+export type CafeInvoiceHistory = {
+  items: Array<{
+    invoice_id: number; invoice_number: string; branch_id: number; branch_name: string;
+    issued_at: string; invoice_status: string; payment_status: string;
+    grand_total: string; paid_amount: string; balance_due: string;
+  }>;
+  total: number; limit: number; offset: number;
+};
+
+export function listCafeInvoiceHistory(token: string, filters: {
+  search?: string; branchId?: number; startDate?: string; endDate?: string;
+  limit?: number; offset?: number;
+} = {}): Promise<CafeInvoiceHistory> {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.branchId) params.set("branch_id", String(filters.branchId));
+  if (filters.startDate) params.set("start_date", filters.startDate);
+  if (filters.endDate) params.set("end_date", filters.endDate);
+  params.set("limit", String(filters.limit ?? 50));
+  params.set("offset", String(filters.offset ?? 0));
+  return apiRequest<CafeInvoiceHistory>(`/cafe/billing/invoices?${params}`, {}, token);
+}

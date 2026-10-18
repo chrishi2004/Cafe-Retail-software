@@ -80,7 +80,7 @@ def _account_scope_is_active(db: Session, user: User) -> bool:
     if company is None or not company.is_active or company.business_group_id != user.business_group_id:
         return False
     allowed_roles = (
-        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
+        {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ORDER_TAKER, UserRole.KITCHEN, UserRole.ANALYST}
         if company.business_type == BusinessType.CAFE
         else {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.STAFF, UserRole.ANALYST}
     )

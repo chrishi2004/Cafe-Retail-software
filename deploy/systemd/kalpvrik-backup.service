@@ -5,9 +5,11 @@ Requires=postgresql.service
 
 [Service]
 Type=oneshot
+UMask=0077
 User=kalpvrik
 Group=kalpvrik
 EnvironmentFile=/etc/kalpvrik/local-hub.env
+Environment=KALPVRIK_DATA_DIR=/var/lib/kalpvrik
 ExecStart=/usr/bin/bash /opt/kalpvrik/scripts/backup_postgres.sh
 NoNewPrivileges=true
 PrivateTmp=true

@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 from decimal import Decimal
 
+from app.services.production_safety import assert_demo_seed_allowed
+
 from sqlalchemy import delete, select
 
 from app.db.session import SessionLocal
@@ -85,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 
 def clear_p5_data() -> None:
     with SessionLocal() as db:
+        assert_demo_seed_allowed(db)
         for model in [TableSession, TableQRToken, MenuItem, MenuCategory, CafeTable]:
             db.execute(delete(model))
         db.commit()
@@ -108,6 +111,7 @@ def _cafe_company_and_branch(db):
 
 def seed_cafe_catalog_and_tables() -> dict[str, int]:
     with SessionLocal() as db:
+        assert_demo_seed_allowed(db)
         cafe, branch = _cafe_company_and_branch(db)
 
         product_category = db.scalar(

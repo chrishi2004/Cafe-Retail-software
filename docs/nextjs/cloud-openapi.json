@@ -1,0 +1,2267 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hybrid Retail BI API",
+    "description": "Limited hybrid cloud coordination gateway.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/readiness": {
+      "get": {
+        "tags": [
+          "cloud-gateway"
+        ],
+        "summary": "Readiness",
+        "operationId": "readiness_api_cloud_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Readiness Api Cloud Readiness Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/devices/heartbeat": {
+      "post": {
+        "tags": [
+          "cloud-gateway"
+        ],
+        "summary": "Heartbeat",
+        "operationId": "heartbeat_api_cloud_devices_heartbeat_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          },
+          {
+            "name": "X-Device-Timestamp",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Timestamp"
+            }
+          },
+          {
+            "name": "X-Device-Nonce",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Nonce"
+            }
+          },
+          {
+            "name": "X-Device-Signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Signature"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignedHeartbeatInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedHeartbeatRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/publications/menu": {
+      "post": {
+        "tags": [
+          "cloud-gateway"
+        ],
+        "summary": "Publish Menu",
+        "operationId": "publish_menu_api_cloud_publications_menu_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuPublicationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuPublicationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/public/cafe/menu/{publication_id}": {
+      "get": {
+        "tags": [
+          "cloud-gateway"
+        ],
+        "summary": "Public Menu",
+        "operationId": "public_menu_api_cloud_public_cafe_menu__publication_id__get",
+        "parameters": [
+          {
+            "name": "publication_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Publication Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafeMenuRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/public/cafe/qr/resolve": {
+      "post": {
+        "tags": [
+          "cloud-gateway"
+        ],
+        "summary": "Public Qr Resolve",
+        "operationId": "public_qr_resolve_api_cloud_public_cafe_qr_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Public Qr Resolve Api Cloud Public Cafe Qr Resolve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/public/cafe/orders": {
+      "post": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Submit Cloud Order",
+        "operationId": "submit_cloud_order_api_cloud_public_cafe_orders_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudOrderCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudOrderRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/public/cafe/orders/{public_id}": {
+      "get": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Read Cloud Order",
+        "operationId": "read_cloud_order_api_cloud_public_cafe_orders__public_id__get",
+        "parameters": [
+          {
+            "name": "public_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Public Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudOrderRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/public/cafe/orders/{public_id}/bill-request": {
+      "post": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Submit Cloud Bill Request",
+        "operationId": "submit_cloud_bill_request_api_cloud_public_cafe_orders__public_id__bill_request_post",
+        "parameters": [
+          {
+            "name": "public_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Public Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudBillRequestCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudBillRequestRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/sync/commands": {
+      "get": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Pull Commands",
+        "operationId": "pull_commands_api_cloud_sync_commands_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudCommandBatch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/sync/receipts": {
+      "post": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Push Receipt",
+        "operationId": "push_receipt_api_cloud_sync_receipts_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudSyncReceiptInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSyncPushRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/sync/events": {
+      "post": {
+        "tags": [
+          "hc3-cloud-orders"
+        ],
+        "summary": "Push Local Event",
+        "operationId": "push_local_event_api_cloud_sync_events_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventEnvelope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSyncPushRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/continuity/lease/acquire": {
+      "post": {
+        "tags": [
+          "hc4-continuity"
+        ],
+        "summary": "Acquire Writer Lease",
+        "operationId": "acquire_writer_lease_api_cloud_continuity_lease_acquire_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          },
+          {
+            "name": "X-Device-Timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Timestamp"
+            }
+          },
+          {
+            "name": "X-Device-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Nonce"
+            }
+          },
+          {
+            "name": "X-Device-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Signature"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriterLeaseInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriterLeaseRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/continuity/lease/renew": {
+      "post": {
+        "tags": [
+          "hc4-continuity"
+        ],
+        "summary": "Renew Writer Lease",
+        "operationId": "renew_writer_lease_api_cloud_continuity_lease_renew_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          },
+          {
+            "name": "X-Device-Timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Timestamp"
+            }
+          },
+          {
+            "name": "X-Device-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Nonce"
+            }
+          },
+          {
+            "name": "X-Device-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Signature"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriterLeaseInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriterLeaseRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cloud/continuity/references": {
+      "post": {
+        "tags": [
+          "hc4-continuity"
+        ],
+        "summary": "Create Continuity Reference",
+        "operationId": "create_continuity_reference_api_cloud_continuity_references_post",
+        "parameters": [
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Id"
+            }
+          },
+          {
+            "name": "X-Device-Proof",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Proof"
+            }
+          },
+          {
+            "name": "X-Device-Timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Timestamp"
+            }
+          },
+          {
+            "name": "X-Device-Nonce",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Nonce"
+            }
+          },
+          {
+            "name": "X-Device-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Device-Signature"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContinuityReferenceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContinuityReferenceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AvailabilityInput": {
+        "properties": {
+          "source_product_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Product Id"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_product_id",
+          "available"
+        ],
+        "title": "AvailabilityInput"
+      },
+      "CloudBillRequestCreate": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "opaque_qr": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 20,
+            "title": "Opaque Qr"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "publication_id",
+          "opaque_qr"
+        ],
+        "title": "CloudBillRequestCreate"
+      },
+      "CloudBillRequestRead": {
+        "properties": {
+          "order_public_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Public Id"
+          },
+          "status": {
+            "type": "string",
+            "const": "queued",
+            "title": "Status",
+            "default": "queued"
+          },
+          "bill_requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Bill Requested At"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_public_id",
+          "bill_requested_at"
+        ],
+        "title": "CloudBillRequestRead"
+      },
+      "CloudCommandBatch": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventEnvelope"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "CloudCommandBatch"
+      },
+      "CloudOrderCreate": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "opaque_qr": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 20,
+            "title": "Opaque Qr"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CloudOrderItemInput"
+            },
+            "type": "array",
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "customer_notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "publication_id",
+          "opaque_qr",
+          "items"
+        ],
+        "title": "CloudOrderCreate"
+      },
+      "CloudOrderItemInput": {
+        "properties": {
+          "menu_item_public_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Menu Item Public Id"
+          },
+          "quantity": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Quantity"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menu_item_public_id",
+          "quantity"
+        ],
+        "title": "CloudOrderItemInput"
+      },
+      "CloudOrderItemRead": {
+        "properties": {
+          "menu_item_public_id": {
+            "type": "string",
+            "title": "Menu Item Public Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "type": "string",
+            "title": "Unit Price"
+          },
+          "line_total": {
+            "type": "string",
+            "title": "Line Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "menu_item_public_id",
+          "name",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "title": "CloudOrderItemRead"
+      },
+      "CloudOrderRead": {
+        "properties": {
+          "public_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Public Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "estimated_total": {
+            "type": "string",
+            "title": "Estimated Total"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CloudOrderItemRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_id",
+          "status",
+          "estimated_total",
+          "created_at"
+        ],
+        "title": "CloudOrderRead"
+      },
+      "CloudSyncPushRead": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "event_id"
+        ],
+        "title": "CloudSyncPushRead"
+      },
+      "CloudSyncReceiptInput": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "committed",
+              "duplicate",
+              "rejected"
+            ],
+            "title": "Status"
+          },
+          "result_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Reference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "status"
+        ],
+        "title": "CloudSyncReceiptInput"
+      },
+      "ContinuityReferenceInput": {
+        "properties": {
+          "continuity_reference": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Continuity Reference"
+          },
+          "scope_key": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 3,
+            "title": "Scope Key"
+          },
+          "business_group_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Business Group Id"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "payment_capture",
+              "emergency_receipt",
+              "order_note"
+            ],
+            "title": "Purpose"
+          },
+          "fencing_epoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fencing Epoch"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "continuity_reference",
+          "scope_key",
+          "business_group_id",
+          "purpose",
+          "fencing_epoch"
+        ],
+        "title": "ContinuityReferenceInput"
+      },
+      "ContinuityReferenceRead": {
+        "properties": {
+          "continuity_reference": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Continuity Reference"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "fencing_epoch": {
+            "type": "integer",
+            "title": "Fencing Epoch"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "continuity_reference",
+          "status",
+          "fencing_epoch"
+        ],
+        "title": "ContinuityReferenceRead"
+      },
+      "EventEnvelope": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "event_type": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9_.-]+$",
+            "title": "Event Type"
+          },
+          "schema_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "source": {
+            "$ref": "#/components/schemas/EventSource"
+          },
+          "source_device_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Device Id"
+          },
+          "business_group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Group Id"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "aggregate_type": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Aggregate Type"
+          },
+          "aggregate_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Aggregate Id"
+          },
+          "aggregate_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Aggregate Version"
+          },
+          "idempotency_key_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key Hash"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "correlation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Correlation Id"
+          },
+          "causation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Causation Id"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_type",
+          "source",
+          "aggregate_type",
+          "aggregate_id",
+          "aggregate_version"
+        ],
+        "title": "EventEnvelope"
+      },
+      "EventSource": {
+        "type": "string",
+        "enum": [
+          "local_hub",
+          "cloud_gateway"
+        ],
+        "title": "EventSource"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MenuPublicationInput": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "business_group_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Business Group Id"
+          },
+          "company_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Company Id"
+          },
+          "branch_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Branch Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Snapshot At"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/PublishedCategoryInput"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublishedItemInput"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/PublishedTableInput"
+            },
+            "type": "array",
+            "title": "Tables"
+          },
+          "availability": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityInput"
+            },
+            "type": "array",
+            "title": "Availability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "publication_id",
+          "business_group_id",
+          "company_id",
+          "branch_id",
+          "version",
+          "snapshot_at",
+          "categories",
+          "items",
+          "tables"
+        ],
+        "title": "MenuPublicationInput"
+      },
+      "MenuPublicationRead": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Snapshot At"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "publication_id",
+          "version",
+          "state",
+          "snapshot_at",
+          "activated_at"
+        ],
+        "title": "MenuPublicationRead"
+      },
+      "PublishedCategoryInput": {
+        "properties": {
+          "source_category_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Category Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "display_order": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Display Order",
+            "default": 0
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_category_id",
+          "name"
+        ],
+        "title": "PublishedCategoryInput"
+      },
+      "PublishedItemInput": {
+        "properties": {
+          "source_menu_item_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Menu Item Id"
+          },
+          "source_product_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Product Id"
+          },
+          "source_category_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Category Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "image_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Reference"
+          },
+          "selling_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Selling Price"
+          },
+          "preparation_area": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Preparation Area"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          },
+          "display_order": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Display Order",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_menu_item_id",
+          "source_category_id",
+          "name",
+          "selling_price",
+          "preparation_area"
+        ],
+        "title": "PublishedItemInput"
+      },
+      "PublishedTableInput": {
+        "properties": {
+          "source_table_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source Table Id"
+          },
+          "table_code": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Table Code"
+          },
+          "table_display_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Table Display Name"
+          },
+          "public_reference": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Public Reference"
+          },
+          "verifier_digest": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Verifier Digest"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disabled At"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_table_id",
+          "table_code",
+          "table_display_name",
+          "public_reference",
+          "verifier_digest"
+        ],
+        "title": "PublishedTableInput"
+      },
+      "SafeMenuCategoryRead": {
+        "properties": {
+          "source_category_id": {
+            "type": "string",
+            "title": "Source Category Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_category_id",
+          "name",
+          "display_order"
+        ],
+        "title": "SafeMenuCategoryRead"
+      },
+      "SafeMenuItemRead": {
+        "properties": {
+          "source_menu_item_id": {
+            "type": "string",
+            "title": "Source Menu Item Id"
+          },
+          "source_category_id": {
+            "type": "string",
+            "title": "Source Category Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "image_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Reference"
+          },
+          "selling_price": {
+            "type": "string",
+            "title": "Selling Price"
+          },
+          "preparation_area": {
+            "type": "string",
+            "title": "Preparation Area"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_menu_item_id",
+          "source_category_id",
+          "name",
+          "description",
+          "image_reference",
+          "selling_price",
+          "preparation_area",
+          "available",
+          "display_order"
+        ],
+        "title": "SafeMenuItemRead"
+      },
+      "SafeMenuRead": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "snapshot_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Snapshot At"
+          },
+          "stale_age_seconds": {
+            "type": "integer",
+            "title": "Stale Age Seconds"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/SafeMenuCategoryRead"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SafeMenuItemRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "publication_id",
+          "version",
+          "snapshot_at",
+          "stale_age_seconds",
+          "categories",
+          "items"
+        ],
+        "title": "SafeMenuRead"
+      },
+      "SignedHeartbeatInput": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "local_writer",
+              "recovering",
+              "local_only"
+            ],
+            "title": "Mode",
+            "default": "local_writer"
+          },
+          "fencing_epoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fencing Epoch",
+            "default": 0
+          },
+          "software_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Software Version"
+          },
+          "event_schema_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Event Schema Version",
+            "default": 1
+          },
+          "pending_inbox": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pending Inbox",
+            "default": 0
+          },
+          "pending_outbox": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pending Outbox",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SignedHeartbeatInput"
+      },
+      "SignedHeartbeatRead": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "business_group_id": {
+            "type": "string",
+            "title": "Business Group Id"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "lease": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WriterLeaseRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "device_id",
+          "recorded_at",
+          "business_group_id"
+        ],
+        "title": "SignedHeartbeatRead"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WriterLeaseInput": {
+        "properties": {
+          "scope_key": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 3,
+            "title": "Scope Key"
+          },
+          "business_group_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Business Group Id"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
+          "requested_mode": {
+            "type": "string",
+            "enum": [
+              "local_writer",
+              "recovering"
+            ],
+            "title": "Requested Mode",
+            "default": "local_writer"
+          },
+          "fencing_epoch": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fencing Epoch"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope_key",
+          "business_group_id"
+        ],
+        "title": "WriterLeaseInput"
+      },
+      "WriterLeaseRead": {
+        "properties": {
+          "scope_key": {
+            "type": "string",
+            "title": "Scope Key"
+          },
+          "current_mode": {
+            "type": "string",
+            "title": "Current Mode"
+          },
+          "lease_owner_device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease Owner Device Id"
+          },
+          "fencing_epoch": {
+            "type": "integer",
+            "title": "Fencing Epoch"
+          },
+          "lease_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease Expires At"
+          },
+          "last_heartbeat_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Heartbeat At"
+          },
+          "recovery_state": {
+            "type": "string",
+            "title": "Recovery State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope_key",
+          "current_mode",
+          "lease_owner_device_id",
+          "fencing_epoch",
+          "lease_expires_at",
+          "last_heartbeat_at",
+          "recovery_state"
+        ],
+        "title": "WriterLeaseRead"
+      }
+    }
+  }
+}

@@ -26,17 +26,17 @@ export function defaultPathForUser(user: AuthUser): string {
   if (portal === "super-admin") return "/super-admin/ventures";
   if (portal === "retail") return "/retail/overview";
   if (user.server_role === "kitchen") return "/cafe/kitchen";
-  if (user.server_role === "order_taker") return "/cafe/orders";
+  if (["staff", "order_taker"].includes(user.server_role)) return "/cafe/pos";
   return "/cafe/dashboard";
 }
 
 export function allowedCafeSections(role: ServerUserRole): string[] {
   if (role === "kitchen") return ["kitchen"];
-  if (role === "order_taker") return ["orders", "pos", "billing"];
+  if (role === "order_taker") return ["pos", "orders", "billing", "receipts"];
   if (role === "analyst") return ["dashboard", "reports"];
-  if (role === "staff") return ["orders", "pos", "tables"];
-  if (role === "store_manager") return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "closing"];
-  return ["dashboard", "orders", "pos", "tables", "menu", "billing", "reports", "settings", "closing"];
+  if (role === "staff") return ["pos", "orders", "billing", "receipts"];
+  if (role === "store_manager") return ["dashboard", "orders", "pos", "new-order", "tables", "billing", "receipts", "reports"];
+  return ["dashboard", "orders", "pos", "new-order", "tables", "menu", "inventory", "billing", "receipts", "reports", "settings", "closing"];
 }
 
 export function safePathForUser(user: AuthUser, pathname: string): string {

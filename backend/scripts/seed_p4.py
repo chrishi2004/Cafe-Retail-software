@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 
+from app.services.production_safety import assert_demo_seed_allowed
+
 from sqlalchemy import select
 
 from app.db.session import SessionLocal
@@ -32,6 +34,7 @@ def parse_args() -> argparse.Namespace:
 
 def apply_p4_defaults() -> None:
     with SessionLocal() as db:
+        assert_demo_seed_allowed(db)
         companies = list(db.scalars(select(Company).where(Company.is_active.is_(True))).all())
         for company in companies:
             profile = db.scalar(select(BusinessProfile).where(BusinessProfile.company_id == company.id))

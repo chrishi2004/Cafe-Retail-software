@@ -47,6 +47,7 @@ def read_orders(
     preparation_area: PreparationArea | None = None,
     business_date: date | None = None,
     unbilled_only: bool = False,
+    open_only: bool = False,
     limit: int = Query(default=200, ge=1, le=500),
 ) -> list[StaffOrderRead]:
     return list_staff_orders(
@@ -59,6 +60,7 @@ def read_orders(
         preparation_area=preparation_area,
         business_date=business_date,
         unbilled_only=unbilled_only,
+        open_only=open_only,
         limit=limit,
     )
 

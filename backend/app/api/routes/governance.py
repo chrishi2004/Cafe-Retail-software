@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -16,7 +17,7 @@ from app.schemas.governance import (
 )
 from app.services.governance import (
     approve_purge, close_day, execute_purge, get_or_create_closing,
-    grant_step_up, reopen_day, request_purge, submit_closing, void_invoice,
+    grant_step_up, read_closing, reopen_day, request_purge, submit_closing, void_invoice,
 )
 
 router = APIRouter(prefix="/governance", tags=["governance"])
@@ -30,6 +31,17 @@ def step_up(
 ) -> dict[str, str]:
     granted = grant_step_up(db, user=user, payload=payload)
     return {"status": "granted", "expires_at": granted.isoformat()}
+
+
+@router.get("/closings", response_model=ClosingRead | None)
+def get_closing(
+    branch_id: int,
+    business_date: date,
+    user: Annotated[User, Depends(require_admin)],
+    scope: Annotated[ScopeContext, Depends(get_scope_context)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return read_closing(db, scope=scope, branch_id=branch_id, business_date=business_date)
 
 
 @router.post("/closings", response_model=ClosingRead)

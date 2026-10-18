@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Linux Café V1 is the default local production profile. The broader legacy
+# profile remains available explicitly for installations that use sync.
+if [[ "${KALPVRIK_PROFILE:-cafe-v1}" == cafe-v1 ]]; then
+  exec bash "$(dirname -- "${BASH_SOURCE[0]}")/check_cafe_v1.sh" "$@"
+fi
+if [[ "${KALPVRIK_PROFILE}" != hybrid ]]; then
+  echo 'Unknown profile; use cafe-v1 or hybrid.' >&2
+  exit 2
+fi
+
 API_URL="${KALPVRIK_API_HEALTH_URL:-http://127.0.0.1:8000/api/health}"
 UI_URL="${KALPVRIK_UI_URL:-http://127.0.0.1:4173/}"
 

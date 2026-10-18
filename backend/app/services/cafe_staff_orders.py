@@ -41,8 +41,8 @@ from app.services.cafe_order_engine import CafeOrderLineInput, create_order_snap
 from app.sync.cafe_orders import enqueue_cafe_order_status_snapshot
 
 
-READ_ROLES = {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.ANALYST}
-WRITE_ROLES = {UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER}
+READ_ROLES = {UserRole.STAFF, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER, UserRole.ANALYST}
+WRITE_ROLES = {UserRole.STAFF, UserRole.ADMIN, UserRole.STORE_MANAGER, UserRole.ORDER_TAKER}
 KITCHEN_ROLES = {UserRole.KITCHEN}
 
 VALID_TRANSITIONS: dict[CafeOrderStatus, set[CafeOrderStatus]] = {
@@ -230,6 +230,7 @@ def create_staff_order(
     user: User,
     payload: StaffOrderCreate,
     request: Request | None = None,
+    commit: bool = True,
 ) -> StaffOrderRead:
     _check_role(scope, WRITE_ROLES)
     branch = _resolve_branch(db, scope, payload.branch_id)
@@ -276,7 +277,10 @@ def create_staff_order(
         },
         request=request,
     )
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(order)
     return order_to_staff_read(db, order)
 
@@ -292,6 +296,7 @@ def list_staff_orders(
     preparation_area: PreparationArea | None = None,
     business_date: date | None = None,
     unbilled_only: bool = False,
+    open_only: bool = False,
     limit: int = 200,
 ) -> list[StaffOrderRead]:
     _check_role(scope, READ_ROLES)
@@ -318,9 +323,11 @@ def list_staff_orders(
             .distinct()
         )
     if business_date is not None:
-        start = datetime.combine(business_date, time.min, tzinfo=UTC)
-        end = start + timedelta(days=1)
+        from app.services.business_day import business_bounds
+        start, end = business_bounds(business_date)
         statement = statement.where(CafeOrder.placed_at >= start, CafeOrder.placed_at < end)
+    if open_only:
+        statement = statement.where(CafeOrder.status.not_in([CafeOrderStatus.CLOSED, CafeOrderStatus.CANCELLED, CafeOrderStatus.REJECTED]))
     if unbilled_only:
         statement = statement.where(CafeOrder.billed_invoice_id.is_(None))
     orders = list(
@@ -403,6 +410,7 @@ def transition_order(
     target: CafeOrderStatus,
     reason: str | None = None,
     request: Request | None = None,
+    commit: bool = True,
 ) -> StaffOrderRead:
     allowed_roles = WRITE_ROLES
     if target in {CafeOrderStatus.PREPARING, CafeOrderStatus.READY}:
@@ -487,7 +495,10 @@ def transition_order(
         notes=reason,
     )
     _sync_status_if_linked(db, order)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(order)
     return order_to_staff_read(db, order)
 

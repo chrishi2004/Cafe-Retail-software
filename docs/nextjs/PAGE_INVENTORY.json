@@ -1,0 +1,240 @@
+[
+  {
+    "id": "G01",
+    "path": "/login",
+    "purpose": "Kalpvriksh branding; email, password, authenticator/recovery-code fields; login errors",
+    "navigation": "Authenticate \u2192 role-specific portal; no public self-registration",
+    "api_groups": "Employees/owner; `/auth/login`, `/auth/me`, MFA lifecycle"
+  },
+  {
+    "id": "G02",
+    "path": "/order/{token}",
+    "purpose": "QR resolution, configured Caf\u00e9/table identity, menu categories, availability, cart, submitted orders/status, bill request",
+    "navigation": "Scan \u2192 resolve session \u2192 browse \u2192 add quantities \u2192 submit \u2192 track; request bill without issuing invoice",
+    "api_groups": "Restricted guest capability; `/public/cafe/*` or restricted `/cloud/public/cafe/*`"
+  },
+  {
+    "id": "R01",
+    "path": "/retail/overview",
+    "purpose": "Revenue, transaction, inventory and purchasing overview; role-specific KPIs/charts",
+    "navigation": "Filter branch/period; open POS, sales, inventory and purchases",
+    "api_groups": "`/dashboard/*`"
+  },
+  {
+    "id": "R02",
+    "path": "/retail/products",
+    "purpose": "Product catalogue, SKU/barcode, category, supplier, costs/prices and active state",
+    "navigation": "Search; create/edit/deactivate; proceed to POS or inventory",
+    "api_groups": "`/products`, `/products/search`, `/products/{id}`"
+  },
+  {
+    "id": "R03",
+    "path": "/retail/customers",
+    "purpose": "Customer identity/contact/tax details, balances and ledger/payment interactions",
+    "navigation": "Search; create/edit; review ledger; record authorized customer payment",
+    "api_groups": "`/customers/*`"
+  },
+  {
+    "id": "R04",
+    "path": "/retail/pos",
+    "purpose": "Barcode/product search, branch/customer selection, cart quantities, authorized discounts, tax mode, quote and payment rows",
+    "navigation": "Quote \u2192 Cash/UPI/Card \u2192 checkout \u2192 invoice/print \u2192 reset for next customer; hold draft where supported",
+    "api_groups": "`/pos/products/search`, `/pos/quote`, `/pos/checkout`, `/invoices`"
+  },
+  {
+    "id": "R05",
+    "path": "/retail/sales",
+    "purpose": "Historical sales and summaries with date/branch/product filters",
+    "navigation": "Review results; export; navigate to operational analysis",
+    "api_groups": "`/sales`, `/sales/summary`, `/exports/sales`"
+  },
+  {
+    "id": "R06",
+    "path": "/retail/inventory",
+    "purpose": "Product/branch stock, reserved/on-order figures, value, movement history and adjustment form",
+    "navigation": "Filter; inspect product; authorized stock adjustment",
+    "api_groups": "`/inventory`, `/inventory/{product_id}`, `/inventory/movements`, `/inventory/adjustments`"
+  },
+  {
+    "id": "R07",
+    "path": "/retail/low-stock",
+    "purpose": "Low-stock list and reorder recommendations by priority/supplier/category",
+    "navigation": "Filter shortages; inspect purchasing needs; proceed to purchase orders",
+    "api_groups": "`/inventory/low-stock`, `/inventory/reorder-recommendations`"
+  },
+  {
+    "id": "R08",
+    "path": "/retail/purchase-orders",
+    "purpose": "Purchase dashboard, order list/details, status and receipt history",
+    "navigation": "Create/edit \u2192 approve/mark ordered \u2192 receive partially/fully; authorized cancel; export",
+    "api_groups": "`/purchase-orders/*`, `/exports/purchase-orders`"
+  },
+  {
+    "id": "R09",
+    "path": "/retail/suppliers",
+    "purpose": "Supplier directory, contacts, address, tax and lead-time fields",
+    "navigation": "Search/create/edit; use in product and purchase flows",
+    "api_groups": "`/suppliers/*`"
+  },
+  {
+    "id": "R10",
+    "path": "/retail/categories",
+    "purpose": "Product category master data",
+    "navigation": "Create/edit classification; return to products/inventory",
+    "api_groups": "`/categories/*`"
+  },
+  {
+    "id": "R11",
+    "path": "/retail/branches",
+    "purpose": "Branch address/location/manager and active state",
+    "navigation": "Create/edit branch; assign operational scope through authorized user management",
+    "api_groups": "`/branches/*`"
+  },
+  {
+    "id": "R12",
+    "path": "/retail/forecasting",
+    "purpose": "Forecast runs/history, product demand/revenue trends and model results",
+    "navigation": "Choose period/product/type; run authorized forecast; export",
+    "api_groups": "`/forecasts/*`, `/exports/forecasts`"
+  },
+  {
+    "id": "R13",
+    "path": "/retail/ai-assistant",
+    "purpose": "Conversation UI, saved sessions and scoped operational questions",
+    "navigation": "Ask supported questions; inspect answer/data; reopen session",
+    "api_groups": "`/ai/chat`, `/ai/sessions/*`"
+  },
+  {
+    "id": "R14",
+    "path": "/retail/power-bi",
+    "purpose": "Reporting/BI surface and configured report context",
+    "navigation": "Review available reports and navigate back to operational screens",
+    "api_groups": "Existing reporting/export sources; external BI availability requires separate configuration"
+  },
+  {
+    "id": "R15",
+    "path": "/retail/settings",
+    "purpose": "Business profile, GST/tax operation, rates, payment modes and invoice sequence settings",
+    "navigation": "Configure authorized settings; validate statutory activation prerequisites",
+    "api_groups": "`/business-profile`, `/tax-operation/*`, `/tax-rates`, `/payment-modes`, `/invoice-sequences`"
+  },
+  {
+    "id": "C01",
+    "path": "/cafe/dashboard",
+    "purpose": "Today order count, billed/net sales, collections, Cash/UPI/Card, outstanding, average bill, top items and open orders",
+    "navigation": "Monitor current business; navigate to orders, reports and closing",
+    "api_groups": "`/dashboard/cafe`, `/cafe/orders`"
+  },
+  {
+    "id": "C02",
+    "path": "/cafe/orders",
+    "purpose": "Live orders with source, table/takeaway, value, status and permissible actions",
+    "navigation": "Accept/reject \u2192 preparation \u2192 ready/served; request bill/cancel under rules",
+    "api_groups": "`/cafe/orders/*`"
+  },
+  {
+    "id": "C03",
+    "path": "/cafe/pos",
+    "purpose": "Simple menu search/select, quantities, counter/takeaway, payment mode, receipt and next customer",
+    "navigation": "Immediate transactional checkout; print; reset; receipt history",
+    "api_groups": "`/cafe/menu/*`, `/payment-modes`, `/branches`, `/cafe/billing/pos/checkout`"
+  },
+  {
+    "id": "C04",
+    "path": "/cafe/new-order",
+    "purpose": "Staff table/standalone order creation with table/session and item selection",
+    "navigation": "Choose context \u2192 add items \u2192 submit \u2192 live order/kitchen",
+    "api_groups": "`/cafe/table-sessions`, `/cafe/orders`, menu/table APIs"
+  },
+  {
+    "id": "C05",
+    "path": "/cafe/tables",
+    "purpose": "Tables, active sessions and QR status/print controls",
+    "navigation": "Create/edit/deactivate; open/close session; rotate/revoke/render/print QR",
+    "api_groups": "`/cafe/tables/*`, `/cafe/table-sessions/*`"
+  },
+  {
+    "id": "C06",
+    "path": "/cafe/menu",
+    "purpose": "Categories, menu item price, product mapping, preparation area and availability",
+    "navigation": "Create/edit; toggle availability; manage catalogue",
+    "api_groups": "`/cafe/menu/categories`, `/cafe/menu/items/*`"
+  },
+  {
+    "id": "C07",
+    "path": "/cafe/inventory",
+    "purpose": "Shared inventory component scoped to Caf\u00e9 company/authorized branch",
+    "navigation": "Inspect balances and movements; authorized adjustments",
+    "api_groups": "`/inventory/*`"
+  },
+  {
+    "id": "C08",
+    "path": "/cafe/billing",
+    "purpose": "Table/order bill candidates, eligible/excluded items, quotes and collections",
+    "navigation": "Quote \u2192 issue bill with key/version \u2192 collect authorized balance \u2192 receipt",
+    "api_groups": "`/cafe/billing/table-sessions/*`, `/cafe/billing/orders/*`, invoice receipt/payment APIs"
+  },
+  {
+    "id": "C09",
+    "path": "/cafe/receipts",
+    "purpose": "Searchable date/branch-filtered invoice history and receipt preview",
+    "navigation": "Read existing invoice \u2192 authorized reprint; never create a transaction",
+    "api_groups": "`/cafe/billing/invoices`, `/cafe/billing/invoices/{id}/receipt`"
+  },
+  {
+    "id": "C10",
+    "path": "/cafe/reports",
+    "purpose": "Today, Yesterday, 7 Days, This Month, Last Month and custom dates; sales/payment/item metrics",
+    "navigation": "Apply dates; review comparisons; download CSV",
+    "api_groups": "`/dashboard/cafe`, `/exports/cafe`"
+  },
+  {
+    "id": "C11",
+    "path": "/cafe/settings",
+    "purpose": "Company tax operation/profile prerequisites",
+    "navigation": "Review/change authorized configuration; guarded GST activation when supported",
+    "api_groups": "`/tax-operation/*`"
+  },
+  {
+    "id": "C12",
+    "path": "/cafe/closing",
+    "purpose": "Authorized branch/day, opening cash, collections, expected/count/non-cash/variance and status",
+    "navigation": "Open day \u2192 submit count \u2192 close; controlled reopening",
+    "api_groups": "`/governance/closings/*`"
+  },
+  {
+    "id": "C13",
+    "path": "/cafe/kitchen",
+    "purpose": "Preparation queue, item preparation context and status controls",
+    "navigation": "Begin preparing \u2192 mark ready \u2192 hand over under permissions",
+    "api_groups": "`/cafe/kitchen/orders`, order transitions"
+  },
+  {
+    "id": "O01",
+    "path": "/super-admin/ventures",
+    "purpose": "Active ventures, separate/combined turnover and workspace selection",
+    "navigation": "Enter Caf\u00e9 or Retail; switch back without broadening employee permissions",
+    "api_groups": "`/ventures`, `/tax-operation/combined-turnover`"
+  },
+  {
+    "id": "O02",
+    "path": "/super-admin/dashboard",
+    "purpose": "Consolidated financial/item/payment view with period filters and venture summaries",
+    "navigation": "Compare ventures; export consolidated report; open selected venture",
+    "api_groups": "`/dashboard/consolidated`, `/exports/consolidated`"
+  },
+  {
+    "id": "O03",
+    "path": "/super-admin/users",
+    "purpose": "Group users, role, company and active state",
+    "navigation": "Review assignments; target authorized user provisioning/update UI",
+    "api_groups": "`/venture-users`, `/venture-users/{id}`"
+  },
+  {
+    "id": "O04",
+    "path": "/super-admin/purge",
+    "purpose": "Protected data-removal review, dependency report, backup reference and approvals",
+    "navigation": "Request/review/approve/execute only with appropriate governance and step-up",
+    "api_groups": "`/governance/purges/*`, step-up"
+  }
+]
