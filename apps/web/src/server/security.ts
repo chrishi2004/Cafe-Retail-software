@@ -132,6 +132,12 @@ export async function accountActive(db: Db, user: Row) {
   });
   if (!company)
     throw new HttpError(401, "unauthorized", "Account scope is inactive.");
+  if (user.role === "admin" && user.branch_id)
+    throw new HttpError(
+      401,
+      "unauthorized",
+      "Company admins cannot be restricted to a branch.",
+    );
   if (
     company.business_type === "retail" &&
     ["order_taker", "kitchen"].includes(user.role)
@@ -172,8 +178,12 @@ export async function currentUser(db: Db, request: Request) {
   });
   if (!user) throw new HttpError(401, "unauthorized", "Session revoked.");
   await accountActive(db, user);
-  if (['admin','super_admin'].includes(user.role) && !user.mfa_enabled)
-    throw new HttpError(403,'mfa_required','Privileged accounts require MFA.');
+  if (["admin", "super_admin"].includes(user.role) && !user.mfa_enabled)
+    throw new HttpError(
+      403,
+      "mfa_required",
+      "Privileged accounts require MFA.",
+    );
   return user;
 }
 export async function scoped(
@@ -267,7 +277,28 @@ export async function login(db: Db, body: Record<string, unknown>) {
       "Email, password or authenticator code is invalid.",
     );
   await accountActive(db, user);
-  if (user.mfa_enabled) {
+  if (user.mfa_enabled && body.recovery_code) {
+    const consumed = await db
+      .collection("users")
+      .updateOne(
+        {
+          id: user.id,
+          is_active: true,
+          mfa_recovery_hashes: digest(String(body.recovery_code)),
+        },
+        {
+          $pull: {
+            mfa_recovery_hashes: digest(String(body.recovery_code)),
+          } as never,
+        },
+      );
+    if (!consumed.modifiedCount)
+      throw new HttpError(
+        401,
+        "unauthorized",
+        "Invalid or already used recovery code.",
+      );
+  } else if (user.mfa_enabled) {
     const step = verifiedTotpStep(
       decrypt(user.mfa_secret_encrypted),
       String(body.totp_code ?? ""),
@@ -300,6 +331,7 @@ export async function login(db: Db, body: Record<string, unknown>) {
       "mfa_required",
       "Privileged accounts require MFA enrollment through the bootstrap console.",
     );
+  await attempts.deleteOne({ _id: key as never });
   const expires = new Date(Date.now() + 8 * 3600000);
   const token = await new SignJWT({ version: user.token_version })
     .setProtectedHeader({ alg: "HS256" })
