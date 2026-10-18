@@ -6,8 +6,8 @@ import { useAuth } from "../auth/AuthContext";
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@hybridretail.test");
-  const [password, setPassword] = useState("RetailDemo@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
@@ -29,7 +29,9 @@ export function LoginPage() {
       if (loginError instanceof ApiError) {
         setError(loginError.message);
       } else {
-        setError("Could not reach the backend API. Check that FastAPI is running.");
+        setError(
+          "Could not reach the service. Check your connection and retry.",
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -51,8 +53,8 @@ export function LoginPage() {
           <p className="eyebrow">Secure team access</p>
           <h1 id="login-title">Sign in to your workspace</h1>
           <p>
-            Owners choose a business after login. Retail and Cafe team members open directly in
-            the workspace allowed for their role and branch.
+            Owners choose a business after login. Retail and Cafe team members
+            open directly in the workspace allowed for their role and branch.
           </p>
         </div>
 
@@ -96,7 +98,9 @@ export function LoginPage() {
                 id="totp-code"
                 inputMode="numeric"
                 maxLength={6}
-                onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(event) =>
+                  setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="6-digit code (if enabled)"
                 type="text"
                 value={totpCode}
@@ -119,7 +123,11 @@ export function LoginPage() {
             </div>
           ) : null}
 
-          <button className="login-button" disabled={isSubmitting} type="submit">
+          <button
+            className="login-button"
+            disabled={isSubmitting}
+            type="submit"
+          >
             <LogIn aria-hidden="true" size={18} />
             <span>{isSubmitting ? "Signing in" : "Sign in"}</span>
           </button>
@@ -132,7 +140,9 @@ export function LoginPage() {
           </div>
           <div>
             <Server aria-hidden="true" size={17} />
-            <span>Use the account provided by your business administrator.</span>
+            <span>
+              Use the account provided by your business administrator.
+            </span>
           </div>
         </div>
       </section>
