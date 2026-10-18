@@ -236,5 +236,12 @@
     "purpose": "Protected data-removal review, dependency report, backup reference and approvals",
     "navigation": "Request/review/approve/execute only with appropriate governance and step-up",
     "api_groups": "`/governance/purges/*`, step-up"
+  },
+  {
+    "id": "R16",
+    "path": "/retail/closing",
+    "purpose": "Retail opening cash, counted cash, collection totals, variance and audited reopen",
+    "navigation": "Owner/manager \u2192 Daily Closing; reopen requires owner password and authenticator",
+    "api_groups": "/governance/closings; /auth/step-up"
   }
 ]
