@@ -77,6 +77,8 @@ export async function indexes(db: Db) {
     "customer_ledger",
     "customer_payments",
     "purchase_orders",
+    "expenses",
+    "stock_intakes",
     "tax_rates",
     "financial_reversals",
     "forecasts",
@@ -128,6 +130,12 @@ export async function indexes(db: Db) {
       { company_id: 1, branch_id: 1, business_date: 1 },
       { unique: true },
     );
+  await db
+    .collection("expenses")
+    .createIndex({ company_id: 1, branch_id: 1, expense_date: -1 });
+  await db
+    .collection("stock_intakes")
+    .createIndex({ company_id: 1, branch_id: 1, purchase_date: -1 });
   await db
     .collection("login_attempts")
     .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
