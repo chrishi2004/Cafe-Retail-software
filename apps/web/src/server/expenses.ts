@@ -170,6 +170,7 @@ export async function expensesRoutes(
         session,
       );
       requireValue(row.status === "posted", "Only a posted expense can be voided.");
+      requireValue(row.source_type !== "stock_intake", "Linked stock-purchase expenses must be corrected from the stock transaction.");
       await writableDay(txDb, scope, row.branch_id, session, row.expense_date);
       const reason = boundedText(body.reason, 500, "Void reason", true);
       const values = {
