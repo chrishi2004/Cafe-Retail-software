@@ -50,7 +50,7 @@ function boundedText(value: unknown, max: number, label: string, required = fals
 export async function insertExpenseRecord(
   db: Db,
   scope: Scope,
-  input: Row,
+  input: Record<string, unknown>,
   session: ClientSession,
   options: { checkWritableDay?: boolean } = {},
 ) {
