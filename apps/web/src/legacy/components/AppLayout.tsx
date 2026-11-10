@@ -5,6 +5,17 @@ import type { AuthUser } from "../auth/types";
 import { ROLE_LABELS, getVisibleNavItems } from "../navigation";
 import type { RouteKey } from "../types";
 
+function renderBrandText(value: string) {
+  const brand = "Kalpvriksh";
+  if (!value.startsWith(brand)) return value;
+  return (
+    <>
+      <span className="kalpvriksh-word">{brand}</span>
+      {value.slice(brand.length)}
+    </>
+  );
+}
+
 type AppLayoutProps = PropsWithChildren<{
   activeRoute: RouteKey;
   onNavigate: (route: RouteKey) => void;
@@ -35,7 +46,7 @@ export function AppLayout({
         <div className="brand-block">
           <div className="brand-mark">KR</div>
           <div>
-            <p className="brand-name"><span className="kalpvriksh-word">Kalpvriksh</span> Retail</p>
+            <p className="brand-name">{renderBrandText("Kalpvriksh Retail")}</p>
             <p className="brand-subtitle">Retail operations portal</p>
           </div>
           <button
@@ -91,7 +102,7 @@ export function AppLayout({
             </button>
             <div>
               <p className="eyebrow">Retail workspace</p>
-              <h1>{user.company_name ?? "Retail operations"}</h1>
+              <h1>{renderBrandText(user.company_name ?? "Retail operations")}</h1>
             </div>
           </div>
 
