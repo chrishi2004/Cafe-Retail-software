@@ -44,7 +44,7 @@ export function LoginPage() {
         <div className="login-brand">
           <div className="brand-mark">KV</div>
           <div>
-            <p className="brand-name">Kalpvriksh Group</p>
+            <p className="brand-name"><span className="kalpvriksh-word">Kalpvriksh</span> Group</p>
             <p className="brand-subtitle">Retail and Cafe operations</p>
           </div>
         </div>
