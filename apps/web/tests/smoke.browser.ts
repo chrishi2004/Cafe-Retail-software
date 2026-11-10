@@ -297,6 +297,34 @@ test(
         path: "/tmp/nextjs-inventory-owner.png",
         fullPage: true,
       });
+
+      // The hosted web application must keep all native operational requests
+      // same-origin. Exercise the newly added Cafe management pages through
+      // the real Next.js catch-all route so stale external API environment
+      // variables cannot hide as successful unit tests.
+      await page.evaluate(() =>
+        window.sessionStorage.setItem("hybrid_retail_active_venture_id", "1"),
+      );
+      const cafeManagementScreens = [
+        ["expenses", "Expense management"],
+        ["stock-feed", "Inventory stock feed"],
+        ["inventory-items", "Product management"],
+        ["suppliers", "Supplier management"],
+        ["stock-categories", "Category management"],
+      ];
+      for (const [route, title] of cafeManagementScreens) {
+        await page.goto("http://127.0.0.1:4317/cafe/" + route);
+        await page.getByRole("heading", { name: title, exact: true }).waitFor();
+        await page.waitForLoadState("networkidle");
+        assert.equal(
+          await page
+            .getByText(/404|not found|could not complete|unavailable/i)
+            .count(),
+          0,
+          route,
+        );
+      }
+
       assert.deepEqual(failedApis, []);
       const guestPage = await browser.newPage();
       guestPage.on("pageerror", (e) => errors.push(e.message));

@@ -7,7 +7,7 @@ import { disconnect } from "../src/server/db";
 import { handle } from "../src/server/handler";
 
 test(
-  "162 operational operations dispatch natively; obsolete Local Hub retry is explicitly retired",
+  "169 operational operations dispatch natively; obsolete Local Hub retry is explicitly retired",
   { timeout: 180000 },
   async () => {
     const server = await MongoMemoryReplSet.create({
@@ -100,7 +100,7 @@ test(
             );
         }
       }
-      assert.equal(count, 163);
+      assert.equal(count, 169);
       const logout = await handle(
         new Request("http://localhost/api/auth/logout", {
           method: "POST",

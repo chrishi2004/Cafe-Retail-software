@@ -1,7 +1,5 @@
-export const PUBLIC_CAFE_API_BASE_URL =
-  process.env.NEXT_PUBLIC_OPERATIONAL_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "/api";
+// Public QR ordering is served by the same hosted Next.js application.
+export const PUBLIC_CAFE_API_BASE_URL = "/api";
 
 export type PublicQrResolution = {
   cafe_name: string;
