@@ -144,6 +144,21 @@ export async function stockIntakeRoutes(
           session,
         );
 
+      if (scaled(item.unit_cost) > 0)
+        await txDb.collection("products").updateOne(
+          { id: item.product_id, company_id: scope.company.id },
+          {
+            $set: {
+              unit_cost: item.unit_cost,
+              latest_purchase_cost: item.unit_cost,
+              updated_at: new Date().toISOString(),
+            },
+          },
+          { session },
+        );
+
+      // Keep the catalogue cost aligned with the latest purchase cost so stock value
+      // does not remain on an obsolete setup-time value.
       await insertRow(
         txDb,
         "stock_movements",
