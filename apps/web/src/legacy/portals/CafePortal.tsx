@@ -13,6 +13,9 @@ import { CafeReceiptHistoryPage } from "../pages/CafeReceiptHistoryPage";
 import { CafeReportsPage } from "../pages/CafeReportsPage";
 import { CafeTablesPage } from "../pages/CafeTablesPage";
 import { InventoryPage } from "../pages/InventoryPage";
+import { ExpensesPage } from "../pages/ExpensesPage";
+import { CafeStockFeedPage } from "../pages/CafeStockFeedPage";
+import { MasterDataPage } from "../pages/MasterDataPage";
 import { allowedCafeSections } from "../portalRouting";
 import { PortalFrame } from "./PortalFrame";
 
@@ -24,6 +27,11 @@ const LABELS: Record<string, string> = {
   tables: "Tables & QR",
   menu: "Menu",
   inventory: "Inventory",
+  "stock-feed": "Stock Feed",
+  "inventory-items": "Inventory Items",
+  suppliers: "Suppliers",
+  "stock-categories": "Stock Categories",
+  expenses: "Expenses",
   billing: "Billing",
   reports: "Reports",
   receipts: "Receipt history",
@@ -55,6 +63,11 @@ export function CafePortal({
           "tables",
           "menu",
           "inventory",
+          "stock-feed",
+          "inventory-items",
+          "suppliers",
+          "stock-categories",
+          "expenses",
           "billing",
           "receipts",
           "reports",
@@ -78,6 +91,11 @@ export function CafePortal({
   else if (active === "kitchen") content = <CafeKitchenPage />;
   else if (active === "menu") content = <CafeMenuPage />;
   else if (active === "inventory") content = <InventoryPage />;
+  else if (active === "stock-feed") content = <CafeStockFeedPage />;
+  else if (active === "inventory-items") content = <MasterDataPage routeKey="products" />;
+  else if (active === "suppliers") content = <MasterDataPage routeKey="suppliers" />;
+  else if (active === "stock-categories") content = <MasterDataPage routeKey="categories" />;
+  else if (active === "expenses") content = <ExpensesPage />;
   else if (active === "tables") content = <CafeTablesPage />;
   else if (active === "receipts") content = <CafeReceiptHistoryPage />;
   else if (active === "reports") content = <CafeReportsPage />;

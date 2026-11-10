@@ -4,7 +4,7 @@ export type Closing = {
   id: number; company_id: number; branch_id: number; business_date: string;
   opening_cash: string; cash_collections: string; cash_refunds: string; cash_expenses: string;
   expected_cash: string; counted_cash: string | null; variance: string | null;
-  non_cash_total: string; status: string; submitted_by: number | null; closed_by: number | null;
+  non_cash_total: string; non_cash_expenses: string; status: string; submitted_by: number | null; closed_by: number | null;
   reopened_by: number | null; reason: string | null; reopened_reason: string | null;
   created_at: string; updated_at: string;
 };

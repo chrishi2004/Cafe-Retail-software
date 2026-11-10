@@ -51,6 +51,7 @@ export async function closing(
           cash_collections: "0.00",
           cash_refunds: "0.00",
           cash_expenses: "0.00",
+          non_cash_expenses: "0.00",
           expected_cash: decimal(opening),
           counted_cash: null,
           variance: null,
@@ -132,11 +133,31 @@ export async function closing(
             if (payment.mode_type === "cash") cash += scaled(payment.amount);
             else nonCash += scaled(payment.amount);
           }
+        const expenses = await db
+          .collection("expenses")
+          .find(
+            {
+              company_id: scope.company.id,
+              branch_id: branch.id,
+              expense_date: record.business_date,
+              status: "posted",
+            },
+            { session },
+          )
+          .toArray();
+        let cashExpenses = 0,
+          nonCashExpenses = 0;
+        for (const expense of expenses) {
+          if (expense.payment_mode === "cash") cashExpenses += scaled(expense.amount);
+          else nonCashExpenses += scaled(expense.amount);
+        }
         const counted = scaled(body.counted_cash),
-          expected = scaled(record.opening_cash) + cash;
+          expected = scaled(record.opening_cash) + cash - cashExpenses;
         Object.assign(record, {
           cash_collections: decimal(cash),
+          cash_expenses: decimal(cashExpenses),
           non_cash_total: decimal(nonCash),
+          non_cash_expenses: decimal(nonCashExpenses),
           expected_cash: decimal(expected),
           counted_cash: decimal(counted),
           variance: decimal(counted - expected),

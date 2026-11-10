@@ -2570,3 +2570,73 @@ select:focus-visible {
   background: var(--kv-teal);
   color: var(--kv-white);
 }
+
+
+/* Expense and cafe stock-feed layouts */
+.expense-grid,
+.stock-feed-grid {
+  align-items: start;
+}
+
+.stock-feed-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.stock-feed-line {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.5fr) minmax(120px, 0.75fr) minmax(120px, 0.75fr) auto;
+  align-items: end;
+  gap: 10px;
+  border: 1px solid var(--kv-navy-border);
+  border-radius: 10px;
+  background: var(--kv-teal-soft);
+  padding: 10px;
+}
+
+.stock-feed-line label {
+  display: grid;
+  gap: 6px;
+  color: var(--kv-navy);
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.stock-feed-line input,
+.stock-feed-line select {
+  width: 100%;
+  min-height: 40px;
+  border: 2px solid rgba(15, 118, 110, 0.3);
+  border-radius: 8px;
+  background: var(--kv-white);
+  color: var(--kv-navy);
+  padding: 8px 9px;
+}
+
+.stock-feed-line .icon-button {
+  min-width: 40px;
+  min-height: 40px;
+  border: 2px solid var(--kv-navy);
+  background: var(--kv-white);
+  color: var(--kv-navy);
+}
+
+@media (max-width: 900px) {
+  .stock-feed-line {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stock-feed-line label:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .stock-feed-line {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-feed-line label:first-child {
+    grid-column: auto;
+  }
+}

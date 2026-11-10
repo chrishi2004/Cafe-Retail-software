@@ -17,6 +17,8 @@ import {
   salesSummary,
 } from "./dashboards";
 import { purchases } from "./purchasing";
+import { expensesRoutes } from "./expenses";
+import { stockIntakeRoutes } from "./stock-intakes";
 import { settings } from "./settings";
 import { csv } from "./query";
 import { z } from "zod";
@@ -513,6 +515,18 @@ export async function handle(request: Request, path: string[]) {
       const value = await forecasts(db, scope, route, method, body, url);
       if (value !== undefined) return json(value);
     }
+    const expenseResult = await expensesRoutes(db, scope, route, method, body, url);
+    if (expenseResult !== undefined) return json(expenseResult);
+    const stockIntakeResult = await stockIntakeRoutes(
+      db,
+      scope,
+      route,
+      method,
+      body,
+      url,
+      request.headers.get("Idempotency-Key"),
+    );
+    if (stockIntakeResult !== undefined) return json(stockIntakeResult);
     if (route === "inventory/reorder-recommendations" && method === "GET")
       return json(await recommendations(db, scope, url));
     const inventoryDetail = route.match(/^inventory\/(\d+)$/);
