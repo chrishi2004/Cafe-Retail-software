@@ -3,6 +3,17 @@ import type { PropsWithChildren } from "react";
 
 import { SERVER_ROLE_LABELS, type AuthUser } from "../auth/types";
 
+function renderBrandTitle(title: string) {
+  const brand = "Kalpvriksh";
+  if (!title.startsWith(brand)) return title;
+  return (
+    <>
+      <span className="kalpvriksh-word">{brand}</span>
+      {title.slice(brand.length)}
+    </>
+  );
+}
+
 type PortalFrameProps = PropsWithChildren<{
   title: string;
   subtitle: string;
@@ -21,7 +32,7 @@ export function PortalFrame({ title, subtitle, user, items, activeKey, onNavigat
         <div className="brand-block">
           <div className="brand-mark">KV</div>
           <div>
-            <p className="brand-name">{title}</p>
+            <p className="brand-name">{renderBrandTitle(title)}</p>
             <p className="brand-subtitle">{subtitle}</p>
           </div>
         </div>
@@ -43,7 +54,7 @@ export function PortalFrame({ title, subtitle, user, items, activeKey, onNavigat
         <header className="topbar">
           <div>
             <p className="eyebrow">{subtitle}</p>
-            <h1>{title}</h1>
+            <h1>{renderBrandTitle(title)}</h1>
           </div>
           <div className="user-cluster">
             <div className="user-badge">

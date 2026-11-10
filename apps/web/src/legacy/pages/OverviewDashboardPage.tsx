@@ -29,7 +29,7 @@ import {
   inputDateDaysAgo,
 } from "../utils/format";
 
-const HEALTH_COLORS = ["#2f8f63", "#c47a19", "#c04354", "#667085"];
+const HEALTH_COLORS = ["#0f766e", "rgba(15, 118, 110, 0.68)", "rgba(16, 42, 67, 0.68)", "rgba(15, 118, 110, 0.42)"];
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -312,8 +312,8 @@ export function OverviewDashboardPage() {
                     <XAxis dataKey="date" />
                     <YAxis tickFormatter={formatShortCurrency} width={78} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Line dataKey="revenue" name="Revenue" stroke="#2f8f63" strokeWidth={2} type="monotone" />
-                    <Line dataKey="grossProfit" name="Gross profit" stroke="#276fbf" strokeWidth={2} type="monotone" />
+                    <Line dataKey="revenue" name="Revenue" stroke="#0f766e" strokeWidth={2} type="monotone" />
+                    <Line dataKey="grossProfit" name="Gross profit" stroke="#102a43" strokeWidth={2} type="monotone" />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -358,7 +358,7 @@ export function OverviewDashboardPage() {
                     <XAxis dataKey="name" />
                     <YAxis tickFormatter={formatShortCurrency} width={76} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="revenue" fill="#c47a19" name="Revenue" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue" fill="rgba(15, 118, 110, 0.68)" name="Revenue" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -380,7 +380,7 @@ export function OverviewDashboardPage() {
                     <XAxis dataKey="name" />
                     <YAxis tickFormatter={formatShortCurrency} width={76} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="revenue" fill="#276fbf" name="Revenue" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="revenue" fill="#102a43" name="Revenue" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

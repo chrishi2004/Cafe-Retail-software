@@ -4,7 +4,7 @@ const Application = dynamic(() => import("./MigratedApplication"), {
   ssr: false,
   loading: () => (
     <main className="login-shell">
-      <p role="status">Loading Kalpvriksh…</p>
+      <p role="status">Loading <span className="kalpvriksh-word">Kalpvriksh</span>…</p>
     </main>
   ),
 });
