@@ -14,6 +14,7 @@ export type DashboardRouteKey = Exclude<
   | "products"
   | "customers"
   | "pos"
+  | "expenses"
   | "suppliers"
   | "categories"
   | "branches"
