@@ -1,7 +1,10 @@
 import { normalizeAuthUser, type LoginResponse, type ServerLoginResponse } from "../auth/types";
 import type { ApiErrorResponse } from "../types";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
+// The hosted Next.js application is the operational backend.
+ // Keep browser requests same-origin so stale Vercel/public environment variables
+ // cannot send native Atlas routes to a retired external gateway.
+export const API_BASE_URL = "/api";
 
 export class ApiError extends Error {
   status: number;
