@@ -11,6 +11,7 @@ import { AIAssistantPage } from "./pages/AIAssistantPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ForecastingPage } from "./pages/ForecastingPage";
+import { ExpensesPage } from "./pages/ExpensesPage";
 import { InventoryPage } from "./pages/InventoryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { LowStockReorderPage } from "./pages/LowStockReorderPage";
@@ -36,6 +37,7 @@ const ROUTE_KEYS: RouteKey[] = [
   "inventory",
   "low-stock",
   "purchase-orders",
+  "expenses",
   "suppliers",
   "categories",
   "branches",
@@ -124,6 +126,8 @@ function App() {
         <SalesPage />
       ) : availableRoute === "purchase-orders" ? (
         <PurchaseOrdersDashboardPage />
+      ) : availableRoute === "expenses" ? (
+        <ExpensesPage />
       ) : availableRoute === "forecasting" ? (
         <ForecastingPage />
       ) : availableRoute === "ai-assistant" ? (
