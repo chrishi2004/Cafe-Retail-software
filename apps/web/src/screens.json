@@ -33,5 +33,11 @@
   "/super-admin/dashboard",
   "/super-admin/users",
   "/super-admin/purge",
-  "/retail/closing"
+  "/retail/closing",
+  "/cafe/stock-feed",
+  "/cafe/inventory-items",
+  "/cafe/suppliers",
+  "/cafe/stock-categories",
+  "/cafe/expenses",
+  "/retail/expenses"
 ]
