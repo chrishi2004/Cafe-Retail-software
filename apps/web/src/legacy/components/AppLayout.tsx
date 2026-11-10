@@ -35,7 +35,7 @@ export function AppLayout({
         <div className="brand-block">
           <div className="brand-mark">KR</div>
           <div>
-            <p className="brand-name">Kalpvriksh Retail</p>
+            <p className="brand-name"><span className="kalpvriksh-word">Kalpvriksh</span> Retail</p>
             <p className="brand-subtitle">Retail operations portal</p>
           </div>
           <button
