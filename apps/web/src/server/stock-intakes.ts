@@ -54,6 +54,7 @@ export async function stockIntakeRoutes(
     await writableDay(txDb, scope, branch.id, session, purchaseDate);
 
     const supplierId = body.supplier_id ? Number(body.supplier_id) : null;
+    const vendorName = optionalText(body.vendor_name, 160, "Vendor");
     const supplier = supplierId
       ? await txDb.collection<Row>("suppliers").findOne(
           { id: supplierId, company_id: scope.company.id, is_active: true },
@@ -61,6 +62,7 @@ export async function stockIntakeRoutes(
         )
       : null;
     requireValue(!supplierId || supplier, "Supplier unavailable.");
+    requireValue(!!supplier || !!vendorName, "Select a supplier or enter a vendor/source.");
 
     const paymentMode = String(body.payment_mode ?? "cash");
     requireValue(PAYMENT_MODES.includes(paymentMode), "Choose a valid payment mode.");
@@ -105,8 +107,8 @@ export async function stockIntakeRoutes(
         branch_name: branch.name,
         purchase_date: purchaseDate,
         supplier_id: supplier?.id ?? null,
-        supplier_name: supplier?.name ?? optionalText(body.vendor_name, 160, "Vendor"),
-        vendor_name: optionalText(body.vendor_name, 160, "Vendor") ?? supplier?.name ?? null,
+        supplier_name: supplier?.name ?? vendorName,
+        vendor_name: vendorName ?? supplier?.name ?? null,
         reference_number: optionalText(body.reference_number, 160, "Reference"),
         payment_mode: paymentMode,
         notes: optionalText(body.notes, 1000, "Notes"),
