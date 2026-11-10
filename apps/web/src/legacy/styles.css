@@ -2432,3 +2432,141 @@ select:focus-visible {
     padding: 12px;
   }
 }
+
+
+/* Kalpvriksh brand-red and POS interaction pass */
+.kalpvriksh-word {
+  color: #c62828;
+  font-weight: 850;
+}
+
+.sidebar .kalpvriksh-word {
+  color: #ff7a7a;
+}
+
+.login-brand .kalpvriksh-word {
+  color: #c62828;
+}
+
+.cafe-pos-fields .filter-bar input,
+.cafe-pos-fields .filter-bar select,
+.cafe-pos-fields .panel input,
+.cafe-pos-fields .panel select,
+.pos-controls input,
+.pos-controls select,
+.pos-field select,
+.payment-row input,
+.payment-row select,
+.pos-cart-table input,
+.pos-search-shell {
+  border: 2px solid rgba(15, 118, 110, 0.42);
+  background: var(--kv-white);
+  color: var(--kv-navy);
+}
+
+.cafe-pos-fields .filter-bar input:focus,
+.cafe-pos-fields .filter-bar select:focus,
+.cafe-pos-fields .panel input:focus,
+.cafe-pos-fields .panel select:focus,
+.pos-controls input:focus,
+.pos-controls select:focus,
+.pos-field select:focus,
+.payment-row input:focus,
+.payment-row select:focus,
+.pos-cart-table input:focus,
+.pos-search-shell:focus-within {
+  border-color: var(--kv-teal);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.cafe-pos-menu button {
+  min-height: 78px;
+  border: 2px solid var(--kv-navy);
+  border-radius: 12px;
+  background: var(--kv-teal);
+  color: var(--kv-white);
+  box-shadow: 0 7px 16px rgba(16, 42, 67, 0.12);
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1.35;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.cafe-pos-menu button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--kv-teal);
+  background: var(--kv-navy);
+  box-shadow: 0 10px 22px rgba(16, 42, 67, 0.18);
+}
+
+.cafe-pos-menu button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cafe-pos-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.cart-line button {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border: 2px solid var(--kv-teal);
+  border-radius: 8px;
+  background: var(--kv-navy);
+  color: var(--kv-white);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.cart-line button:hover:not(:disabled) {
+  border-color: var(--kv-navy);
+  background: var(--kv-teal);
+}
+
+.pos-search-results button {
+  border: 2px solid var(--kv-navy);
+  background: var(--kv-teal);
+  color: var(--kv-white);
+  box-shadow: 0 7px 16px rgba(16, 42, 67, 0.1);
+}
+
+.pos-search-results button strong,
+.pos-search-results button span,
+.pos-search-results button b {
+  color: var(--kv-white);
+}
+
+.pos-search-results button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--kv-teal);
+  background: var(--kv-navy);
+}
+
+.pos-actions .action-button.primary,
+.cafe-pos-fields .action-button.primary {
+  min-height: 46px;
+  border: 2px solid var(--kv-teal);
+  box-shadow: 0 8px 18px rgba(16, 42, 67, 0.14);
+}
+
+.pos-actions .action-button.secondary,
+.cafe-pos-fields .action-button.secondary {
+  border: 2px solid var(--kv-navy);
+  background: var(--kv-white);
+  color: var(--kv-navy);
+}
+
+.pos-actions .action-button.secondary:hover,
+.cafe-pos-fields .action-button.secondary:hover {
+  border-color: var(--kv-teal);
+  background: var(--kv-teal);
+  color: var(--kv-white);
+}
