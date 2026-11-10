@@ -34,6 +34,7 @@ export type RouteKey =
   | "inventory"
   | "low-stock"
   | "purchase-orders"
+  | "expenses"
   | "suppliers"
   | "categories"
   | "branches"
