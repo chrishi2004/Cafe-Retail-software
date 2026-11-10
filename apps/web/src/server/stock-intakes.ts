@@ -194,7 +194,7 @@ export async function stockIntakeRoutes(
           notes: intake.notes,
           source_type: "stock_intake",
           source_id: intake.id,
-        } as Row,
+        },
         session,
         { checkWritableDay: false },
       );
