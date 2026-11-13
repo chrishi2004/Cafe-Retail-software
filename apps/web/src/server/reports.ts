@@ -68,7 +68,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
   let payments = (
     await db.collection<Row>("invoice_payments").find(filter).toArray()
   ).filter(
-    (p) => !p.is_credit_marker && inRange(p.payment_datetime, start, end),
+    (p) => !p.is_credit_marker && !p.voided_at && inRange(p.payment_datetime, start, end),
   );
   if (hasOrderFilter)
     payments = payments.filter((p) => eligibleIds.has(p.invoice_id));

@@ -287,6 +287,31 @@ test(
         ).status,
         403,
       );
+      const invoiceId = duplicates[0].body.receipt.invoice_id;
+      const voidPath = `governance/voids/invoices/${invoiceId}`;
+      const correction = { reason: "Test bill", payment_resolution: "not_received", restock: true };
+      assert.equal((await call(voidPath, "POST", correction, ct, "void-cashier")).status, 403);
+      assert.equal((await call(voidPath, "POST", correction, ot, "void-no-step", 1)).status, 403);
+      assert.equal((await call("governance/step-up", "POST", {
+        password: "Owner-password-123!", totp_code: totp(enrolled.totpSecret),
+      }, ot)).status, 200);
+      assert.equal((await call(voidPath, "POST", correction, ot, "void-wrong-venture", 2)).status, 404);
+      assert.equal((await call(voidPath, "POST", { ...correction, payment_resolution: "" }, ot, "void-no-payment", 1)).status, 422);
+      const voids = await Promise.all([
+        call(voidPath, "POST", correction, ot, "void-test-sale", 1),
+        call(voidPath, "POST", correction, ot, "void-test-sale", 1),
+      ]);
+      assert.deepEqual(voids.map((r) => r.status), [200, 200]);
+      assert.equal(voids[0].body.id, voids[1].body.id);
+      assert.equal((await call(voidPath, "POST", correction, ot, "void-already-done", 1)).status, 422);
+      assert.equal(await db.collection("financial_reversals").countDocuments({ invoice_id: invoiceId }), 1);
+      assert.equal((await db.collection("inventory").findOne({ product_id: product.body.id }))?.quantity_scaled, 100);
+      assert.equal((await db.collection("invoice_payments").findOne({ invoice_id: invoiceId }))?.amount, "100.00");
+      assert.equal((await db.collection("cafe_orders").findOne({ billed_invoice_id: invoiceId }))?.status, "cancelled");
+      assert.equal((await call(receiptPath, "GET", undefined, ct)).body.invoice_status, "cancelled");
+      const corrected = (await call("dashboard/cafe", "GET", undefined, ot, undefined, 1)).body.kpis;
+      assert.equal(corrected.net_billed_revenue, "900.00");
+      assert.equal(corrected.collections, "900.00");
       const day = await call(
         "governance/closings",
         "POST",
@@ -308,13 +333,13 @@ test(
       const submit = await call(
         `governance/closings/${day.body.id}/submit`,
         "POST",
-        { counted_cash: "900" },
+        { counted_cash: "800" },
         ot,
         undefined,
         1,
       );
       assert.equal(submit.status, 200);
-      assert.equal(submit.body.expected_cash, "900.00");
+      assert.equal(submit.body.expected_cash, "800.00");
       assert.equal(submit.body.non_cash_total, "200.00");
       assert.equal(
         (
@@ -341,6 +366,8 @@ test(
         ).status,
         409,
       );
+      const otherInvoice = (await db.collection("invoices").findOne({ company_id: 1, status: "paid" }))!;
+      assert.equal((await call(`governance/voids/invoices/${otherInvoice.id}`, "POST", correction, ot, "void-closed-day", 1)).status, 409);
       // Retail uses the same native financial engine with independent scope and numbering.
       const rc = await call(
         "categories",

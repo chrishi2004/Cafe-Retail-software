@@ -4,6 +4,7 @@ import { getCafeReceipt, listCafeInvoiceHistory, type CafeInvoiceHistory, type C
 import { listBranches } from "../api/masterData";
 import { useAuth } from "../auth/AuthContext";
 import { CafeReceiptView, receiptTime } from "../components/CafeReceipt";
+import { VoidInvoiceAction } from "../components/VoidInvoiceAction";
 import { ErrorState, LoadingState } from "../components/ui";
 import type { Branch } from "../types";
 
@@ -18,6 +19,7 @@ export function CafeReceiptHistoryPage() {
   const [offset, setOffset] = useState(0);
   const [history, setHistory] = useState<CafeInvoiceHistory | null>(null);
   const [receipt, setReceipt] = useState<CafeReceipt | null>(null);
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function CafeReceiptHistoryPage() {
     event.preventDefault();
     if (draft.startDate && draft.endDate && draft.startDate > draft.endDate) { setError("Select a valid date range."); return; }
     requestId.current += 1; setOpening(false); setReceipt(null);
-    setOffset(0); setFilters({ ...draft, search: draft.search.trim() });
+    setNotice(""); setOffset(0); setFilters({ ...draft, search: draft.search.trim() });
   };
   const open = async (invoiceId: number) => {
     if (!token) return;
@@ -67,6 +69,7 @@ export function CafeReceiptHistoryPage() {
       <label>To <input type="date" value={draft.endDate} onChange={(e) => setDraft({ ...draft, endDate: e.target.value })} /></label>
       <button type="submit" className="action-button secondary">Find receipts</button>
     </form>
+    {notice ? <p role="status">{notice}</p> : null}
     {error ? <ErrorState message={error} /> : null}
     {loading ? <LoadingState label="Loading receipt history" /> : history ? <article className="panel">
       {!history.items.length ? <p>No matching Café invoices.</p> : <div className="table-wrap"><table><thead><tr><th>Invoice</th><th>Date / time (IST)</th><th>Branch</th><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th><th></th></tr></thead><tbody>{history.items.map((invoice) => <tr key={invoice.invoice_id}>
@@ -79,6 +82,16 @@ export function CafeReceiptHistoryPage() {
       </div>
     </article> : null}
     {opening ? <LoadingState label="Loading existing receipt" /> : null}
-    {receipt ? <CafeReceiptView receipt={receipt} reprint><button type="button" onClick={() => setReceipt(null)}>Close receipt</button></CafeReceiptView> : null}
+    {receipt ? <>
+      <CafeReceiptView receipt={receipt} reprint><button type="button" onClick={() => setReceipt(null)}>Close receipt</button></CafeReceiptView>
+      <VoidInvoiceAction key={receipt.invoice_id} invoice={{
+        id: receipt.invoice_id, number: receipt.invoice_number, status: receipt.invoice_status,
+        type: receipt.invoice_type, source: receipt.source_type, issuedAt: receipt.issued_at, paid: receipt.paid_amount,
+      }} onVoided={() => {
+        setNotice(`Invoice ${receipt.invoice_number} voided. The original remains in receipt history.`);
+        setFilters((current) => ({ ...current }));
+        void open(receipt.invoice_id);
+      }} />
+    </> : null}
   </section>;
 }

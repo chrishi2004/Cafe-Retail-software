@@ -85,3 +85,9 @@ Use **Print receipt** (or **Reprint receipt**) to print the invoice alone. The b
 In the Kores Endura RP31U's Windows **Printing preferences**, select the 80 mm continuous receipt/roll form if offered. In Chrome or Edge, choose the RP31U, use portrait and 100% scale, set browser margins to **None** and turn off **Headers and footers**. Avoid A4, Letter, and fixed-length forms when the driver offers a continuous form.
 
 Check print preview with a short receipt from history before testing the printer. If preview shows one compact receipt but the printer still advances a long blank section or cuts twice, check the driver's paper length, end-of-job feed and cut options. The browser cannot set those driver options.
+
+### Correcting an accidental invoice
+
+As an owner or venture admin, open **Café → Receipt history → View / reprint** or **Retail → Sales Summary → Detail → Open receipt for reprint**. Choose **Void invoice**, record the reason and how payment and stock were handled, and verify your credentials.
+
+This correction supports today's non-GST counter and retail invoices while the branch's day is open. GST invoices, table bills, and earlier business days are outside this workflow. The app records the void, retains the original invoice and payments for review, and excludes the voided amounts from net sales, collections and closing. It can restore the original inventory deductions on request. Any actual payment return must already have been completed outside the POS before confirming it here.

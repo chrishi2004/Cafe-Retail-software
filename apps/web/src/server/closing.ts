@@ -127,6 +127,7 @@ export async function closing(
         for (const payment of payments)
           if (
             !payment.is_credit_marker &&
+            !payment.voided_at &&
             businessDate(new Date(payment.payment_datetime)) ===
               record.business_date
           ) {

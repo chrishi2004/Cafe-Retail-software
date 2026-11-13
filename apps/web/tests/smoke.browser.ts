@@ -280,6 +280,26 @@ test(
         .getByRole("button", { name: "Open Retail workspace", exact: true })
         .click();
       await page.waitForURL("**/retail/overview");
+      const voidInvoice = async (payment: string, stock: string, number: string) => {
+        await page.getByRole("button", { name: "Void invoice", exact: true }).click();
+        await page.getByLabel("Reason", { exact: true }).fill("Accidental test sale");
+        await page.getByLabel(/Recorded payment/).selectOption(payment);
+        await page.getByRole("combobox", { name: /^Stock/ }).selectOption(stock);
+        await page.getByLabel("Admin password", { exact: true }).fill("Owner-password-123!");
+        await page.getByLabel("Authenticator code", { exact: true }).fill(totp(setup.totpSecret));
+        await page.getByRole("button", { name: "Confirm void", exact: true }).click();
+        await page.getByText(`Invoice ${number} voided.`, { exact: false }).waitFor();
+      };
+
+      await page.goto("http://127.0.0.1:4317/retail/sales");
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("row").filter({ hasText: "RETAIL-000001" })
+        .getByRole("button", { name: "Detail", exact: true }).click();
+      await page.getByRole("button", { name: "Open receipt for reprint" }).click();
+      await voidInvoice("returned", "restore", "RETAIL-000001");
+      await page.getByRole("row").filter({ hasText: "RETAIL-000001" }).waitFor({ state: "hidden" });
+      assert.equal((await db.collection("inventory").findOne({ id: 2 }))?.quantity_scaled, 1000);
+
       const failedApis: string[] = [];
       page.on("response", (response) => {
         if (response.url().includes("/api/") && response.status() >= 400)
@@ -320,6 +340,12 @@ test(
       await page.evaluate(() =>
         window.sessionStorage.setItem("hybrid_retail_active_venture_id", "1"),
       );
+      await page.goto("http://127.0.0.1:4317/cafe/receipts");
+      await page.getByRole("button", { name: "View / reprint CAFE-000001", exact: true }).click();
+      await voidInvoice("not_received", "leave", "CAFE-000001");
+      await page.getByRole("row").filter({ hasText: "CAFE-000001" })
+        .getByText("cancelled", { exact: true }).waitFor();
+      assert.equal((await db.collection("inventory").findOne({ id: 1 }))?.quantity_scaled, 900);
       const cafeManagementScreens = [
         ["expenses", "Expense management"],
         ["stock-feed", "Inventory stock feed"],

@@ -1,3 +1,5 @@
+import { cafeToday } from "../utils/cafeDates";
+import { VoidInvoiceAction } from "../components/VoidInvoiceAction";
 import { RetailReceipt } from "../components/RetailReceipt";
 import { apiRequest } from "../api/client";
 import type { Invoice } from "../types";
@@ -58,8 +60,8 @@ function canCreateSales(role: UserRole): boolean {
 }
 
 function inputDateDaysAgo(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
+  const date = new Date(`${cafeToday()}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - daysAgo);
   return date.toISOString().slice(0, 10);
 }
 
@@ -952,11 +954,19 @@ export function SalesPage() {
                 Open receipt for reprint
               </button>
               {reprint ? (
-                <RetailReceipt
-                  invoice={reprint}
-                  reprint
-                  onDone={() => setReprint(null)}
-                />
+                <>
+                  <RetailReceipt invoice={reprint} reprint onDone={() => setReprint(null)} />
+                  <VoidInvoiceAction key={reprint.id} invoice={{
+                    id: reprint.id, number: reprint.invoice_number, status: reprint.status,
+                    type: reprint.invoice_type, issuedAt: reprint.issued_at,
+                    invoiceDate: reprint.invoice_date, paid: reprint.paid_amount,
+                  }} onVoided={() => {
+                    setSuccessMessage(`Invoice ${reprint.invoice_number} voided. The original invoice record was retained.`);
+                    setReprint(null);
+                    setSelectedSale(null);
+                    void loadInventoryRows().catch((err) => setError(errorMessage(err)));
+                  }} />
+                </>
               ) : null}
               <div className="detail-list">
                 <div>
