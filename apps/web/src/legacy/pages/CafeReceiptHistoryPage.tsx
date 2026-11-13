@@ -74,7 +74,17 @@ export function CafeReceiptHistoryPage() {
     {loading ? <LoadingState label="Loading receipt history" /> : history ? <article className="panel">
       {!history.items.length ? <p>No matching Café invoices.</p> : <div className="table-wrap"><table><thead><tr><th>Invoice</th><th>Date / time (IST)</th><th>Branch</th><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th><th></th></tr></thead><tbody>{history.items.map((invoice) => <tr key={invoice.invoice_id}>
         <td>{invoice.invoice_number}</td><td>{receiptTime(invoice.issued_at)}</td><td>{invoice.branch_name}</td><td>{invoice.invoice_status.replace(/_/g, " ")}</td><td>₹{invoice.grand_total}</td><td>₹{invoice.paid_amount}</td><td>₹{invoice.balance_due}</td>
-        <td><button type="button" disabled={opening} aria-label={`View / reprint ${invoice.invoice_number}`} onClick={() => void open(invoice.invoice_id)}>View / reprint</button></td>
+        <td><button type="button" disabled={opening} aria-label={`View / reprint ${invoice.invoice_number}`} onClick={() => void open(invoice.invoice_id)}>View / reprint</button>
+          <VoidInvoiceAction invoice={{
+            id: invoice.invoice_id, number: invoice.invoice_number, status: invoice.invoice_status,
+            type: invoice.invoice_type, source: invoice.source_type, issuedAt: invoice.issued_at,
+            invoiceDate: invoice.invoice_date, paid: invoice.paid_amount,
+          }} onVoided={() => {
+            setNotice(`Invoice ${invoice.invoice_number} removed from sales.`);
+            setFilters((current) => ({ ...current }));
+            if (receipt?.invoice_id === invoice.invoice_id) void open(invoice.invoice_id);
+          }} />
+        </td>
       </tr>)}</tbody></table></div>}
       <div className="filter-actions"><span>{history.total ? `${offset + 1}–${Math.min(offset + limit, history.total)}` : "0"} of {history.total}</span>
         <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - limit))}>Previous</button>
@@ -82,16 +92,8 @@ export function CafeReceiptHistoryPage() {
       </div>
     </article> : null}
     {opening ? <LoadingState label="Loading existing receipt" /> : null}
-    {receipt ? <>
-      <CafeReceiptView receipt={receipt} reprint><button type="button" onClick={() => setReceipt(null)}>Close receipt</button></CafeReceiptView>
-      <VoidInvoiceAction key={receipt.invoice_id} invoice={{
-        id: receipt.invoice_id, number: receipt.invoice_number, status: receipt.invoice_status,
-        type: receipt.invoice_type, source: receipt.source_type, issuedAt: receipt.issued_at, paid: receipt.paid_amount,
-      }} onVoided={() => {
-        setNotice(`Invoice ${receipt.invoice_number} voided. The original remains in receipt history.`);
-        setFilters((current) => ({ ...current }));
-        void open(receipt.invoice_id);
-      }} />
-    </> : null}
+    {receipt ? <CafeReceiptView receipt={receipt} reprint>
+      <button type="button" onClick={() => setReceipt(null)}>Close receipt</button>
+    </CafeReceiptView> : null}
   </section>;
 }

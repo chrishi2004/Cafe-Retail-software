@@ -909,6 +909,16 @@ export function SalesPage() {
                             <Eye aria-hidden="true" size={14} />
                             Detail
                           </button>
+                          <VoidInvoiceAction invoice={{
+                            id: sale.id, number: sale.sale_number, status: sale.status,
+                            type: sale.invoice_type, issuedAt: sale.issued_at,
+                            invoiceDate: sale.sale_datetime, paid: sale.paid_amount,
+                          }} onVoided={() => {
+                            setSuccessMessage(`Invoice ${sale.sale_number} removed from sales.`);
+                            if (selectedSale?.id === sale.id) setSelectedSale(null);
+                            if (reprint?.id === sale.id) setReprint(null);
+                            void loadSalesWorkspace();
+                          }} />
                         </div>
                       </td>
                     </tr>
@@ -954,19 +964,7 @@ export function SalesPage() {
                 Open receipt for reprint
               </button>
               {reprint ? (
-                <>
-                  <RetailReceipt invoice={reprint} reprint onDone={() => setReprint(null)} />
-                  <VoidInvoiceAction key={reprint.id} invoice={{
-                    id: reprint.id, number: reprint.invoice_number, status: reprint.status,
-                    type: reprint.invoice_type, issuedAt: reprint.issued_at,
-                    invoiceDate: reprint.invoice_date, paid: reprint.paid_amount,
-                  }} onVoided={() => {
-                    setSuccessMessage(`Invoice ${reprint.invoice_number} voided. The original invoice record was retained.`);
-                    setReprint(null);
-                    setSelectedSale(null);
-                    void loadInventoryRows().catch((err) => setError(errorMessage(err)));
-                  }} />
-                </>
+                <RetailReceipt invoice={reprint} reprint onDone={() => setReprint(null)} />
               ) : null}
               <div className="detail-list">
                 <div>

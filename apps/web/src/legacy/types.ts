@@ -667,6 +667,10 @@ export type SaleListItem = {
   branch_id: number;
   branch_name: string;
   sale_datetime: string;
+  issued_at?: string | null;
+  invoice_type?: InvoiceType;
+  status?: InvoiceStatus;
+  paid_amount?: string;
   subtotal: string;
   discount_total: string;
   tax_total: string;

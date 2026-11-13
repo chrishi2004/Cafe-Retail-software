@@ -66,6 +66,8 @@ export async function invoiceHistory(
           branch_id: i.branch_id,
           branch_name: i.branch_name,
           issued_at: i.issued_at,
+          invoice_date: i.invoice_date,
+          invoice_type: i.invoice_type,
           grand_total: i.grand_total,
           paid_amount: i.paid_amount,
           balance_due: i.balance_due,

@@ -2,7 +2,7 @@ import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow, digest } from "./security";
 import { requireStepUp } from "./accounts";
-import { requiredRow, transaction, insertRow, now, audit, signed } from "./query";
+import { requiredRow, transaction, insertRow, now, audit } from "./query";
 import { replay, saveReplay, writableDay } from "./financial";
 import { requireValue, HttpError } from "./errors";
 import { scaled, decimal, canonical, businessDate } from "./money";
@@ -18,9 +18,8 @@ export async function governance(
   const voidMatch = route.match(/^governance\/voids\/invoices\/(\d+)$/);
   if (voidMatch && method === "POST") {
     allow(scope.user, ["super_admin", "admin"]);
-    requireStepUp(scope.user);
-    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
-    requireValue(reason.length >= 3 && reason.length <= 300, "Enter a reason (3–300 characters).");
+    requireValue(body.confirmed === true, "Confirm the invoice deletion.");
+    const reason = "Admin confirmed invoice removal from sales.";
     return transaction(async (db, session) => {
       const state = await replay(
         db,
@@ -61,15 +60,6 @@ export async function governance(
           collected.every((payment) => !payment.voided_at && businessDate(new Date(payment.payment_datetime)) === day),
         "Payments do not match this business day. Review the invoice before correcting it.",
       );
-      requireValue(
-        !paid || body.payment_resolution === "not_received" || body.payment_resolution === "returned",
-        "Confirm whether the recorded payment was never received or was returned outside the POS.",
-      );
-      requireValue(typeof body.restock === "boolean", "Choose how to handle stock.");
-      const sales = await db.collection<Row>("stock_movements").find(
-        { ...related, reference_type: "invoice", reference_id: invoice.id, movement_type: "sale" },
-        { session },
-      ).toArray();
       const reversal = await insertRow(db, "financial_reversals", {
         ...related,
         invoice_id: invoice.id,
@@ -80,33 +70,11 @@ export async function governance(
         actor_id: scope.user.id,
         compensation_json: {
           payment_amount: invoice.paid_amount,
-          payment_resolution: paid ? body.payment_resolution : "not_applicable",
-          stock_restored: body.restock && sales.length > 0,
+          payment_resolution: paid ? "handled_outside_pos" : "not_applicable",
+          stock_restored: false,
         },
-        refund_status: paid && body.payment_resolution === "returned" ? "manual_refund_confirmed" : "not_required",
+        refund_status: paid ? "not_processed_by_pos" : "not_required",
       }, session);
-      if (body.restock) {
-        for (const movement of sales) {
-          const quantity = -signed(movement.quantity_change);
-          requireValue(quantity > 0, "Invalid original stock movement.");
-          const updated = await db.collection("inventory").updateOne(
-            { ...related, product_id: movement.product_id },
-            { $inc: { quantity_scaled: quantity }, $set: { last_updated_at: timestamp } },
-            { session },
-          );
-          requireValue(updated.matchedCount === 1, "The original inventory record is missing.");
-          await insertRow(db, "stock_movements", {
-            ...related,
-            product_id: movement.product_id,
-            movement_type: "return",
-            quantity_change: decimal(quantity),
-            created_by: scope.user.id,
-            reference_type: "financial_reversal",
-            reference_id: reversal.id,
-            reason,
-          }, session);
-        }
-      }
       await db.collection("invoice_payments").updateMany(
         paymentFilter, { $set: { voided_at: timestamp, reversal_id: reversal.id } }, { session },
       );

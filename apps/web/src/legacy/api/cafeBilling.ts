@@ -187,6 +187,9 @@ export type CafeInvoiceHistory = {
     branch_id: number;
     branch_name: string;
     issued_at: string;
+    invoice_date: string;
+    invoice_type: string;
+    source_type: string;
     invoice_status: string;
     payment_status: string;
     grand_total: string;

@@ -280,30 +280,25 @@ test(
         .getByRole("button", { name: "Open Retail workspace", exact: true })
         .click();
       await page.waitForURL("**/retail/overview");
-      const voidInvoice = async (payment: string, stock: string, number: string, verify: boolean) => {
-        await page.getByRole("button", { name: "Void invoice", exact: true }).click();
-        await page.getByLabel("Reason", { exact: true }).fill("Accidental test sale");
-        await page.getByLabel(/Recorded payment/).selectOption(payment);
-        await page.getByRole("combobox", { name: /^Stock/ }).selectOption(stock);
-        if (verify) {
-          await page.getByLabel("Admin password", { exact: true }).fill("Owner-password-123!");
-          await page.getByLabel("Authenticator code", { exact: true }).fill(totp(setup.totpSecret));
-        } else {
-          await page.getByText("Admin verified.", { exact: false }).waitFor();
-          assert.equal(await page.getByLabel("Admin password", { exact: true }).count(), 0);
-        }
-        await page.getByRole("button", { name: "Confirm void", exact: true }).click();
-        await page.getByText(`Invoice ${number} voided.`, { exact: false }).waitFor();
+      const deleteInvoice = async (number: string) => {
+        const button = page.getByRole("button", { name: `Delete invoice ${number}`, exact: true });
+        await button.waitFor();
+        page.once("dialog", async (dialog) => {
+          assert(dialog.message().includes(number));
+          await dialog.dismiss();
+        });
+        await button.click();
+        assert.equal(await db.collection("invoices").countDocuments({ invoice_number: number, status: "cancelled" }), 0);
+        page.once("dialog", (dialog) => void dialog.accept());
+        await button.click();
+        await page.getByText(`Invoice ${number} removed from sales.`, { exact: true }).waitFor();
       };
 
       await page.goto("http://127.0.0.1:4317/retail/sales");
       await page.waitForLoadState("networkidle");
-      await page.getByRole("row").filter({ hasText: "RETAIL-000001" })
-        .getByRole("button", { name: "Detail", exact: true }).click();
-      await page.getByRole("button", { name: "Open receipt for reprint" }).click();
-      await voidInvoice("returned", "restore", "RETAIL-000001", true);
+      await deleteInvoice("RETAIL-000001");
       await page.getByRole("row").filter({ hasText: "RETAIL-000001" }).waitFor({ state: "hidden" });
-      assert.equal((await db.collection("inventory").findOne({ id: 2 }))?.quantity_scaled, 1000);
+      assert.equal((await db.collection("inventory").findOne({ id: 2 }))?.quantity_scaled, 900);
 
       const failedApis: string[] = [];
       page.on("response", (response) => {
@@ -346,8 +341,8 @@ test(
         window.sessionStorage.setItem("hybrid_retail_active_venture_id", "1"),
       );
       await page.goto("http://127.0.0.1:4317/cafe/receipts");
-      await page.getByRole("button", { name: "View / reprint CAFE-000001", exact: true }).click();
-      await voidInvoice("not_received", "leave", "CAFE-000001", false);
+      await page.waitForLoadState("networkidle");
+      await deleteInvoice("CAFE-000001");
       await page.getByRole("row").filter({ hasText: "CAFE-000001" })
         .getByText("cancelled", { exact: true }).waitFor();
       assert.equal((await db.collection("inventory").findOne({ id: 1 }))?.quantity_scaled, 900);
