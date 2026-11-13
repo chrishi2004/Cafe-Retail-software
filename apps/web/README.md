@@ -77,3 +77,11 @@ Tests use disposable local replica sets, never the configured customer Atlas dat
 Public API base URLs can stay `/api`. Do not put credentials in `NEXT_PUBLIC_*`, bootstrap during builds, or copy production credentials into previews. Bootstrap/MFA console tasks run from a trusted local terminal against the intended Atlas database. Accounts and old PostgreSQL MFA are not automatically imported.
 
 Atlas connectivity is required for billing and QR ordering. Payments are recorded collection entries; automatic payment-provider charging/refunding is not implied. Physical receipt output, backups/restore, statutory GST documents and production acceptance require separate verification. `/api/health` deliberately retains `production_parity:false`.
+
+### 80 mm thermal receipts on Windows
+
+Use **Print receipt** (or **Reprint receipt**) to print the invoice alone. The browser page is sized to the receipt on an 80 mm roll, with a 72 mm content area.
+
+In the Kores Endura RP31U's Windows **Printing preferences**, select the 80 mm continuous receipt/roll form if offered. In Chrome or Edge, choose the RP31U, use portrait and 100% scale, set browser margins to **None** and turn off **Headers and footers**. Avoid A4, Letter, and fixed-length forms when the driver offers a continuous form.
+
+Check print preview with a short receipt from history before testing the printer. If preview shows one compact receipt but the printer still advances a long blank section or cuts twice, check the driver's paper length, end-of-job feed and cut options. The browser cannot set those driver options.

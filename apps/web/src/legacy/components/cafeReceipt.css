@@ -43,23 +43,40 @@
 .receipt-grand-total { font-weight: bold; font-size: 12pt; }
 .cafe-receipt-preview { overflow-x: auto; }
 .cafe-receipt-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-/* Keep a measurable print copy outside the app's grid and scrolling containers. */
-#cafe-receipt-print-root { position: absolute; left: -10000px; top: 0; width: 72mm; visibility: hidden; pointer-events: none; }
-@page cafe-receipt { size: 80mm 200mm; margin: 4mm; }
+/* Share the roll geometry between the hidden measuring copy and print. */
+#cafe-receipt-print-root {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  display: flow-root;
+  box-sizing: border-box;
+  width: 80mm;
+  padding: 1.5mm 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 @media print {
-  html:has(body.cafe-receipt-ready), body.cafe-receipt-ready { min-width: 0 !important; width: auto !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
-  body.cafe-receipt-ready > :not(#cafe-receipt-print-root) { display: none !important; }
-  body.cafe-receipt-ready > #cafe-receipt-print-root {
+  html:has(body.cafe-receipt-ready), body.cafe-receipt-ready {
     display: block !important;
-    visibility: visible !important;
-    position: static !important;
-    width: 72mm !important;
-    max-width: 72mm !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    page: cafe-receipt;
+    background: #fff !important;
   }
-  #cafe-receipt-print-root .cafe-receipt-paper { width: 72mm !important; max-width: 72mm !important; margin: 0 !important; box-shadow: none !important; border: 0 !important; }
+  body.cafe-receipt-ready > :not(#cafe-receipt-print-root) { display: none !important; }
+  body.cafe-receipt-ready > #cafe-receipt-print-root {
+    visibility: visible !important;
+    position: static !important;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  #cafe-receipt-print-root .cafe-receipt-paper {
+    box-shadow: none !important;
+    border: 0 !important;
+  }
   #cafe-receipt-print-root thead { display: table-header-group; }
   #cafe-receipt-print-root tr, #cafe-receipt-print-root .cafe-receipt-heading { break-inside: avoid; }
   #cafe-receipt-print-root button { display: none !important; }

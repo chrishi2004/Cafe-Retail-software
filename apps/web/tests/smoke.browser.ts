@@ -2,12 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { bootstrap } from "../src/server/bootstrap";
 import { handle } from "../src/server/handler";
 import { totp } from "../src/server/security";
 import { database, disconnect } from "../src/server/db";
+
+async function verifyThermalReceipt(page: Page) {
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  const paperHeight = await page.locator("#cafe-receipt-print-root").evaluate(
+    (root) => root.getBoundingClientRect().height * 72 / 96,
+  );
+  const pdf = (await page.pdf({ preferCSSPageSize: true })).toString("latin1");
+  assert.equal([...pdf.matchAll(/\/Type\s*\/Page\b/g)].length, 1, "Receipt has a blank or overflow page");
+  const box = /\/MediaBox\s*\[0 0 ([\d.]+) ([\d.]+)\]/.exec(pdf);
+  assert(box, "Receipt PDF has no page dimensions");
+  assert(Math.abs(Number(box[1]) - 80 * 72 / 25.4) < 2, "Receipt is not 80 mm wide");
+  assert(Math.abs(Number(box[2]) - paperHeight) < 5, "Receipt page has excess feed or clips content");
+}
 
 test(
   "production Next browser: Cafe receipt flow and Retail barcode checkout",
@@ -188,6 +201,7 @@ test(
         (await db.collection("inventory").findOne({ id: 1 }))?.quantity_scaled,
         900,
       );
+      await verifyThermalReceipt(page);
       await page.emulateMedia({ media: "print" });
       const printState = await page.evaluate(() => ({
         ready: document.body.classList.contains("cafe-receipt-ready"),
@@ -198,7 +212,7 @@ test(
       }));
       assert(printState.ready && printState.paper);
       assert(printState.navigation);
-      await page.emulateMedia({ media: "screen" });
+      await page.emulateMedia({ media: null });
       await page
         .getByRole("button", { name: "Next customer", exact: true })
         .click();
@@ -242,13 +256,14 @@ test(
         (await db.collection("inventory").findOne({ id: 2 }))?.quantity_scaled,
         900,
       );
+      await verifyThermalReceipt(page);
       await page.emulateMedia({ media: "print" });
       assert(
         await page.evaluate(() =>
           document.body.classList.contains("cafe-receipt-ready"),
         ),
       );
-      await page.emulateMedia({ media: "screen" });
+      await page.emulateMedia({ media: null });
       await page.getByRole("button", { name: /Log ?out|Sign out/i }).click();
       await page
         .getByLabel("Email", { exact: true })

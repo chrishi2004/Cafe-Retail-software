@@ -171,16 +171,11 @@ export function CafeReceiptView({
     document.body.classList.add("cafe-receipt-ready");
     const measure = () => {
       if (!root.current) return;
-      // Roll length follows the rendered receipt; CSS has no standard automatic page height.
-      const paper = root.current.querySelector<HTMLElement>(
-        ".cafe-receipt-paper",
-      );
-      if (!paper) return;
-      const heightMm = Math.max(
-        40,
-        Math.ceil((paper.getBoundingClientRect().height * 25.4) / 96) + 10,
-      );
-      style.textContent = `@page cafe-receipt { size: 80mm ${heightMm}mm; margin: 4mm; }`;
+      // Measure the same roll layout that prints, including its feed margins.
+      // Round up and allow 1 mm for browser pagination rounding.
+      const heightMm = Math.ceil(root.current.getBoundingClientRect().height * 25.4 / 96) + 1;
+      if (heightMm <= 1) return;
+      style.textContent = `@page { size: 80mm ${heightMm}mm; margin: 0; }`;
     };
     prepare.current = measure;
     measure();
