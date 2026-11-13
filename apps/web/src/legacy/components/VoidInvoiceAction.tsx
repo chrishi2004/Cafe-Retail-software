@@ -1,5 +1,5 @@
-import { useRef, useState, type FormEvent } from "react";
-import { apiRequest } from "../api/client";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ApiError, apiRequest } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { cafeToday } from "../utils/cafeDates";
 
@@ -17,6 +17,8 @@ type Invoice = {
 export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onVoided: () => void }) {
   const { token, user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [verifiedUntil, setVerifiedUntil] = useState(0);
   const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -26,6 +28,11 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
   const [error, setError] = useState<string | null>(null);
   const busy = useRef(false);
   const key = useRef("");
+  useEffect(() => {
+    if (!verifiedUntil) return;
+    const timer = window.setTimeout(() => setVerifiedUntil(0), Math.max(0, verifiedUntil - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [verifiedUntil]);
   if (!token || !user || !["admin", "super_admin"].includes(user.server_role)) return null;
   if (!["paid", "partial_paid", "credit", "unpaid", "issued"].includes(invoice.status)) return null;
   const day = (value: string) => new Intl.DateTimeFormat("en-CA", {
@@ -38,6 +45,21 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
   }
 
   const paid = Number(invoice.paid) > 0;
+  const needsVerification = verifiedUntil === 0;
+
+  const openForm = async () => {
+    setChecking(true);
+    setVerifiedUntil(0);
+    try {
+      const status = await apiRequest<{ remaining_ms: number }>("/governance/step-up", {}, token);
+      if (status.remaining_ms > 0) setVerifiedUntil(Date.now() + status.remaining_ms);
+    } catch {
+      // A failed status check falls back to asking for credentials.
+    } finally {
+      setChecking(false);
+      setOpen(true);
+    }
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (busy.current || !reason.trim() || !stock || (paid && !payment)) return;
@@ -45,10 +67,13 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
     setPending(true);
     setError(null);
     try {
-      await apiRequest("/governance/step-up", {
-        method: "POST",
-        body: JSON.stringify({ password, totp_code: code }),
-      }, token);
+      if (needsVerification) {
+        const verified = await apiRequest<{ remaining_ms: number }>("/governance/step-up", {
+          method: "POST",
+          body: JSON.stringify({ password, totp_code: code }),
+        }, token);
+        setVerifiedUntil(Date.now() + verified.remaining_ms);
+      }
       key.current ||= crypto.randomUUID();
       await apiRequest(`/governance/voids/invoices/${invoice.id}`, {
         method: "POST",
@@ -62,6 +87,8 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
       setOpen(false);
       onVoided();
     } catch (err) {
+      if (err instanceof ApiError && err.code === "step_up_required")
+        setVerifiedUntil(0);
       setError((err as Error).message);
     } finally {
       setPassword("");
@@ -71,7 +98,7 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
     }
   };
 
-  if (!open) return <button type="button" className="action-button secondary" onClick={() => setOpen(true)}>Void invoice</button>;
+  if (!open) return <button type="button" className="action-button secondary" disabled={checking} onClick={() => void openForm()}>{checking ? "Checking…" : "Void invoice"}</button>;
 
   return <form className="detail-stack" onSubmit={(event) => void submit(event)}>
     <h4>Void {invoice.number}</h4>
@@ -93,8 +120,10 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
           <option value="leave">Leave stock unchanged (e.g. food was prepared)</option>
         </select>
       </label>
+      {needsVerification ? <>
       <label>Admin password <input required type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
       {user.mfa_enabled && <label>Authenticator code <input required pattern="[0-9]{6}" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} /></label>}
+      </> : <p role="status">Admin verified. Confirm this correction before verification expires.</p>}
       <button className="action-button primary" type="submit">{pending ? "Voiding…" : "Confirm void"}</button>
       <button className="action-button secondary" type="button" onClick={() => { setOpen(false); setError(null); setPassword(""); setCode(""); }}>Keep invoice</button>
     </fieldset>

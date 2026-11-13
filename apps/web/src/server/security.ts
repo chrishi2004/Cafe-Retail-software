@@ -1,5 +1,6 @@
 import {
   randomBytes,
+  randomUUID,
   scrypt as derive,
   timingSafeEqual,
   createHash,
@@ -156,7 +157,7 @@ export async function accountActive(db: Db, user: Row) {
   )
     throw new HttpError(401, "unauthorized", "Invalid branch scope.");
 }
-export async function currentUser(db: Db, request: Request) {
+export async function currentUser(db: Db, request: Request): Promise<Row> {
   const token = request.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!token) throw new HttpError(401, "unauthorized", "Login is required.");
   let payload;
@@ -184,7 +185,7 @@ export async function currentUser(db: Db, request: Request) {
       "mfa_required",
       "Privileged accounts require MFA.",
     );
-  return user;
+  return { ...user, session_fingerprint: digest(token) };
 }
 export async function scoped(
   db: Db,
@@ -338,6 +339,7 @@ export async function login(db: Db, body: Record<string, unknown>) {
     .setIssuer("kalpvriksh-web")
     .setAudience("kalpvriksh-web")
     .setSubject(String(user.id))
+    .setJti(randomUUID())
     .setIssuedAt()
     .setExpirationTime(Math.floor(expires.getTime() / 1000))
     .sign(new TextEncoder().encode(secret()));

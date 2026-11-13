@@ -28,11 +28,17 @@ export function enrollment(email: string) {
     provisioning_uri: `otpauth://totp/${encodeURIComponent("Kalpvriksh:" + email)}?secret=${secret}&issuer=Kalpvriksh&digits=6&period=30`,
   };
 }
+const STEP_UP_MS = 5 * 60_000;
+
+function stepUpExpiry(user: Row) {
+  if (!user.session_fingerprint || user.last_step_up_session !== user.session_fingerprint)
+    return null;
+  const expiry = Date.parse(user.last_step_up_at) + STEP_UP_MS;
+  return expiry > Date.now() ? expiry : null;
+}
+
 export function requireStepUp(user: Row) {
-  if (
-    !user.last_step_up_at ||
-    Date.now() - Date.parse(user.last_step_up_at) > 5 * 60000
-  )
+  if (!stepUpExpiry(user))
     throw new HttpError(
       403,
       "step_up_required",
@@ -55,6 +61,11 @@ export async function authActions(
       all_branches: !user.branch_id,
       branch_ids: user.branch_id ? [user.branch_id] : [],
     };
+  if (route === "governance/step-up" && method === "GET") {
+    allow(user, ["super_admin", "admin"]);
+    const expiry = stepUpExpiry(user);
+    return { remaining_ms: expiry ? Math.max(0, expiry - Date.now()) : 0 };
+  }
   if (
     ["auth/step-up", "governance/step-up"].includes(route) &&
     method === "POST"
@@ -75,10 +86,14 @@ export async function authActions(
           "A current authenticator code is required.",
         );
     }
-    await db
-      .collection("users")
-      .updateOne({ id: user.id }, { $set: { last_step_up_at: now() } });
-    return { message: "Step-up authentication completed." };
+    const verifiedAt = now();
+    const result = await db.collection("users").updateOne(
+      { id: user.id, is_active: true, token_version: user.token_version },
+      { $set: { last_step_up_at: verifiedAt, last_step_up_session: user.session_fingerprint } },
+    );
+    if (!result.matchedCount)
+      throw new HttpError(401, "unauthorized", "Session changed. Sign in again.");
+    return { message: "Step-up authentication completed.", remaining_ms: STEP_UP_MS };
   }
   if (route === "auth/mfa/enroll" && method === "POST") {
     requireValue(!user.mfa_enabled, "MFA is already enabled.");

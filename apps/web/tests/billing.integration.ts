@@ -295,6 +295,14 @@ test(
       assert.equal((await call("governance/step-up", "POST", {
         password: "Owner-password-123!", totp_code: totp(enrolled.totpSecret),
       }, ot)).status, 200);
+      assert((await call("governance/step-up", "GET", undefined, ot)).body.remaining_ms > 0);
+      const otherSession = await call("auth/login", "POST", {
+        email: "owner@example.test", password: "Owner-password-123!", recovery_code: enrolled.recoveryCodes[0],
+      });
+      assert.equal(otherSession.status, 200);
+      const otherToken = otherSession.body.access_token;
+      assert.equal((await call("governance/step-up", "GET", undefined, otherToken)).body.remaining_ms, 0);
+      assert.equal((await call(voidPath, "POST", correction, otherToken, "void-other-session", 1)).body.error.code, "step_up_required");
       assert.equal((await call(voidPath, "POST", correction, ot, "void-wrong-venture", 2)).status, 404);
       assert.equal((await call(voidPath, "POST", { ...correction, payment_resolution: "" }, ot, "void-no-payment", 1)).status, 422);
       const voids = await Promise.all([
@@ -368,6 +376,11 @@ test(
       );
       const otherInvoice = (await db.collection("invoices").findOne({ company_id: 1, status: "paid" }))!;
       assert.equal((await call(`governance/voids/invoices/${otherInvoice.id}`, "POST", correction, ot, "void-closed-day", 1)).status, 409);
+      await db.collection("users").updateOne(
+        { email: "owner@example.test" }, { $set: { last_step_up_at: new Date(Date.now() - 301_000).toISOString() } },
+      );
+      assert.equal((await call("governance/step-up", "GET", undefined, ot)).body.remaining_ms, 0);
+      assert.equal((await call(voidPath, "POST", correction, ot, "void-expired", 1)).body.error.code, "step_up_required");
       // Retail uses the same native financial engine with independent scope and numbering.
       const rc = await call(
         "categories",
