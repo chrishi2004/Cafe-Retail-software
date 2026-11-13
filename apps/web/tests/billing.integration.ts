@@ -319,6 +319,13 @@ test(
       assert.equal((await call(receiptPath, "GET", undefined, ct)).body.invoice_status, "cancelled");
       const corrected = (await call("dashboard/cafe", "GET", undefined, ot, undefined, 1)).body.kpis;
       assert.equal(corrected.net_billed_revenue, "900.00");
+      assert.equal(corrected.billed_revenue, "900.00");
+      assert.equal(corrected.ordered_value, "900.00");
+      assert.equal(corrected.cancelled_value, "0.00");
+      assert.equal(corrected.order_count, 4);
+      const group = (await call("dashboard/consolidated", "GET", undefined, ot)).body;
+      assert.equal(group.kpis.billed_revenue, "900.00");
+      assert.equal(group.kpis.collections, "900.00");
       assert.equal(corrected.collections, "900.00");
       const day = await call(
         "governance/closings",

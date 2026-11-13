@@ -18,6 +18,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
   let invoices = (
     await db.collection<Row>("invoices").find(filter).toArray()
   ).filter((i) => i.status !== "draft" && inRange(i.invoice_date, start, end));
+  const voidedInvoiceIds = new Set(invoices.filter((i) => ["cancelled", "returned", "voided"].includes(i.status)).map((i) => i.id));
   let orders = (
     await db.collection<Row>("cafe_orders").find(filter).toArray()
   ).filter((o) => inRange(o.placed_at ?? o.created_at, start, end));
@@ -95,7 +96,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
     channels: Record<string, string> = {},
     top = new Map<string, Row>();
   for (const invoice of invoices) {
-    if (["cancelled", "returned"].includes(invoice.status)) {
+    if (voidedInvoiceIds.has(invoice.id)) {
       voidValue += scaled(invoice.grand_total);
       continue;
     }
@@ -125,11 +126,17 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
     );
   }
   let ordered = 0,
-    cancelled = 0;
+    cancelled = 0,
+    activeOrderCount = 0;
   for (const order of orders) {
     const value = scaled(order.estimated_total ?? order.total_amount ?? "0");
+    if (voidedInvoiceIds.has(order.billed_invoice_id)) continue;
+    if (["cancelled", "rejected"].includes(order.status)) {
+      if (!order.billed_invoice_id) cancelled += value;
+      continue;
+    }
+    activeOrderCount++;
     ordered += value;
-    if (["cancelled", "rejected"].includes(order.status)) cancelled += value;
     channels[order.source_channel] = decimal(
       scaled(channels[order.source_channel] ?? "0") + value,
     );
@@ -143,7 +150,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
       0,
     ),
     count = invoices.filter(
-      (i) => !["cancelled", "returned"].includes(i.status),
+      (i) => !voidedInvoiceIds.has(i.id),
     ).length;
   return {
     scope: "venture",
@@ -152,11 +159,11 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
     period_end: end,
     kpis: {
       order_count:
-        scope.company.business_type === "cafe" ? orders.length : count,
+        scope.company.business_type === "cafe" ? activeOrderCount : count,
       ordered_value: decimal(
         scope.company.business_type === "cafe" ? ordered : billed,
       ),
-      billed_revenue: decimal(billed + voidValue),
+      billed_revenue: decimal(billed),
       net_billed_revenue: decimal(billed),
       collections: decimal(collected),
       outstanding: decimal(outstanding),

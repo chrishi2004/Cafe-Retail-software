@@ -351,6 +351,13 @@ test(
       await page.getByRole("row").filter({ hasText: "CAFE-000001" })
         .getByText("cancelled", { exact: true }).waitFor();
       assert.equal((await db.collection("inventory").findOne({ id: 1 }))?.quantity_scaled, 900);
+      await page.goto("http://127.0.0.1:4317/cafe/dashboard");
+      const metrics = page.locator(".metric-grid").first();
+      for (const label of ["Net sales", "Amount collected"]) {
+        const card = metrics.locator(".metric-card").filter({ hasText: label });
+        await card.getByText("₹0.00", { exact: true }).waitFor();
+      }
+      assert.equal(await metrics.getByText("Ordered value", { exact: true }).count(), 0);
       const cafeManagementScreens = [
         ["expenses", "Expense management"],
         ["stock-feed", "Inventory stock feed"],

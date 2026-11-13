@@ -34,7 +34,7 @@ export async function salesRows(
   const rows: Row[] = [];
   for (const invoice of await db
     .collection<Row>("invoices")
-    .find({ ...filter, status: { $nin: ["draft", "cancelled", "voided"] } })
+    .find({ ...filter, status: { $nin: ["draft", "cancelled", "voided", "returned"] } })
     .toArray()) {
     if (!within(invoice.invoice_date, p.start, p.end)) continue;
     const items = (invoice.items as Row[])
