@@ -1,30 +1,26 @@
+import { inBusinessRange } from "../businessDates";
 import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow } from "./security";
-import { businessDate, decimal, scaled } from "./money";
+import { decimal, scaled } from "./money";
 import { queryScope, period, signed } from "./query";
 export function range(url: URL) {
   const p = period(url, 1);
   return { start: p.start, end: p.end };
 }
-const inRange = (value: unknown, start: string, end: string) => {
-  if (!value) return false;
-  const day = businessDate(new Date(String(value)));
-  return day >= start && day <= end;
-};
 export async function cafeReport(db: Db, scope: Scope, url: URL) {
   const { start, end } = range(url),
     filter = await queryScope(db, scope, url);
   let invoices = (
     await db.collection<Row>("invoices").find(filter).toArray()
-  ).filter((i) => i.status !== "draft" && inRange(i.invoice_date, start, end));
+  ).filter((i) => i.status !== "draft" && inBusinessRange(i.invoice_date, start, end));
   const voidedInvoiceIds = new Set(invoices.filter((i) => ["cancelled", "returned", "voided"].includes(i.status)).map((i) => i.id));
   let orders = (
     await db.collection<Row>("cafe_orders").find(filter).toArray()
-  ).filter((o) => inRange(o.placed_at ?? o.created_at, start, end));
+  ).filter((o) => inBusinessRange(o.placed_at ?? o.created_at, start, end));
   const sessions = (
     await db.collection<Row>("table_sessions").find(filter).toArray()
-  ).filter((s) => inRange(s.opened_at, start, end));
+  ).filter((s) => inBusinessRange(s.opened_at, start, end));
   const eligibleIds = new Set<number>();
   const itemFilter = (item: Row) =>
     !url.searchParams.has("menu_item_id") ||
@@ -69,7 +65,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
   let payments = (
     await db.collection<Row>("invoice_payments").find(filter).toArray()
   ).filter(
-    (p) => !p.is_credit_marker && !p.voided_at && inRange(p.payment_datetime, start, end),
+    (p) => !p.is_credit_marker && !p.voided_at && inBusinessRange(p.payment_datetime, start, end),
   );
   if (hasOrderFilter)
     payments = payments.filter((p) => eligibleIds.has(p.invoice_id));

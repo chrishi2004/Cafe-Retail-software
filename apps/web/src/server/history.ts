@@ -1,8 +1,8 @@
 import type { Db } from "mongodb";
 import type { Row } from "./db";
 import type { Scope } from "./security";
-import { queryScope, dateOnly } from "./query";
-import { businessDate } from "./money";
+import { queryScope, dateBounds } from "./query";
+import { businessDate, inBusinessRange } from "../businessDates";
 import { requireValue } from "./errors";
 export async function invoiceHistory(
   db: Db,
@@ -17,18 +17,7 @@ export async function invoiceHistory(
     if (url.searchParams.has(key)) filter[key] = url.searchParams.get(key);
   if (url.searchParams.has("customer_id"))
     filter.customer_id = Number(url.searchParams.get("customer_id"));
-  const start = url.searchParams.get("start_date")
-      ? dateOnly(url.searchParams.get("start_date"))
-      : cafe
-        ? businessDate()
-        : null,
-    end = url.searchParams.get("end_date")
-      ? dateOnly(url.searchParams.get("end_date"))
-      : cafe
-        ? businessDate()
-        : null;
-  if (start && end)
-    requireValue(start <= end, "Start date must precede end date.");
+  const { start, end } = dateBounds(url, cafe ? businessDate() : null);
   const limit = Number(url.searchParams.get("limit") ?? 100),
     offset = Number(url.searchParams.get("offset") ?? 0);
   requireValue(
@@ -47,10 +36,8 @@ export async function invoiceHistory(
       .sort({ invoice_date: -1, id: -1 })
       .toArray()
   ).filter((i) => {
-    const day = businessDate(new Date(i.invoice_date));
     return (
-      (!start || day >= start) &&
-      (!end || day <= end) &&
+      inBusinessRange(i.invoice_date, start, end) &&
       (!search ||
         `${i.invoice_number} ${i.customer_name ?? ""}`
           .toLowerCase()

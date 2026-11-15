@@ -1,3 +1,4 @@
+import { inBusinessRange } from "../businessDates";
 import { requireStepUp } from "./accounts";
 import { audit } from "./query";
 import { database, nextId, type Row } from "./db";
@@ -128,8 +129,7 @@ export async function closing(
           if (
             !payment.is_credit_marker &&
             !payment.voided_at &&
-            businessDate(new Date(payment.payment_datetime)) ===
-              record.business_date
+            inBusinessRange(payment.payment_datetime, record.business_date, record.business_date)
           ) {
             if (payment.mode_type === "cash") cash += scaled(payment.amount);
             else nonCash += scaled(payment.amount);

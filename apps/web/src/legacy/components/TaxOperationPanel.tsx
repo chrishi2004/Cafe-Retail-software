@@ -1,3 +1,4 @@
+import { inputDateDaysAgo } from "../utils/format";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -24,12 +25,6 @@ function errorMessage(error: unknown): string {
     : "Could not load tax-operation controls.";
 }
 
-function tomorrowIso(): string {
-  const value = new Date();
-  value.setDate(value.getDate() + 1);
-  return value.toISOString().slice(0, 10);
-}
-
 export function TaxOperationPanel() {
   const { token, user } = useAuth();
   const [state, setState] = useState<TaxOperation | null>(null);
@@ -39,7 +34,7 @@ export function TaxOperationPanel() {
   const [success, setSuccess] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
-  const [effectiveFrom, setEffectiveFrom] = useState(tomorrowIso());
+  const [effectiveFrom, setEffectiveFrom] = useState(() => inputDateDaysAgo(-1));
   const [confirmation, setConfirmation] = useState("");
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [customerDetails, setCustomerDetails] =
@@ -263,7 +258,7 @@ export function TaxOperationPanel() {
               Effective from
               <input
                 type="date"
-                min={new Date().toISOString().slice(0, 10)}
+                min={inputDateDaysAgo(0)}
                 value={effectiveFrom}
                 onChange={(event) => setEffectiveFrom(event.target.value)}
                 disabled={saving}

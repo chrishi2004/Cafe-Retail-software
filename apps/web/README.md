@@ -60,7 +60,9 @@ npm run test:browser
 npm start
 ```
 
-Tests use disposable local replica sets, never the configured customer Atlas database. `test:browser` starts the production Next build. See the report for actual test results and the inherited Python date-boundary failure.
+Tests use disposable local replica sets, never the configured customer Atlas database. `test:browser` starts the production Next build.
+
+Date filters use inclusive `YYYY-MM-DD` business dates in `Asia/Kolkata`, regardless of the device or server timezone. Invoice sales use the invoice's business date, while collections and cash closing use the payment's business date. Timestamps are stored as UTC instants.
 
 ## Vercel
 

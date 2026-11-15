@@ -1,8 +1,9 @@
+import { inBusinessRange } from "../businessDates";
 import { invoiceHistory } from "./history";
 import { consistency } from "./consistency";
 import { assistant } from "./assistant";
 import { forecasts, recommendations } from "./planning";
-import { queryScope, requiredRow, transaction, signed } from "./query";
+import { queryScope, requiredRow, transaction, signed, dateBounds, dateOnly } from "./query";
 import { governance } from "./governance";
 import { publicCafe, qrRoutes } from "./public-cafe";
 import { cafeBillingRoutes } from "./cafe-billing";
@@ -723,12 +724,21 @@ export async function handle(request: Request, path: string[]) {
             field === "product_id"
               ? Number(url.searchParams.get(field))
               : url.searchParams.get(field);
-      const rows = await db
-        .collection<Row>("stock_movements")
-        .find(filter)
-        .sort({ id: -1 })
-        .limit(500)
-        .toArray();
+      const { start, end } = dateBounds(url);
+      const limit = Number(url.searchParams.get("limit") ?? 500);
+      requireValue(Number.isInteger(limit) && limit >= 1 && limit <= 500, "Invalid movement limit.");
+      const movements = db.collection<Row>("stock_movements").find(filter).sort({ id: -1 });
+      const rows: Row[] = [];
+      // Filter before limiting so older dates can be found beyond the latest 500 entries.
+      try {
+        for await (const row of movements) {
+          if ((start || end) && !inBusinessRange(row.created_at, start, end)) continue;
+          rows.push(row);
+          if (rows.length === limit) break;
+        }
+      } finally {
+        await movements.close();
+      }
       for (const row of rows) {
         const product = await db
           .collection("products")
@@ -788,7 +798,7 @@ export async function handle(request: Request, path: string[]) {
         await db.collection("business_day_closures").findOne({
           ...scope.filter,
           branch_id: branch.id,
-          business_date: url.searchParams.get("business_date"),
+          business_date: dateOnly(url.searchParams.get("business_date")),
         }),
       );
     }

@@ -1,4 +1,4 @@
-import { cafeToday } from "../utils/cafeDates";
+import { formatDate, formatDateTime, inputDateDaysAgo } from "../utils/format";
 import { VoidInvoiceAction } from "../components/VoidInvoiceAction";
 import { RetailReceipt } from "../components/RetailReceipt";
 import { apiRequest } from "../api/client";
@@ -59,12 +59,6 @@ function canCreateSales(role: UserRole): boolean {
   return role === "admin" || role === "store_manager" || role === "staff";
 }
 
-function inputDateDaysAgo(daysAgo: number): string {
-  const date = new Date(`${cafeToday()}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
-}
-
 function formatCurrency(value: string | number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -77,15 +71,6 @@ function formatQuantity(value: string | number): string {
   return Number(value).toLocaleString("en-IN", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  });
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString([], {
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
   });
 }
 
@@ -350,10 +335,7 @@ export function SalesPage() {
   const trendChartData = useMemo(
     () =>
       trends.map((point) => ({
-        date: new Date(`${point.date}T00:00:00`).toLocaleDateString([], {
-          day: "2-digit",
-          month: "short",
-        }),
+        date: formatDate(point.date),
         revenue: Number(point.revenue),
         grossProfit: Number(point.gross_profit),
       })),
@@ -834,10 +816,7 @@ export function SalesPage() {
               {trends.map((point) => (
                 <article key={point.date}>
                   <span>
-                    {new Date(`${point.date}T00:00:00`).toLocaleDateString([], {
-                      day: "2-digit",
-                      month: "short",
-                    })}
+                    {formatDate(point.date)}
                   </span>
                   <strong>{formatCurrency(point.revenue)}</strong>
                   <b>{formatQuantity(point.units_sold)} units</b>

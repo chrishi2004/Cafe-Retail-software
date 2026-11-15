@@ -179,7 +179,7 @@ test(
         headless: true,
         args: ["--no-sandbox"],
       });
-      const page = await browser.newPage();
+      const page = await browser.newPage({ timezoneId: "America/Los_Angeles" });
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto("http://127.0.0.1:4317/login");
@@ -398,6 +398,35 @@ test(
         "Guest order must not create an invoice.",
       );
       await guestPage.close();
+
+      // At midnight in Kolkata, neither UTC nor the browser has changed dates yet.
+      await page.clock.setFixedTime(new Date("2026-11-14T18:30:00.000Z"));
+      await page.evaluate(() =>
+        window.sessionStorage.setItem("hybrid_retail_active_venture_id", "2"),
+      );
+      const movements = page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/inventory/movements",
+      );
+      await page.goto("http://127.0.0.1:4317/retail/inventory");
+      await page.getByLabel("End", { exact: true }).waitFor();
+      assert.equal(await page.getByLabel("End", { exact: true }).inputValue(), "2026-11-15");
+      const movementResponse = await movements;
+      assert.equal(movementResponse.status(), 200);
+      assert.equal(new URL(movementResponse.url()).searchParams.get("end_date"), "2026-11-15");
+
+      await page.evaluate(() =>
+        window.sessionStorage.setItem("hybrid_retail_active_venture_id", "1"),
+      );
+      const dashboard = page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/dashboard/cafe",
+      );
+      await page.goto("http://127.0.0.1:4317/cafe/dashboard");
+      const dashboardResponse = await dashboard;
+      assert.equal(dashboardResponse.status(), 200);
+      const params = new URL(dashboardResponse.url()).searchParams;
+      assert.equal(params.get("start_date"), "2026-11-15");
+      assert.equal(params.get("end_date"), "2026-11-15");
+      await page.getByText("Net sales", { exact: true }).waitFor();
       assert.deepEqual(errors, []);
     } finally {
       await browser?.close();

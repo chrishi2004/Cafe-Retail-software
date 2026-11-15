@@ -1,3 +1,5 @@
+import { BUSINESS_TIMEZONE, businessDate, shiftDate, storedDate } from "../../businessDates";
+
 export function formatCurrency(value: string | number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -27,10 +29,18 @@ export function formatPercent(value: string | number | null): string {
 }
 
 export function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString([], {
-    day: "2-digit",
-    month: "short",
+  // Render a calendar label as-is, regardless of the browser's timezone.
+  return storedDate(value).toLocaleDateString("en-IN", {
+    timeZone: "UTC", day: "2-digit", month: "short",
   });
+}
+
+export function formatDateTime(value: string): string {
+  return storedDate(value).toLocaleString("en-IN", {
+    timeZone: BUSINESS_TIMEZONE,
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }) + " IST";
 }
 
 export function formatStatus(value: string): string {
@@ -40,8 +50,6 @@ export function formatStatus(value: string): string {
     .join(" ");
 }
 
-export function inputDateDaysAgo(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
+export function inputDateDaysAgo(daysAgo: number, now = new Date()): string {
+  return shiftDate(businessDate(now), -daysAgo);
 }

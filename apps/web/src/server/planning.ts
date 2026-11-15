@@ -186,7 +186,7 @@ export async function forecasts(
   const history = await salesRows(db, scope, params, { start, end: asOf });
   const totals = new Map<string, number>();
   for (const sale of history) {
-    const day = businessDate(new Date(sale.invoice_date));
+    const day = businessDate(sale.invoice_date);
     for (const item of sale.items)
       totals.set(
         day,

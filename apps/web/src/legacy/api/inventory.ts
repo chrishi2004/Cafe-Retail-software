@@ -19,6 +19,8 @@ type InventoryListOptions = {
 type MovementListOptions = {
   productId?: number;
   branchId?: number;
+  startDate?: string;
+  endDate?: string;
   movementType?: StockMovementType;
   limit?: number;
 };
@@ -91,6 +93,8 @@ export function listStockMovements(
       product_id: options.productId,
       branch_id: options.branchId,
       movement_type: options.movementType,
+      start_date: options.startDate,
+      end_date: options.endDate,
       limit: options.limit,
     })}`,
     {},

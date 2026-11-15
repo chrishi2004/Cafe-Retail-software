@@ -3,7 +3,8 @@ import { database, nextId, type Row } from "./db";
 import { authorizedBranch } from "./billing";
 import { type Scope } from "./security";
 import { HttpError, requireValue } from "./errors";
-import { businessDate } from "./money";
+import { businessDate, DAY_MS, KOLKATA_OFFSET, isCalendarDate, shiftDate } from "../businessDates";
+export { shiftDate } from "../businessDates";
 
 export const now = () => new Date().toISOString();
 export const signed = (value: unknown) => {
@@ -17,16 +18,29 @@ export const signed = (value: unknown) => {
 };
 export function dateOnly(value: unknown) {
   const text = String(value ?? "");
-  requireValue(
-    /^\d{4}-\d{2}-\d{2}$/.test(text) &&
-      !Number.isNaN(Date.parse(text)) &&
-      new Date(text).toISOString().slice(0, 10) === text,
-    "Use a valid YYYY-MM-DD date.",
-  );
+  requireValue(isCalendarDate(text), "Use a valid YYYY-MM-DD date.");
   return text;
 }
-export const shiftDate = (day: string, n: number) =>
-  new Date(Date.parse(day) + n * 86400000).toISOString().slice(0, 10);
+export function invoiceInstant(value: unknown, fallback = new Date()) {
+  if (value == null) return fallback;
+  const text = typeof value === "string" ? value : "";
+  // Date-only and offsetless input is a Kolkata date/time. Explicit offsets
+  // (including the UTC timestamps sent by the POS) identify an absolute instant.
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T((?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,3})?)?)(Z|[+-]\d{2}:\d{2})?)?$/i.exec(text);
+  requireValue(match && isCalendarDate(match[1]), "Invalid invoice date.");
+  const instant = new Date(`${match[1]}T${match[2] ?? "00:00:00"}${match[3] ?? KOLKATA_OFFSET}`);
+  requireValue(Number.isFinite(instant.getTime()), "Invalid invoice date.");
+  return instant;
+}
+
+export function dateBounds(url: URL, defaultDay: string | null = null) {
+  const from = url.searchParams.get("start_date");
+  const to = url.searchParams.get("end_date");
+  const start = from !== null ? dateOnly(from) : to === null ? defaultDay : null;
+  const end = to !== null ? dateOnly(to) : from === null ? defaultDay : null;
+  requireValue(!start || !end || start <= end, "Start date must precede end date.");
+  return { start, end };
+}
 export function period(url: URL, days = 30) {
   const end = dateOnly(url.searchParams.get("end_date") ?? businessDate());
   const start = dateOnly(
@@ -34,7 +48,7 @@ export function period(url: URL, days = 30) {
   );
   requireValue(start <= end, "Start date must precede end date.");
   const length =
-    Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1;
+    Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS) + 1;
   requireValue(length <= 3660, "Date range cannot exceed ten years.");
   return {
     start,

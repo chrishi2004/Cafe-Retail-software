@@ -1,3 +1,4 @@
+import { formatDateTime } from "../utils/format";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -61,15 +62,6 @@ function metadataText(message: AIChatMessage, key: string): string | null {
 
 function toolLabel(toolName: string): string {
   return formatStatus(toolName.replace(/^get_/, ""));
-}
-
-function dateTime(value: string): string {
-  return new Date(value).toLocaleString([], {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function AIAssistantPage() {
@@ -241,7 +233,7 @@ export function AIAssistantPage() {
                   <MessageSquare aria-hidden="true" size={16} />
                   <span>
                     <strong>{session.title}</strong>
-                    <b>{dateTime(session.updated_at)}</b>
+                    <b>{formatDateTime(session.updated_at)}</b>
                   </span>
                 </button>
               ))}
@@ -302,7 +294,7 @@ export function AIAssistantPage() {
                             <span>{suggestedAction ?? "Confirmation required before any write action."}</span>
                           </div>
                         ) : null}
-                        <time>{dateTime(message.created_at)}</time>
+                        <time>{formatDateTime(message.created_at)}</time>
                       </div>
                     </article>
                   );

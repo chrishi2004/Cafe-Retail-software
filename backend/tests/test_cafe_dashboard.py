@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from tests.p9_fixtures import login_headers, seed_p9
 
 
 def test_cafe_dashboard_reconciles_orders_bills_collections_and_open_sessions(client, db_session_factory):
-    seed_p9(db_session_factory)
+    # 00:00 IST on Nov 15 is still Nov 14 in UTC.
+    seed_p9(db_session_factory, at=datetime(2026, 11, 14, 18, 30, tzinfo=UTC))
     response = client.get(
         "/api/dashboard/cafe",
         params={
-            "start_date": (datetime.now(UTC).date() - timedelta(days=1)).isoformat(),
-            "end_date": datetime.now(UTC).date().isoformat(),
+            "start_date": "2026-11-15",
+            "end_date": "2026-11-15",
         },
         headers=login_headers(client, "cafe.admin@example.test"),
     )
