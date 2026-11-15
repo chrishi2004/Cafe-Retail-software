@@ -457,6 +457,85 @@ test(
         )?.quantity_scaled,
         700,
       );
+      // UTC is still January 31 at midnight on February 1 in Kolkata.
+      const boundary = "2024-01-31T18:30:00.000Z";
+      const beforeMidnight = "2024-01-31T18:29:59.999Z";
+      const nextMidnight = "2024-02-01T18:30:00.000Z";
+      const rows = [
+        { id: 901, invoice_date: beforeMidnight, payment_date: boundary, grand_total: "10.00" },
+        { id: 902, invoice_date: boundary, payment_date: nextMidnight, grand_total: "20.00" },
+        { id: 903, invoice_date: nextMidnight, payment_date: nextMidnight, grand_total: "30.00" },
+      ];
+      for (const [companyId, productId] of [[1, product.body.id], [2, rp.body.id]]) {
+        await db.collection("invoices").insertMany(rows.map((row) => ({
+          id: companyId * 1000 + row.id,
+          company_id: companyId,
+          branch_id: companyId,
+          invoice_number: `MIDNIGHT-${companyId}-${row.id}`,
+          idempotency_key: `midnight-${companyId}-${row.id}`,
+          public_id: `midnight-${companyId}-${row.id}`,
+          source_type: companyId === 1 ? "cafe_takeaway" : "retail_pos",
+          invoice_date: row.invoice_date,
+          status: "issued",
+          balance_due: "0.00",
+          grand_total: row.grand_total,
+          items: [{ product_id: productId, quantity: "1.00", line_total: row.grand_total }],
+        })));
+        await db.collection("invoice_payments").insertMany(rows.map((row) => ({
+          id: companyId * 1000 + row.id,
+          company_id: companyId,
+          branch_id: companyId,
+          invoice_id: companyId * 1000 + row.id,
+          payment_datetime: row.payment_date,
+          mode_type: "cash",
+          mode_name: "Cash",
+          amount: row.grand_total,
+        })));
+      }
+      const query = "start_date=2024-02-01&end_date=2024-02-01";
+      const get = async (path: string, venture?: number) => {
+        const result = await call(path, "GET", undefined, ot, undefined, venture);
+        assert.equal(result.status, 200, path + ": " + JSON.stringify(result.body));
+        return result.body;
+      };
+      const cafe = await get(`dashboard/cafe?${query}`, 1);
+      assert.equal(cafe.kpis.net_billed_revenue, "20.00");
+      assert.equal(cafe.kpis.collections, "10.00");
+      const history = await get(`cafe/billing/invoices?${query}`, 1);
+      assert.deepEqual(history.items.map((row: { invoice_number: string }) => row.invoice_number), ["MIDNIGHT-1-902"]);
+      const historyThroughDay = await get("cafe/billing/invoices?end_date=2024-02-01", 1);
+      assert.equal(historyThroughDay.total, 2);
+      const retailDay = await get(`sales/summary?${query}`, 2);
+      assert.equal(retailDay.revenue, "20.00");
+      assert.equal(retailDay.transaction_count, 1);
+      const groupDay = await get(`dashboard/consolidated?${query}`);
+      assert.equal(groupDay.kpis.billed_revenue, "40.00");
+      assert.equal(groupDay.kpis.collections, "20.00");
+
+      // The newest movement is out of range and must not consume the result limit.
+      await db.collection("stock_movements").insertMany(rows.map((row) => ({
+        id: row.id, company_id: 2, branch_id: 2, product_id: rp.body.id,
+        created_at: row.invoice_date,
+      })));
+      const movements = await get(`inventory/movements?${query}&limit=1`, 2);
+      assert.deepEqual(movements.map((row: { id: number }) => row.id), [902]);
+
+      await db.collection("business_day_closures").insertOne({
+        id: 901,
+        company_id: 1,
+        branch_id: 1,
+        business_date: "2024-02-01",
+        opening_cash: "100.00",
+        status: "open",
+      });
+      const closedDay = await call("governance/closings/901/submit", "POST", {
+        counted_cash: "110.00",
+      }, ot, undefined, 1);
+      assert.equal(closedDay.status, 200, JSON.stringify(closedDay.body));
+      assert.equal(closedDay.body.cash_collections, "10.00");
+      assert.equal(closedDay.body.expected_cash, "110.00");
+      assert.equal(closedDay.body.variance, "0.00");
+
       assert.equal((await call("auth/logout", "POST", {}, ct)).status, 200);
       assert.equal((await call("auth/me", "GET", undefined, ct)).status, 401);
       await db

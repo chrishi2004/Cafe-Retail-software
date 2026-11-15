@@ -1,3 +1,4 @@
+import { inBusinessRange } from "../businessDates";
 import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow } from "./security";
@@ -9,10 +10,6 @@ const sum = (rows: Record<string, unknown>[], key: string) =>
   rows.reduce((n, r) => n + signed(r[key] ?? "0"), 0);
 const percent = (n: number, d: number) =>
   d ? decimal(Math.round((n * 10000) / d)) : null;
-const within = (value: unknown, start: string, end: string) => {
-  const day = businessDate(new Date(String(value)));
-  return day >= start && day <= end;
-};
 export async function salesRows(
   db: Db,
   scope: Scope,
@@ -36,7 +33,7 @@ export async function salesRows(
     .collection<Row>("invoices")
     .find({ ...filter, status: { $nin: ["draft", "cancelled", "voided", "returned"] } })
     .toArray()) {
-    if (!within(invoice.invoice_date, p.start, p.end)) continue;
+    if (!inBusinessRange(invoice.invoice_date, p.start, p.end)) continue;
     const items = (invoice.items as Row[])
       .filter((item) => {
         const product = pm.get(item.product_id);
@@ -124,7 +121,7 @@ export async function salesAnalytics(db: Db, scope: Scope, url: URL) {
     (row.items as Row[]).map((item) => ({
       ...item,
       invoice_id: row.id,
-      date: businessDate(new Date(row.invoice_date)),
+      date: businessDate(row.invoice_date),
       branch_id: row.branch_id,
       branch_name: row.branch_name,
     })),
@@ -214,7 +211,7 @@ export async function inventoryAnalytics(db: Db, scope: Scope, url: URL) {
     for (const item of sale.items) {
       const key = `${sale.branch_id}:${item.product_id}`;
       if (!last.has(key))
-        last.set(key, businessDate(new Date(sale.invoice_date)));
+        last.set(key, businessDate(sale.invoice_date));
     }
   const low = rows
     .filter((r) => r.is_low_stock)
@@ -283,8 +280,7 @@ export async function purchaseAnalytics(db: Db, scope: Scope, url: URL) {
       .toArray()
   ).filter(
     (r) =>
-      String(r.order_date).slice(0, 10) >= p.start &&
-      String(r.order_date).slice(0, 10) <= p.end &&
+      inBusinessRange(r.order_date, p.start, p.end) &&
       (!url.searchParams.has("supplier_id") ||
         r.supplier_id === Number(url.searchParams.get("supplier_id"))),
   );

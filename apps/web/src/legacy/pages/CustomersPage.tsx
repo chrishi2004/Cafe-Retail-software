@@ -1,3 +1,4 @@
+import { formatDateTime } from "../utils/format";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CreditCard, Edit3, Plus, ReceiptText, RotateCw, Search } from "lucide-react";
 
@@ -63,15 +64,6 @@ function errorMessage(error: unknown): string {
 function cleanOptional(value: string | null | undefined): string | null {
   const trimmed = (value ?? "").trim();
   return trimmed ? trimmed : null;
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString([], {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function CustomersPage() {

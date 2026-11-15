@@ -285,7 +285,6 @@ export function POSPage() {
       place_of_supply_state: cleanOptional(placeState),
       place_of_supply_state_code:
         cleanOptional(placeStateCode)?.toUpperCase() ?? null,
-      invoice_date: new Date().toISOString(),
       items: cart.map((line) => ({
         product_id: line.product.product_id,
         quantity: line.quantity || "1.00",

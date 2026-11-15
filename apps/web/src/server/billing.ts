@@ -7,6 +7,7 @@ import { postLedger, scopedCustomer } from "./ledger";
 import { randomUUID } from "node:crypto";
 import { type ClientSession, type Db } from "mongodb";
 import { database, nextId, type Row } from "./db";
+import { invoiceInstant } from "./query";
 import { HttpError, requireValue } from "./errors";
 import { allow, digest, managers, sellers, type Scope } from "./security";
 import { businessDate, canonical, decimal, multiply, scaled } from "./money";
@@ -49,10 +50,7 @@ export async function quote(
     .findOne({ company_id: scope.company.id }, { session });
   if (!profile)
     throw new HttpError(409, "not_configured", "Business profile is missing.");
-  const invoiceDate = body.invoice_date
-    ? new Date(body.invoice_date)
-    : new Date();
-  requireValue(!Number.isNaN(invoiceDate.getTime()), "Invalid invoice date.");
+  const invoiceDate = invoiceInstant(body.invoice_date);
   const activeGST =
     profile.default_tax_mode === "gst" &&
     profile.gst_effective_from &&
@@ -272,6 +270,7 @@ export async function checkout(
   allow(scope.user, sellers);
   const { db, client } = await database();
   const requestHash = digest(canonical(body));
+  const receivedAt = new Date();
   const session = client.startSession();
   const keyHash = digest(`${scope.user.id}:${key}`);
   try {
@@ -309,7 +308,12 @@ export async function checkout(
         const sourceData = source
           ? await loadCafeBill(db, scope, source, session)
           : null;
-        const workingBody = sourceData ? { ...body, ...sourceData.body } : body;
+        const input = sourceData ? { ...body, ...sourceData.body } : body;
+        const invoiceDate = invoiceInstant(input.invoice_date, receivedAt);
+        const workingBody: Row = { ...input, invoice_date: invoiceDate.toISOString() };
+        const now = receivedAt.toISOString();
+        const invoiceDay = businessDate(invoiceDate);
+        const collectionDay = businessDate(receivedAt);
         const calculated = await quote(
           db,
           scope,
@@ -337,9 +341,7 @@ export async function checkout(
             {
               company_id: scope.company.id,
               branch_id: branch.id,
-              business_date: businessDate(
-                body.invoice_date ? new Date(body.invoice_date) : new Date(),
-              ),
+              business_date: { $in: [invoiceDay, collectionDay] },
               status: { $in: ["submitted", "closed"] },
             },
             { session },
@@ -407,14 +409,14 @@ export async function checkout(
             mode_name: mode.name,
             payment_mode_name: mode.name,
             received_by_name: scope.user.name,
-            created_at: new Date().toISOString(),
+            created_at: now,
             mode_type: mode.mode_type,
             amount: decimal(value),
             reference_number: raw.reference_number ?? null,
             is_credit_marker: mode.mode_type === "credit",
             notes: raw.notes ?? null,
             received_by: scope.user.id,
-            payment_datetime: new Date().toISOString(),
+            payment_datetime: now,
           });
         }
         requireValue(
@@ -442,7 +444,6 @@ export async function checkout(
               (requested.get(item.product_id) ?? 0) + scaled(item.quantity),
             );
         const id = draftId ?? (await nextId(db, "invoices", session));
-        const now = new Date().toISOString();
         for (const [product, quantity] of requested) {
           const updated = await db.collection("inventory").updateOne(
             {
@@ -521,9 +522,7 @@ export async function checkout(
           id,
           company_id: scope.company.id,
           invoice_number: invoiceNumber,
-          invoice_date: body.invoice_date
-            ? new Date(body.invoice_date).toISOString()
-            : now,
+          invoice_date: workingBody.invoice_date,
           created_at: now,
           issued_at: now,
           created_by: scope.user.id,

@@ -1,3 +1,4 @@
+import { inBusinessRange } from "../businessDates";
 import { randomUUID } from "node:crypto";
 import type { Db, ClientSession } from "mongodb";
 import type { Row } from "./db";
@@ -9,9 +10,10 @@ import {
   insertRow,
   now,
   queryScope,
+  dateOnly,
   audit,
 } from "./query";
-import { scaled, decimal, businessDate } from "./money";
+import { scaled, decimal } from "./money";
 import { HttpError, requireValue } from "./errors";
 import { writableDay } from "./financial";
 export const eligible = ["accepted", "served", "bill_requested"];
@@ -255,6 +257,8 @@ export async function cafeRoutes(
           filter[field] = param.endsWith("_id")
             ? Number(url.searchParams.get(param))
             : url.searchParams.get(param);
+      const requestedDay = url.searchParams.get("business_date");
+      const day = requestedDay === null ? null : dateOnly(requestedDay);
       const rows = (
         await db
           .collection<Row>("cafe_orders")
@@ -263,9 +267,7 @@ export async function cafeRoutes(
           .toArray()
       ).filter(
         (row) =>
-          (!url.searchParams.has("business_date") ||
-            businessDate(new Date(row.placed_at ?? row.created_at)) ===
-              url.searchParams.get("business_date")) &&
+          (!day || inBusinessRange(row.placed_at ?? row.created_at, day, day)) &&
           (url.searchParams.get("unbilled_only") !== "true" ||
             !row.billed_invoice_id) &&
           (url.searchParams.get("open_only") !== "true" ||

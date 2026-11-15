@@ -4,7 +4,7 @@ import type { Db, ClientSession } from "mongodb";
 import { type Row } from "./db";
 import { type Scope, allow, sellers, managers, digest } from "./security";
 import { checkout, quote, authorizedBranch, receipt } from "./billing";
-import { requiredRow, transaction, insertRow, now, audit } from "./query";
+import { requiredRow, transaction, insertRow, now, audit, invoiceInstant } from "./query";
 import { postLedger, scopedCustomer } from "./ledger";
 import { canonical, scaled, decimal, businessDate } from "./money";
 import { HttpError, requireValue } from "./errors";
@@ -100,7 +100,7 @@ export async function financial(
           status: "draft",
           payment_status: "unpaid",
           branch_name: branch.name,
-          invoice_date: body.invoice_date ?? now(),
+          invoice_date: invoiceInstant(body.invoice_date).toISOString(),
           created_by: scope.user.id,
           created_by_name: scope.user.name,
           customer_name: null,

@@ -24,7 +24,7 @@ import type {
   ForecastType,
   Product,
 } from "../types";
-import { formatCurrency, formatQuantity, formatStatus, inputDateDaysAgo } from "../utils/format";
+import { formatCurrency, formatDateTime, formatQuantity, formatStatus, inputDateDaysAgo } from "../utils/format";
 
 type ForecastDimension = "overall" | "branch" | "category" | "product";
 
@@ -416,7 +416,7 @@ export function ForecastingPage() {
                     <tr key={forecast.id}>
                       <td>
                         <strong>{recordScope(forecast)}</strong>
-                        <span className="subtle-cell">{new Date(forecast.created_at).toLocaleString()}</span>
+                        <span className="subtle-cell">{formatDateTime(forecast.created_at)}</span>
                       </td>
                       <td>{formatStatus(forecast.forecast_type)}</td>
                       <td>

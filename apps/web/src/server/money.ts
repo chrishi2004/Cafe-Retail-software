@@ -37,11 +37,4 @@ export function canonical(value: unknown): string {
     );
   return JSON.stringify(value);
 }
-export function businessDate(time = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(time);
-}
+export { businessDate } from "../businessDates";

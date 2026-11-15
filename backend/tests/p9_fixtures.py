@@ -14,10 +14,10 @@ from app.models import (
 from tests.multi_venture_fixtures import seed_two_ventures
 
 
-def seed_p9(factory: sessionmaker[Session]) -> dict[str, int]:
+def seed_p9(factory: sessionmaker[Session], *, at: datetime | None = None) -> dict[str, int]:
     ids = seed_two_ventures(factory)
     with factory() as db:
-        now = datetime.now(UTC)
+        now = at or datetime.now(UTC)
         category = MenuCategory(company_id=2, branch_id=ids["cafe_branch"], name="Drinks")
         db.add(category)
         db.flush()

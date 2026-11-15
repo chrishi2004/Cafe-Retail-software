@@ -2,19 +2,16 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import type { CafeReceipt as Receipt } from "../api/cafeBilling";
-import { CAFE_TIMEZONE } from "../utils/cafeDates";
+import { BUSINESS_TIMEZONE, storedDate } from "../../businessDates";
 import "./cafeReceipt.css";
 
 export function receiptTime(value: string | null): string {
   if (!value) return "Unavailable";
-  const date = new Date(
-    /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`,
-  );
   return new Intl.DateTimeFormat("en-IN", {
-    timeZone: CAFE_TIMEZONE,
+    timeZone: BUSINESS_TIMEZONE,
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(date);
+  }).format(storedDate(value));
 }
 
 const amount = (value: string) => Number(value).toFixed(2);

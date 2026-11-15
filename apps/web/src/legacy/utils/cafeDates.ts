@@ -1,17 +1,19 @@
-export const CAFE_TIMEZONE = "Asia/Kolkata";
+import { businessDate, shiftDate } from "../../businessDates";
 export const PRESETS = ["Today", "Yesterday", "7 Days", "This Month", "Last Month", "Custom Range"] as const;
 export type CafePreset = typeof PRESETS[number];
 
-export function cafeToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: CAFE_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-export function cafeRange(preset: CafePreset): { startDate: string; endDate: string } {
-  const today = cafeToday();
-  const end = new Date(`${today}T12:00:00Z`);
-  const start = new Date(end);
-  if (preset === "Yesterday") { start.setUTCDate(start.getUTCDate() - 1); end.setUTCDate(end.getUTCDate() - 1); }
-  if (preset === "7 Days") start.setUTCDate(start.getUTCDate() - 6);
-  if (preset === "This Month") start.setUTCDate(1);
-  if (preset === "Last Month") { start.setUTCDate(1); start.setUTCMonth(start.getUTCMonth() - 1); end.setUTCDate(0); }
-  return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+export const cafeToday = businessDate;
+
+export function cafeRange(preset: CafePreset, now = new Date()): { startDate: string; endDate: string } {
+  const today = cafeToday(now);
+  const monthStart = today.slice(0, 8) + "01";
+  const yesterday = shiftDate(today, -1);
+  if (preset === "Yesterday") return { startDate: yesterday, endDate: yesterday };
+  if (preset === "7 Days") return { startDate: shiftDate(today, -6), endDate: today };
+  if (preset === "This Month") return { startDate: monthStart, endDate: today };
+  if (preset === "Last Month") {
+    const endDate = shiftDate(monthStart, -1);
+    return { startDate: endDate.slice(0, 8) + "01", endDate };
+  }
+  return { startDate: today, endDate: today };
 }

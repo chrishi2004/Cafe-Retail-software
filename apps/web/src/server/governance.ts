@@ -1,3 +1,4 @@
+import { inBusinessRange } from "../businessDates";
 import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow, digest } from "./security";
@@ -43,10 +44,10 @@ export async function governance(
       requireValue(invoice.invoice_type === "non_gst", "GST invoices require a separate correction workflow.");
       requireValue(invoice.source_type !== "cafe_table_session", "Table bills require a separate correction workflow.");
       const timestamp = now();
-      const day = businessDate(new Date(timestamp));
+      const day = businessDate(timestamp);
       requireValue(
-        invoice.issued_at && businessDate(new Date(invoice.issued_at)) === day &&
-          businessDate(new Date(invoice.invoice_date)) === day,
+        inBusinessRange(invoice.issued_at, day, day) &&
+          inBusinessRange(invoice.invoice_date, day, day),
         "Only invoices from the current business day can be voided here.",
       );
       await writableDay(db, scope, invoice.branch_id, session, day);
@@ -57,7 +58,7 @@ export async function governance(
       const paid = collected.reduce((total, payment) => total + scaled(payment.amount), 0);
       requireValue(
         paid === scaled(invoice.paid_amount) &&
-          collected.every((payment) => !payment.voided_at && businessDate(new Date(payment.payment_datetime)) === day),
+          collected.every((payment) => !payment.voided_at && inBusinessRange(payment.payment_datetime, day, day)),
         "Payments do not match this business day. Review the invoice before correcting it.",
       );
       const reversal = await insertRow(db, "financial_reversals", {

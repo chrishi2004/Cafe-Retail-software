@@ -1,3 +1,4 @@
+import { formatDateTime, inputDateDaysAgo } from "../utils/format";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, History, PackageCheck, RotateCw, Search, SlidersHorizontal, X } from "lucide-react";
 import {
@@ -69,12 +70,6 @@ function formatMovementType(value: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function inputDateDaysAgo(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
 }
 
 export function InventoryPage() {
@@ -169,14 +164,16 @@ export function InventoryPage() {
       setMovements(
         await listStockMovements(token, {
           productId: selectedItem?.product_id,
-          branchId: selectedItem?.branch_id,
+          branchId: selectedItem?.branch_id ?? (branchId || undefined),
+          startDate,
+          endDate,
           limit: 50,
         }),
       );
     } catch (movementError) {
       setError(errorMessage(movementError));
     }
-  }, [selectedItem, token]);
+  }, [branchId, endDate, selectedItem, startDate, token]);
 
   useEffect(() => {
     void loadOptions().catch((optionsError) => setError(errorMessage(optionsError)));
@@ -605,7 +602,7 @@ export function InventoryPage() {
                       <article key={movement.id}>
                         <div>
                           <strong>{formatMovementType(movement.movement_type)}</strong>
-                          <span>{new Date(movement.created_at).toLocaleString()}</span>
+                          <span>{formatDateTime(movement.created_at)}</span>
                         </div>
                         <b>{formatQuantity(movement.quantity_change)}</b>
                         <p>{movement.reason ?? "No reason provided"}</p>

@@ -16,6 +16,10 @@ import {
   verifiedTotpStep,
 } from "../src/server/security";
 import { databaseName } from "../src/server/db";
+import { inBusinessRange } from "../src/businessDates";
+import { dateBounds, invoiceInstant } from "../src/server/query";
+import { cafeRange } from "../src/legacy/utils/cafeDates";
+import { inputDateDaysAgo } from "../src/legacy/utils/format";
 process.env.AUTH_SECRET = "unit-test-only-secret-with-at-least-32-characters";
 test("money is exact in paise and rejects excessive precision", () => {
   assert.equal(scaled("10.25"), 1025);
@@ -29,8 +33,30 @@ test("canonical request hash ignores object ordering but retains line order", ()
   assert.equal(canonical({ a: 1, b: 2 }), canonical({ b: 2, a: 1 }));
   assert.notEqual(canonical([1, 2]), canonical([2, 1]));
 });
-test("business day uses India midnight", () => {
-  assert.equal(businessDate(new Date("2026-10-17T20:00:00Z")), "2026-10-18");
+test("business dates use Kolkata midnight for timestamps, presets and invoice input", () => {
+  const boundary = new Date("2026-12-31T18:30:00Z");
+  assert.equal(businessDate(new Date(boundary.getTime() - 1)), "2026-12-31");
+  assert.equal(businessDate(boundary), "2027-01-01");
+  assert.equal(businessDate("2027-01-01T00:00:00+05:30"), "2027-01-01");
+  assert.equal(inputDateDaysAgo(0, boundary), "2027-01-01");
+  assert.equal(inputDateDaysAgo(1, boundary), "2026-12-31");
+  assert.deepEqual(cafeRange("Last Month", boundary), {
+    startDate: "2026-12-01", endDate: "2026-12-31",
+  });
+  for (const value of ["2027-01-01", "2027-01-01T00:00", "2027-01-01T00:00:00+05:30"]) {
+    assert.equal(invoiceInstant(value).toISOString(), boundary.toISOString());
+  }
+  assert.throws(() => invoiceInstant("2027-02-30"), /Invalid invoice date/);
+  const onDay = (value: unknown) => inBusinessRange(value, "2027-01-01", "2027-01-01");
+  assert.equal(onDay("2026-12-31T18:29:59.999Z"), false);
+  assert.equal(onDay("2026-12-31T18:30:00.000Z"), true);
+  assert.equal(onDay("2027-01-01T18:29:59.999Z"), true);
+  assert.equal(onDay("2027-01-01T18:30:00.000Z"), false);
+  assert.equal(onDay("2027-01-01"), true);
+  assert.deepEqual(
+    dateBounds(new URL("http://local/?end_date=2027-01-01"), "2027-01-02"),
+    { start: null, end: "2027-01-01" },
+  );
 });
 test("password derivation verifies only the correct password", async () => {
   const hash = await hashPassword("Test-password-123!");
