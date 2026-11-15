@@ -4,6 +4,7 @@ import type { Row } from "./db";
 import { type Scope, allow } from "./security";
 import { decimal, scaled } from "./money";
 import { queryScope, period, signed } from "./query";
+import { paymentActivity, paymentTotals } from "./paymentActivity";
 export function range(url: URL) {
   const p = period(url, 1);
   return { start: p.start, end: p.end };
@@ -17,7 +18,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
   const voidedInvoiceIds = new Set(invoices.filter((i) => ["cancelled", "returned", "voided"].includes(i.status)).map((i) => i.id));
   let orders = (
     await db.collection<Row>("cafe_orders").find(filter).toArray()
-  ).filter((o) => inBusinessRange(o.placed_at ?? o.created_at, start, end));
+  );
   const sessions = (
     await db.collection<Row>("table_sessions").find(filter).toArray()
   ).filter((s) => inBusinessRange(s.opened_at, start, end));
@@ -62,28 +63,26 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
       if (o.billed_invoice_id) eligibleIds.add(o.billed_invoice_id);
     invoices = invoices.filter((i) => eligibleIds.has(i.id));
   }
-  let payments = (
-    await db.collection<Row>("invoice_payments").find(filter).toArray()
-  ).filter(
-    (p) => !p.is_credit_marker && !p.voided_at && inBusinessRange(p.payment_datetime, start, end),
-  );
-  if (hasOrderFilter)
-    payments = payments.filter((p) => eligibleIds.has(p.invoice_id));
+  orders = orders.filter((o) => inBusinessRange(o.placed_at ?? o.created_at, start, end));
+  const activity = await paymentActivity(db, filter, start, end, { customerPayments: true });
   const mode = url.searchParams.get("payment_mode");
+  const matchesPayment = (p: Row) =>
+    (!hasOrderFilter || eligibleIds.has(p.invoice_id)) &&
+    (!mode || p.mode_name === mode || String(p.payment_mode_id) === mode || p.mode_type === mode);
+  const payments = activity.receipts.filter(matchesPayment);
+  const refunds = activity.refunds.filter(matchesPayment);
   if (mode) {
-    payments = payments.filter(
-      (p) =>
-        p.mode_name === mode ||
-        String(p.payment_mode_id) === mode ||
-        p.mode_type === mode,
-    );
     const ids = new Set(payments.map((p) => p.invoice_id));
     invoices = invoices.filter((i) => ids.has(i.id));
   }
-  let billed = 0,
-    outstanding = 0,
-    voidValue = 0,
-    collected = 0;
+  const deleted = await db.collection<Row>("financial_reversals").find({
+    ...filter, "compensation_json.invoice_deleted": true,
+    invoice_date: { $gte: start, $lte: end },
+  }).toArray();
+  let billed = 0, outstanding = 0;
+  let voidValue = deleted.reduce((sum, row) =>
+    sum + ((!hasOrderFilter || eligibleIds.has(row.invoice_id)) &&
+      (!mode || payments.some((p) => p.invoice_id === row.invoice_id)) ? scaled(row.amount) : 0), 0);
   const mix: Record<string, string> = {
       Cash: "0.00",
       UPI: "0.00",
@@ -115,11 +114,9 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
       });
     }
   }
-  for (const payment of payments) {
-    collected += scaled(payment.amount);
-    mix[payment.mode_name] = decimal(
-      scaled(mix[payment.mode_name] ?? "0") + scaled(payment.amount),
-    );
+  for (const [rows, direction] of [[payments, 1], [refunds, -1]] as const) {
+    for (const row of rows)
+      mix[row.mode_name] = decimal(signed(mix[row.mode_name] ?? "0") + direction * scaled(row.amount));
   }
   let ordered = 0,
     cancelled = 0,
@@ -161,7 +158,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
       ),
       billed_revenue: decimal(billed),
       net_billed_revenue: decimal(billed),
-      collections: decimal(collected),
+      ...paymentTotals(payments, refunds),
       outstanding: decimal(outstanding),
       cancelled_value: decimal(cancelled),
       void_value: decimal(voidValue),
@@ -205,6 +202,8 @@ export async function consolidated(db: Db, user: Row, url: URL) {
     "ordered_value",
     "billed_revenue",
     "net_billed_revenue",
+    "gross_collections",
+    "refunds",
     "collections",
     "outstanding",
     "cancelled_value",
@@ -232,7 +231,7 @@ export async function consolidated(db: Db, user: Row, url: URL) {
   for (const { report } of reports)
     for (const [key, value] of Object.entries(report.payment_mode_mix))
       payment_mode_mix[key] = decimal(
-        scaled(payment_mode_mix[key] ?? "0") + scaled(value),
+        signed(payment_mode_mix[key] ?? "0") + signed(value),
       );
   return {
     scope: "group",
@@ -261,6 +260,8 @@ export async function consolidated(db: Db, user: Row, url: URL) {
       venture: company.business_type,
       billed_revenue: report.kpis.billed_revenue,
       net_billed_revenue: report.kpis.net_billed_revenue,
+      gross_collections: report.kpis.gross_collections,
+      refunds: report.kpis.refunds,
       collections: report.kpis.collections,
       outstanding: report.kpis.outstanding,
     })),

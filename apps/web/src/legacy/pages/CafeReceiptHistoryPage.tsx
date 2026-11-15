@@ -80,9 +80,9 @@ export function CafeReceiptHistoryPage() {
             type: invoice.invoice_type, source: invoice.source_type, issuedAt: invoice.issued_at,
             invoiceDate: invoice.invoice_date, paid: invoice.paid_amount,
           }} onVoided={() => {
-            setNotice(`Invoice ${invoice.invoice_number} removed from sales.`);
+            setNotice(`Invoice ${invoice.invoice_number} deleted.`);
             setFilters((current) => ({ ...current }));
-            if (receipt?.invoice_id === invoice.invoice_id) void open(invoice.invoice_id);
+            if (receipt?.invoice_id === invoice.invoice_id) setReceipt(null);
           }} />
         </td>
       </tr>)}</tbody></table></div>}

@@ -27,6 +27,7 @@ export type ApiErrorResponse = {
 export type RouteKey =
   | "overview"
   | "closing"
+  | "refunds"
   | "products"
   | "customers"
   | "pos"
@@ -816,7 +817,7 @@ export type OverviewDashboard = {
   period_end: string;
   previous_period_start: string;
   previous_period_end: string;
-  kpis: DashboardKpis;
+  kpis: DashboardKpis & { payments: { gross_collections: string; refunds: string; collections: string } };
   sales_trend: DashboardSalesTrendPoint[];
   revenue_by_category: RevenueByCategoryPoint[];
   top_products: DashboardTopProduct[];

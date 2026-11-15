@@ -1,5 +1,6 @@
 import { inBusinessRange } from "../businessDates";
 import { invoiceHistory } from "./history";
+import { refundRoutes } from "./refunds";
 import { consistency } from "./consistency";
 import { assistant } from "./assistant";
 import { forecasts, recommendations } from "./planning";
@@ -499,6 +500,8 @@ export async function handle(request: Request, path: string[]) {
     if (qrResult !== undefined) return json(qrResult);
     const cafeResult = await cafeRoutes(db, scope, route, method, body, url);
     if (cafeResult !== undefined) return json(cafeResult);
+    const refundResult = await refundRoutes(db, scope, route, method, body, url, request.headers.get("idempotency-key"));
+    if (refundResult !== undefined) return json(refundResult);
     const governanceResult = await governance(
       db,
       scope,

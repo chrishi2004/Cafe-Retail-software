@@ -3,6 +3,7 @@ import { activeVentureStorage } from "../api/client";
 import { SettingsWithTaxPage } from "../pages/SettingsWithTaxPage";
 import { CafeBillingPage } from "../pages/CafeBillingPage";
 import { CafePOSPage } from "../pages/CafePOSPage";
+import { RefundsPage } from "../pages/RefundsPage";
 import { CafeClosingPage } from "../pages/CafeClosingPage";
 import { CafeDashboardPage } from "../pages/CafeDashboardPage";
 import { CafeKitchenPage } from "../pages/CafeKitchenPage";
@@ -35,6 +36,7 @@ const LABELS: Record<string, string> = {
   billing: "Billing",
   reports: "Reports",
   receipts: "Receipt history",
+  refunds: "Refunds",
   settings: "Settings",
   closing: "Daily Closing",
   kitchen: "Kitchen",
@@ -70,6 +72,7 @@ export function CafePortal({
           "expenses",
           "billing",
           "receipts",
+          "refunds",
           "reports",
           "settings",
           "closing",
@@ -97,6 +100,7 @@ export function CafePortal({
   else if (active === "stock-categories") content = <MasterDataPage routeKey="categories" />;
   else if (active === "expenses") content = <ExpensesPage />;
   else if (active === "tables") content = <CafeTablesPage />;
+  else if (active === "refunds") content = <RefundsPage />;
   else if (active === "receipts") content = <CafeReceiptHistoryPage />;
   else if (active === "reports") content = <CafeReportsPage />;
   else if (active === "settings") content = <SettingsWithTaxPage />;

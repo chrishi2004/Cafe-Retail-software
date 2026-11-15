@@ -11,6 +11,7 @@ import { canCreateOperationalRecords } from "../navigation";
 export type DashboardRouteKey = Exclude<
   RouteKey,
   | "closing"
+  | "refunds"
   | "products"
   | "customers"
   | "pos"

@@ -893,7 +893,7 @@ export function SalesPage() {
                             type: sale.invoice_type, issuedAt: sale.issued_at,
                             invoiceDate: sale.sale_datetime, paid: sale.paid_amount,
                           }} onVoided={() => {
-                            setSuccessMessage(`Invoice ${sale.sale_number} removed from sales.`);
+                            setSuccessMessage(`Invoice ${sale.sale_number} deleted.`);
                             if (selectedSale?.id === sale.id) setSelectedSale(null);
                             if (reprint?.id === sale.id) setReprint(null);
                             void loadSalesWorkspace();

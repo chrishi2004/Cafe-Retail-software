@@ -4,7 +4,7 @@ export type Closing = {
   id: number; company_id: number; branch_id: number; business_date: string;
   opening_cash: string; cash_collections: string; cash_refunds: string; cash_expenses: string;
   expected_cash: string; counted_cash: string | null; variance: string | null;
-  non_cash_total: string; non_cash_expenses: string; status: string; submitted_by: number | null; closed_by: number | null;
+  non_cash_refunds?: string; non_cash_total: string; non_cash_expenses: string; status: string; submitted_by: number | null; closed_by: number | null;
   reopened_by: number | null; reason: string | null; reopened_reason: string | null;
   created_at: string; updated_at: string;
 };
@@ -35,4 +35,32 @@ export function getClosing(token: string, branchId: number, businessDate: string
 
 export function reopenClosing(token: string, id: number, reason: string) {
   return apiRequest<Closing>(`/governance/closings/${id}/reopen`, { method: "POST", body: JSON.stringify({ reason }) }, token);
+}
+
+export type RefundCase = {
+  id: number;
+  invoice_number: string;
+  deleted_at: string;
+  legacy: boolean;
+  payments: Array<{
+    id: number; mode: string; cash: boolean; received_date: string; amount: string;
+    remaining: string; correction: string | null;
+    refunds: Array<{ id: number; amount: string; date: string; reference: string | null }>;
+  }>;
+};
+
+export function listRefunds(token: string, history: boolean, offset: number) {
+  return apiRequest<{ items: RefundCase[]; has_more: boolean; page_size: number }>(
+    `/governance/refunds?history=${history}&offset=${offset}`, {}, token,
+  );
+}
+
+export function recordPaymentResolution(token: string, id: number, payment: number,
+  payload: { action: "refund"; amount: string; refund_date: string; reference_number: string } |
+           { action: "not_received"; reason: string }, key: string) {
+  return apiRequest<{ refund_status: string; remaining: string }>(
+    `/governance/refunds/${id}/payments/${payment}`,
+    { method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify({ ...payload, confirmed: true }) },
+    token,
+  );
 }

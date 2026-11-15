@@ -30,7 +30,7 @@ export function CafeDashboardPage() {
     <section className="page-stack" data-p9-scope="cafe">
       <div className="page-header">
         <div><p className="eyebrow">Today · Café dashboard</p><h2>{user?.company_name ?? "Cafe"} reporting</h2>
-          <p className="page-description">Today’s sales and collections exclude voided bills.</p>
+          <p className="page-description">Deleted bills are removed from sales. Collections change only when a refund or payment correction is recorded.</p>
         </div>
       </div>
       <section className="metric-grid">
@@ -38,7 +38,8 @@ export function CafeDashboardPage() {
         <div className="metric-card"><span>Average bill</span><strong>{money(dashboard.kpis.average_bill_value)}</strong></div>
         {["Cash", "UPI", "Card"].map((mode) => <div key={mode} className="metric-card"><span>{mode}</span><strong>{money(Object.entries(dashboard.payment_mode_mix).filter(([name]) => name.toLowerCase() === mode.toLowerCase()).reduce((sum, [, amount]) => sum + Number(amount), 0))}</strong></div>)}
         <div className="metric-card green"><span>Net sales</span><strong>{money(dashboard.kpis.net_billed_revenue)}</strong></div>
-        <div className="metric-card amber"><span>Amount collected</span><strong>{money(dashboard.kpis.collections)}</strong></div>
+        <div className="metric-card amber"><span>Net collections</span><strong>{money(dashboard.kpis.collections)}</strong></div>
+        <div className="metric-card"><span>Refunds recorded</span><strong>{money(dashboard.kpis.refunds)}</strong></div>
         <div className="metric-card rose"><span>Outstanding</span><strong>{money(dashboard.kpis.outstanding)}</strong></div>
         <div className="metric-card"><span>Open/unbilled sessions</span><strong>{dashboard.kpis.open_unbilled_sessions}</strong></div>
       </section>

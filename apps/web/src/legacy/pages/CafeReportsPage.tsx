@@ -89,7 +89,8 @@ export function CafeReportsPage() {
         <>
           <section className="metric-grid">
             <div className="metric-card green"><span>Net billed revenue</span><strong>{money(report.kpis.net_billed_revenue)}</strong></div>
-            <div className="metric-card amber"><span>Collections</span><strong>{money(report.kpis.collections)}</strong></div>
+            <div className="metric-card amber"><span>Net collections</span><strong>{money(report.kpis.collections)}</strong></div>
+            <div className="metric-card"><span>Refunds recorded</span><strong>{money(report.kpis.refunds)}</strong></div>
             <div className="metric-card rose"><span>Outstanding</span><strong>{money(report.kpis.outstanding)}</strong></div>
             <div className="metric-card blue"><span>Average bill</span><strong>{money(report.kpis.average_bill_value)}</strong></div>
           </section>

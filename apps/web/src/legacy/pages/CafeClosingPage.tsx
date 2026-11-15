@@ -175,9 +175,11 @@ export function CafeClosingPage({
             {[
               ["Opening cash", closing.opening_cash],
               ["Cash collections", closing.cash_collections],
+              ["Cash refunds", closing.cash_refunds],
               ["Cash expenses", closing.cash_expenses],
               ["Expected cash", closing.expected_cash],
               ["Non-cash collections", closing.non_cash_total],
+              ["Non-cash refunds", closing.non_cash_refunds ?? "0.00"],
               ["Non-cash expenses", closing.non_cash_expenses ?? "0.00"],
               ["Counted cash", closing.counted_cash ?? "Pending"],
               ["Variance", closing.variance ?? "Pending count"],
@@ -191,7 +193,7 @@ export function CafeClosingPage({
           <article className="panel">
             <h3>Status: {closing.status}</h3>
             <p className="page-description">
-              Expected cash = opening cash + cash collections − posted cash expenses.
+              Expected cash = opening cash + cash collections − cash refunds − posted cash expenses.
             </p>
             {editable ? (
               <>

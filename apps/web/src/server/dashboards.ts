@@ -1,4 +1,5 @@
 import { inBusinessRange } from "../businessDates";
+import { paymentActivity, paymentTotals } from "./paymentActivity";
 import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow } from "./security";
@@ -345,10 +346,15 @@ export async function dashboard(db: Db, scope: Scope, url: URL, kind: string) {
     inventory = await inventoryAnalytics(db, scope, url),
     purchase = await purchaseAnalytics(db, scope, url);
   const { summary, ...rest } = sales;
+  const { start, end } = period(url);
+  const { receipts, refunds } = await paymentActivity(
+    db, await queryScope(db, scope, url), start, end, { customerPayments: true },
+  );
   return {
     ...rest,
     kpis: {
       sales: summary,
+      payments: paymentTotals(receipts, refunds),
       inventory: inventory.summary,
       purchase_orders: purchase.summary,
       top_selling_product: sales.top_products[0] ?? null,
