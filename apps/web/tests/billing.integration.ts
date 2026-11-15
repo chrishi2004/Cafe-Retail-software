@@ -289,33 +289,61 @@ test(
       );
       const invoiceId = duplicates[0].body.receipt.invoice_id;
       const voidPath = `governance/voids/invoices/${invoiceId}`;
-      const correction = { confirmed: true };
-      assert.equal((await call(voidPath, "POST", correction, ct, "void-cashier")).status, 403);
-      assert.equal((await call(voidPath, "POST", correction, ot, "void-wrong-venture", 2)).status, 404);
-      assert.equal((await call(voidPath, "POST", {}, ot, "void-unconfirmed", 1)).status, 422);
+      const deletion = { confirmed: true, delete_permanently: true };
+      assert.equal((await call(voidPath, "POST", deletion, ct, "void-cashier")).status, 403);
+      assert.equal((await call(voidPath, "POST", deletion, ot, "void-wrong-venture", 2)).status, 404);
+      assert.equal((await call(voidPath, "POST", { confirmed: true }, ot, "void-stale-client", 1)).status, 422);
       assert.equal((await call("governance/step-up", "GET", undefined, ot)).body.remaining_ms, 0);
       const voids = await Promise.all([
-        call(voidPath, "POST", correction, ot, "void-test-sale", 1),
-        call(voidPath, "POST", correction, ot, "void-test-sale", 1),
+        call(voidPath, "POST", deletion, ot, "void-test-sale", 1),
+        call(voidPath, "POST", deletion, ot, "void-test-sale", 1),
       ]);
       assert.deepEqual(voids.map((r) => r.status), [200, 200]);
-      assert.equal(voids[0].body.id, voids[1].body.id);
-      assert.equal((await call(voidPath, "POST", correction, ot, "void-already-done", 1)).status, 422);
+      assert.deepEqual(voids[0].body, voids[1].body);
+      assert.equal(voids[0].body.refund_status, "pending");
+      assert.equal((await call(voidPath, "POST", deletion, ot, "void-already-done", 1)).status, 404);
+      assert.equal(await db.collection("invoices").countDocuments({ id: invoiceId }), 0);
       assert.equal(await db.collection("financial_reversals").countDocuments({ invoice_id: invoiceId }), 1);
       assert.equal((await db.collection("inventory").findOne({ product_id: product.body.id }))?.quantity_scaled, 0);
-      assert.equal((await db.collection("invoice_payments").findOne({ invoice_id: invoiceId }))?.amount, "100.00");
-      assert.equal((await db.collection("cafe_orders").findOne({ billed_invoice_id: invoiceId }))?.status, "cancelled");
-      assert.equal((await call(receiptPath, "GET", undefined, ct)).body.invoice_status, "cancelled");
-      const corrected = (await call("dashboard/cafe", "GET", undefined, ot, undefined, 1)).body.kpis;
+      assert.equal(await db.collection("cafe_orders").countDocuments({ billed_invoice_id: invoiceId }), 0);
+      assert.equal((await call(receiptPath, "GET", undefined, ct)).status, 404);
+      assert.equal((await call("cafe/billing/pos/checkout", "POST", payload(1), ct, "duplicate-pay-key")).body.error.code, "invoice_deleted");
+      const report = async () => (await call("dashboard/cafe", "GET", undefined, ot, undefined, 1)).body.kpis;
+      const corrected = await report();
       assert.equal(corrected.net_billed_revenue, "900.00");
-      assert.equal(corrected.billed_revenue, "900.00");
       assert.equal(corrected.ordered_value, "900.00");
-      assert.equal(corrected.cancelled_value, "0.00");
+      assert.equal(corrected.void_value, "100.00");
       assert.equal(corrected.order_count, 4);
+      assert.equal(corrected.collections, "1000.00");
+      assert.equal(corrected.refunds, "0.00");
+      const pending = await call("governance/refunds", "GET", undefined, ot, undefined, 1);
+      assert.equal(pending.status, 200);
+      const refundCase = pending.body.items[0];
+      assert.equal(refundCase.payments[0].amount, "100.00");
+      const refundPath = `governance/refunds/${refundCase.id}/payments/${refundCase.payments[0].id}`;
+      const refund = { action: "refund", confirmed: true, refund_date: refundCase.payments[0].received_date };
+      assert.equal((await call(refundPath, "POST", { ...refund, amount: "40" }, ct, "refund-cashier", 1)).status, 403);
+      assert.equal((await call(refundPath, "POST", { ...refund, amount: "40" }, ot, "refund-other-scope", 2)).status, 404);
+      assert.equal((await call(refundPath, "POST", { ...refund, amount: "101" }, ot, "refund-too-much", 1)).status, 422);
+      const partial = await Promise.all([
+        call(refundPath, "POST", { ...refund, amount: "40" }, ot, "partial-refund", 1),
+        call(refundPath, "POST", { ...refund, amount: "40" }, ot, "partial-refund", 1),
+      ]);
+      for (const result of partial) {
+        assert.equal(result.status, 200, JSON.stringify(result.body));
+        assert.equal(result.body.remaining, "60.00");
+      }
+      assert.equal((await report()).collections, "960.00");
+      assert.equal((await report()).refunds, "40.00");
+      const finish = await call(refundPath, "POST", { ...refund, amount: "60" }, ot, "final-refund", 1);
+      assert.equal(finish.body.refund_status, "refunded");
+      assert.equal(await db.collection("invoice_refunds").countDocuments({ invoice_id: invoiceId }), 2);
       const group = (await call("dashboard/consolidated", "GET", undefined, ot)).body;
       assert.equal(group.kpis.billed_revenue, "900.00");
+      assert.equal(group.kpis.gross_collections, "1000.00");
+      assert.equal(group.kpis.refunds, "100.00");
       assert.equal(group.kpis.collections, "900.00");
-      assert.equal(corrected.collections, "900.00");
+      assert.equal((await call("governance/refunds", "GET", undefined, ot, undefined, 1)).body.items.length, 0);
       const day = await call(
         "governance/closings",
         "POST",
@@ -344,6 +372,9 @@ test(
       );
       assert.equal(submit.status, 200);
       assert.equal(submit.body.expected_cash, "800.00");
+      assert.equal(submit.body.cash_collections, "800.00");
+      assert.equal(submit.body.cash_refunds, "100.00");
+      assert.equal(submit.body.variance, "0.00");
       assert.equal(submit.body.non_cash_total, "200.00");
       assert.equal(
         (
@@ -371,7 +402,7 @@ test(
         409,
       );
       const otherInvoice = (await db.collection("invoices").findOne({ company_id: 1, status: "paid" }))!;
-      assert.equal((await call(`governance/voids/invoices/${otherInvoice.id}`, "POST", correction, ot, "void-closed-day", 1)).status, 409);
+      assert.equal((await call(`governance/voids/invoices/${otherInvoice.id}`, "POST", deletion, ot, "void-closed-day", 1)).status, 409);
       // Retail uses the same native financial engine with independent scope and numbering.
       const rc = await call(
         "categories",
@@ -457,6 +488,28 @@ test(
         )?.quantity_scaled,
         700,
       );
+      const mixed = await call("pos/checkout", "POST", {
+        branch_id: 2, invoice_type: "non_gst",
+        items: [{ product_id: rp.body.id, quantity: "1" }],
+        payments: [{ payment_mode_id: 4, amount: "20" }, { payment_mode_id: 5, amount: "30", reference_number: "original-upi-ref" }],
+      }, rt, "retail-mixed-payment");
+      assert.equal(mixed.status, 200, JSON.stringify(mixed.body));
+      const deleteMixed = await call(`governance/voids/invoices/${mixed.body.id}`, "POST", deletion, ot, "delete-retail-mixed", 2);
+      assert.equal(deleteMixed.status, 200, JSON.stringify(deleteMixed.body));
+      const retailCase = (await call("governance/refunds", "GET", undefined, ot, undefined, 2)).body.items[0];
+      const cashLine = retailCase.payments.find((p: { cash: boolean }) => p.cash);
+      const upiLine = retailCase.payments.find((p: { cash: boolean }) => !p.cash);
+      const refundUpiPath = `governance/refunds/${retailCase.id}/payments/${upiLine.id}`;
+      const refundUpi = { ...refund, refund_date: upiLine.received_date, amount: "30" };
+      assert.equal((await call(refundUpiPath, "POST", refundUpi, ot, "upi-no-reference", 2)).status, 422);
+      assert.equal((await call(refundUpiPath, "POST", { ...refundUpi, reference_number: "verified-upi-refund" }, ot, "upi-with-reference", 2)).status, 200);
+      const correctCash = await call(`governance/refunds/${retailCase.id}/payments/${cashLine.id}`, "POST", {
+        action: "not_received", confirmed: true, reason: "Cash was entered by mistake.",
+      }, ot, "retail-no-cash-received", 2);
+      assert.equal(correctCash.body.refund_status, "resolved", JSON.stringify(correctCash.body));
+      const retailPayments = (await call("dashboard/overview", "GET", undefined, ot, undefined, 2)).body.kpis.payments;
+      assert.deepEqual(retailPayments, { gross_collections: "180.00", refunds: "30.00", collections: "150.00" });
+
       // UTC is still January 31 at midnight on February 1 in Kolkata.
       const boundary = "2024-01-31T18:30:00.000Z";
       const beforeMidnight = "2024-01-31T18:29:59.999Z";
@@ -535,6 +588,29 @@ test(
       assert.equal(closedDay.body.cash_collections, "10.00");
       assert.equal(closedDay.body.expected_cash, "110.00");
       assert.equal(closedDay.body.variance, "0.00");
+
+      // Old cancellations did not prove that money had moved. Recover their receipt
+      // without changing a stored close; record an actual later refund on its date.
+      await db.collection("invoices").updateOne({ id: 1901 }, { $set: { status: "cancelled" } });
+      await db.collection("invoice_payments").updateOne({ id: 1901 }, { $set: { voided_at: boundary } });
+      await db.collection("financial_reversals").insertOne({
+        id: 991, company_id: 1, branch_id: 1, invoice_id: 1901, reversal_type: "void",
+        refund_status: "not_processed_by_pos", amount: "10.00", created_at: boundary,
+      });
+      assert.equal((await get("governance/refunds", 1)).items[0].legacy, true);
+      assert.equal((await get(`dashboard/cafe?${query}`, 1)).kpis.collections, "10.00");
+      assert.equal((await call("governance/refunds/991/payments/1901", "POST", {
+        ...refund, amount: "10", refund_date: "2024-02-01",
+      }, ot, "closed-refund-day", 1)).status, 409);
+      assert.equal((await call("governance/refunds/991/payments/1901", "POST", {
+        ...refund, amount: "10", refund_date: "2024-02-03",
+      }, ot, "verified-later-refund", 1)).status, 200);
+      assert.equal((await get(`dashboard/cafe?${query}`, 1)).kpis.collections, "10.00");
+      const later = "start_date=2024-02-03&end_date=2024-02-03";
+      const laterGroup = await get(`dashboard/consolidated?${later}`);
+      assert.equal(laterGroup.kpis.collections, "-10.00");
+      assert.equal(laterGroup.payment_mode_mix.Cash, "-10.00");
+      assert.equal((await get("governance/closings?branch_id=1&business_date=2024-02-01", 1)).cash_refunds, "0.00");
 
       assert.equal((await call("auth/logout", "POST", {}, ct)).status, 200);
       assert.equal((await call("auth/me", "GET", undefined, ct)).status, 401);

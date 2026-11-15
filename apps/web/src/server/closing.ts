@@ -1,4 +1,4 @@
-import { inBusinessRange } from "../businessDates";
+import { paymentActivity } from "./paymentActivity";
 import { requireStepUp } from "./accounts";
 import { audit } from "./query";
 import { database, nextId, type Row } from "./db";
@@ -51,6 +51,7 @@ export async function closing(
           opening_cash: decimal(opening),
           cash_collections: "0.00",
           cash_refunds: "0.00",
+          non_cash_refunds: "0.00",
           cash_expenses: "0.00",
           non_cash_expenses: "0.00",
           expected_cash: decimal(opening),
@@ -107,33 +108,15 @@ export async function closing(
           ["open", "reopened"].includes(record.status),
           "Only open days can be submitted.",
         );
-        let cash = 0,
-          nonCash = 0;
-        let payments = await db
-          .collection("invoice_payments")
-          .find(
-            { company_id: scope.company.id, branch_id: branch.id },
-            { session },
-          )
-          .toArray();
-        payments = payments.concat(
-          await db
-            .collection("customer_payments")
-            .find(
-              { company_id: scope.company.id, branch_id: branch.id },
-              { session },
-            )
-            .toArray(),
+        const day = record.business_date;
+        const { receipts, refunds } = await paymentActivity(
+          db, { company_id: scope.company.id, branch_id: branch.id }, day, day,
+          { session, customerPayments: true },
         );
-        for (const payment of payments)
-          if (
-            !payment.is_credit_marker &&
-            !payment.voided_at &&
-            inBusinessRange(payment.payment_datetime, record.business_date, record.business_date)
-          ) {
-            if (payment.mode_type === "cash") cash += scaled(payment.amount);
-            else nonCash += scaled(payment.amount);
-          }
+        const sumModes = (rows: Row[], cash: boolean) => rows.reduce((sum, row) =>
+          sum + ((row.mode_type === "cash") === cash ? scaled(row.amount) : 0), 0);
+        const cash = sumModes(receipts, true), nonCash = sumModes(receipts, false);
+        const cashRefunds = sumModes(refunds, true), nonCashRefunds = sumModes(refunds, false);
         const expenses = await db
           .collection("expenses")
           .find(
@@ -153,9 +136,11 @@ export async function closing(
           else nonCashExpenses += scaled(expense.amount);
         }
         const counted = scaled(body.counted_cash),
-          expected = scaled(record.opening_cash) + cash - cashExpenses;
+          expected = scaled(record.opening_cash) + cash - cashRefunds - cashExpenses;
         Object.assign(record, {
           cash_collections: decimal(cash),
+          cash_refunds: decimal(cashRefunds),
+          non_cash_refunds: decimal(nonCashRefunds),
           cash_expenses: decimal(cashExpenses),
           non_cash_total: decimal(nonCash),
           non_cash_expenses: decimal(nonCashExpenses),

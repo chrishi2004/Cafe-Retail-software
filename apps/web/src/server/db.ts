@@ -70,6 +70,7 @@ export async function indexes(db: Db) {
     "stock_movements",
     "invoices",
     "invoice_payments",
+    "invoice_refunds",
     "business_day_closures",
     "table_sessions",
     "qr_tokens",
@@ -136,6 +137,15 @@ export async function indexes(db: Db) {
   await db
     .collection("stock_intakes")
     .createIndex({ company_id: 1, branch_id: 1, purchase_date: -1 });
+  await db.collection("invoice_refunds").createIndex({ company_id: 1, branch_id: 1, refund_date: 1 });
+  await db.collection("invoice_refunds").createIndex(
+    { company_id: 1, mode_type: 1, reference_number: 1 },
+    { unique: true, partialFilterExpression: { reference_number: { $type: "string" } } },
+  );
+  await db.collection("financial_reversals").createIndex(
+    { company_id: 1, checkout_key: 1 },
+    { unique: true, partialFilterExpression: { checkout_key: { $type: "string" } } },
+  );
   await db
     .collection("login_attempts")
     .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });

@@ -80,7 +80,10 @@ export async function consistency(
         paymentIssues = [],
         stockIssues = [],
         orderIssues = [];
-      const ids = new Set(invoices.map((i) => i.id));
+      const deleted = await db.collection<Row>("financial_reversals").find({
+        ...scope.filter, "compensation_json.invoice_deleted": true,
+      }, { session }).toArray();
+      const ids = new Set([...invoices.map((i) => i.id), ...deleted.map((r) => r.invoice_id)]);
       for (const invoice of invoices) {
         if (["draft", "cancelled", "returned"].includes(invoice.status))
           continue;

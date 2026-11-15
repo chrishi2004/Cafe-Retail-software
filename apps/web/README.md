@@ -64,6 +64,12 @@ Tests use disposable local replica sets, never the configured customer Atlas dat
 
 Date filters use inclusive `YYYY-MM-DD` business dates in `Asia/Kolkata`, regardless of the device or server timezone. Invoice sales use the invoice's business date, while collections and cash closing use the payment's business date. Timestamps are stored as UTC instants.
 
+## Invoice deletion and refunds
+
+An admin can permanently delete an eligible same-day non-GST invoice from Café Receipt History or Retail Sales. The bill and its line items disappear and cannot be reprinted. Stock stays unchanged. The POS keeps only the information needed to prevent a duplicated checkout and reconcile the money.
+
+Deleting a paid bill has no effect on collections. In that shop's **Refunds** page, record the amount and date after returning money by the original payment method. For an electronic payment, enter the refund transaction reference. If the payment entry was a mistake and no money was ever received, use **No payment received**. Unpaid bills do not create a refund task. Corrections or refunds for a closed business day require that day to be reopened. Older cancellations are listed for verification; the POS does not assume they were refunded.
+
 ## Vercel
 
 | Setting | Value |

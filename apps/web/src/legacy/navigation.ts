@@ -112,6 +112,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ReceiptText,
     roles: ["admin", "store_manager"],
   },
+  { key: "refunds", label: "Refunds", icon: ReceiptText, roles: ["admin"] },
   { key: "settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ];
 

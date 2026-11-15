@@ -296,6 +296,12 @@ export async function checkout(
             throw new HttpError(404, "not_found", "Invoice unavailable.");
           return { invoice: existing, replay: true };
         }
+        const deleted = await db.collection("financial_reversals").findOne({
+          company_id: scope.company.id, checkout_key: keyHash,
+          ...(scope.user.branch_id ? { branch_id: scope.user.branch_id } : {}),
+        }, { session });
+        if (deleted)
+          throw new HttpError(409, "invoice_deleted", "This checkout was already completed, and its invoice was deleted.");
         if (draftId) {
           const draft = await db
             .collection<Row>("invoices")

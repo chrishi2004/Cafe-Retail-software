@@ -288,10 +288,11 @@ test(
           await dialog.dismiss();
         });
         await button.click();
-        assert.equal(await db.collection("invoices").countDocuments({ invoice_number: number, status: "cancelled" }), 0);
+        assert.equal(await db.collection("invoices").countDocuments({ invoice_number: number }), 1);
         page.once("dialog", (dialog) => void dialog.accept());
         await button.click();
-        await page.getByText(`Invoice ${number} removed from sales.`, { exact: true }).waitFor();
+        await page.getByText(`Invoice ${number} deleted.`, { exact: true }).waitFor();
+        assert.equal(await db.collection("invoices").countDocuments({ invoice_number: number }), 0);
       };
 
       await page.goto("http://127.0.0.1:4317/retail/sales");
@@ -343,15 +344,23 @@ test(
       await page.goto("http://127.0.0.1:4317/cafe/receipts");
       await page.waitForLoadState("networkidle");
       await deleteInvoice("CAFE-000001");
-      await page.getByRole("row").filter({ hasText: "CAFE-000001" })
-        .getByText("cancelled", { exact: true }).waitFor();
+      await page.getByRole("row").filter({ hasText: "CAFE-000001" }).waitFor({ state: "hidden" });
       assert.equal((await db.collection("inventory").findOne({ id: 1 }))?.quantity_scaled, 900);
       await page.goto("http://127.0.0.1:4317/cafe/dashboard");
       const metrics = page.locator(".metric-grid").first();
-      for (const label of ["Net sales", "Amount collected"]) {
-        const card = metrics.locator(".metric-card").filter({ hasText: label });
-        await card.getByText("₹0.00", { exact: true }).waitFor();
-      }
+      const kpi = (label: string) => metrics.locator(".metric-card").filter({ hasText: label });
+      await kpi("Net sales").getByText("₹0.00", { exact: true }).waitFor();
+      await kpi("Net collections").getByText("₹100.00", { exact: true }).waitFor();
+      await page.goto("http://127.0.0.1:4317/cafe/refunds");
+      await page.getByRole("heading", { name: "CAFE-000001", exact: true }).waitFor();
+      assert.equal(await page.getByRole("heading", { name: "RETAIL-000001", exact: true }).count(), 0);
+      await page.getByRole("button", { name: "Record refund", exact: true }).click();
+      await page.getByRole("button", { name: "Confirm money returned", exact: true }).click();
+      await page.getByText("Refund recorded.", { exact: true }).waitFor();
+      await page.getByText("No refunds to reconcile.").waitFor();
+      await page.goto("http://127.0.0.1:4317/cafe/dashboard");
+      await kpi("Net collections").getByText("₹0.00", { exact: true }).waitFor();
+      await kpi("Refunds recorded").getByText("₹100.00", { exact: true }).waitFor();
       assert.equal(await metrics.getByText("Ordered value", { exact: true }).count(), 0);
       const cafeManagementScreens = [
         ["expenses", "Expense management"],
@@ -394,7 +403,7 @@ test(
       );
       assert.equal(
         await db.collection("invoices").countDocuments(),
-        2,
+        0,
         "Guest order must not create an invoice.",
       );
       await guestPage.close();

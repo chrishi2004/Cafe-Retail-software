@@ -10,6 +10,8 @@ export type P9Dashboard = {
     ordered_value: string;
     billed_revenue: string;
     net_billed_revenue: string;
+    gross_collections: string;
+    refunds: string;
     collections: string;
     outstanding: string;
     cancelled_value: string;
@@ -32,6 +34,7 @@ export type P9Consolidated = P9Dashboard & {
     billed_revenue: string;
     net_billed_revenue: string;
     collections: string;
+    refunds: string;
     outstanding: string;
   }>;
 };

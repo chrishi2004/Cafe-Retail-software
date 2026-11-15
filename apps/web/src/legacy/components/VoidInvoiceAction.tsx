@@ -31,9 +31,8 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
 
   const remove = async () => {
     if (busy.current || !window.confirm(
-      `Delete invoice ${invoice.number} from today's sales?\n\n` +
-      "The bill will be marked Cancelled and excluded from sales and collections. Stock will stay unchanged." +
-      (Number(invoice.paid) > 0 ? "\n\nIf payment was actually received, return it separately before confirming." : ""),
+      `Permanently delete invoice ${invoice.number}? This removes the bill from sales and it cannot be reprinted. Stock stays unchanged.` +
+      (Number(invoice.paid) > 0 ? "\n\nPayment still counts in collections. Use Refunds to record money returned or correct a mistaken payment." : ""),
     )) return;
 
     busy.current = true;
@@ -44,7 +43,7 @@ export function VoidInvoiceAction({ invoice, onVoided }: { invoice: Invoice; onV
       await apiRequest(`/governance/voids/invoices/${invoice.id}`, {
         method: "POST",
         headers: { "Idempotency-Key": key.current },
-        body: JSON.stringify({ confirmed: true }),
+        body: JSON.stringify({ confirmed: true, delete_permanently: true }),
       }, token);
       onVoided();
     } catch (err) {

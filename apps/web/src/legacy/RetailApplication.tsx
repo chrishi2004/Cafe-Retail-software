@@ -1,3 +1,4 @@
+import { RefundsPage } from "./pages/RefundsPage";
 import { CafeClosingPage } from "./pages/CafeClosingPage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +31,7 @@ import "./styles.css";
 const ROUTE_KEYS: RouteKey[] = [
   "overview",
   "closing",
+  "refunds",
   "products",
   "customers",
   "pos",
@@ -116,6 +118,8 @@ function App() {
         <POSPage />
       ) : availableRoute === "closing" ? (
         <CafeClosingPage title="Retail cash reconciliation" />
+      ) : availableRoute === "refunds" ? (
+        <RefundsPage />
       ) : availableRoute === "overview" ? (
         <OverviewDashboardPage />
       ) : availableRoute === "inventory" ? (

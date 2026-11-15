@@ -19,8 +19,8 @@ export async function governance(
   const voidMatch = route.match(/^governance\/voids\/invoices\/(\d+)$/);
   if (voidMatch && method === "POST") {
     allow(scope.user, ["super_admin", "admin"]);
-    requireValue(body.confirmed === true, "Confirm the invoice deletion.");
-    const reason = "Admin confirmed invoice removal from sales.";
+    requireValue(body.confirmed === true && body.delete_permanently === true, "Reload the page and confirm permanent invoice deletion.");
+    const reason = "Admin permanently deleted the invoice.";
     return transaction(async (db, session) => {
       const state = await replay(
         db,
@@ -64,6 +64,9 @@ export async function governance(
       const reversal = await insertRow(db, "financial_reversals", {
         ...related,
         invoice_id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        invoice_date: businessDate(invoice.invoice_date),
+        checkout_key: invoice.idempotency_key,
         reversal_type: "void",
         amount: invoice.grand_total,
         reason,
@@ -71,51 +74,39 @@ export async function governance(
         actor_id: scope.user.id,
         compensation_json: {
           payment_amount: invoice.paid_amount,
-          payment_resolution: paid ? "handled_outside_pos" : "not_applicable",
+          invoice_deleted: true,
           stock_restored: false,
         },
-        refund_status: paid ? "not_processed_by_pos" : "not_required",
+        refund_status: paid ? "pending" : "not_required",
       }, session);
-      await db.collection("invoice_payments").updateMany(
-        paymentFilter, { $set: { voided_at: timestamp, reversal_id: reversal.id } }, { session },
-      );
-      await db.collection<Row>("invoices").updateOne(
-        { ...related, id: invoice.id },
-        {
-          $set: {
-            status: "cancelled",
-            cancelled_at: timestamp,
-            cancellation_reason: reason,
-            balance_due: "0.00",
-            updated_at: timestamp,
-            status_history: [...(invoice.status_history ?? []), {
-            id: (invoice.status_history?.length ?? 0) + 1,
-            invoice_id: invoice.id,
-            from_status: invoice.status,
-            to_status: "cancelled",
-            changed_by: scope.user.id,
-            changed_by_name: scope.user.name,
-            notes: reason,
-            changed_at: timestamp,
-            }],
-          },
-        },
-        { session },
-      );
+      await db.collection<Row>("invoices").deleteOne({ ...related, id: invoice.id }, { session });
+      // Past payment retries sometimes cached the full invoice or receipt.
+      // Keep the retry identity, but remove the printable snapshot with the bill.
+      await db.collection("operation_keys").updateMany({
+        $or: [
+          { "result.id": invoice.id, "result.company_id": invoice.company_id, "result.invoice_number": invoice.invoice_number },
+          { "result.receipt.invoice_id": invoice.id, "result.receipt.invoice_number": invoice.invoice_number },
+        ],
+      }, { $set: { result: { invoice_id: invoice.id, deleted: true } } }, { session });
       if (invoice.customer_id && scaled(invoice.balance_due) > 0)
         await postLedger(
           db, scope, await scopedCustomer(db, scope, invoice.customer_id, session),
           0, scaled(invoice.balance_due), "credit_note", "financial_reversal",
           reversal.id, invoice.branch_id, session, reason,
         );
+      // Direct checkout creates a copy of the bill for the orders list.
+      await db.collection("cafe_orders").deleteMany({
+        ...related, billed_invoice_id: invoice.id, source_channel: "billing_counter",
+      }, { session });
       await db.collection("cafe_orders").updateMany(
         { ...related, billed_invoice_id: invoice.id },
         { $set: { status: "cancelled", cancelled_at: timestamp, updated_at: timestamp, reason }, $inc: { version: 1 } },
         { session },
       );
       await audit(db, scope, "void", "invoice", invoice.id, { reason, reversal_id: reversal.id }, session);
-      await saveReplay(db, state, reversal, session);
-      return reversal;
+      const result = { invoice_id: invoice.id, invoice_number: invoice.invoice_number, refund_status: reversal.refund_status };
+      await saveReplay(db, state, result, session);
+      return result;
     });
   }
   const purge = route.match(

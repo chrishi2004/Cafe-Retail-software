@@ -235,6 +235,12 @@ export function OverviewDashboardPage() {
                 tone: "green",
               }}
             />
+            <MetricCard metric={{
+              label: "Net collections",
+              value: formatCurrency(dashboard.kpis.payments.collections),
+              detail: `${formatCurrency(dashboard.kpis.payments.refunds)} refunded · all items`,
+              tone: "amber",
+            }} />
             <MetricCard
               metric={{
                 label: "Gross Profit",
