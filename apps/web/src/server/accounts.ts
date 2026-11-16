@@ -120,11 +120,11 @@ export async function authActions(
       String(body.totp_code ?? ""),
     );
     requireValue(step !== null, "Invalid authenticator code.");
-    const updated = await db
-      .collection("users")
-      .updateOne(
+    await transaction(async (db, session) => {
+      const updated = await db.collection("users").updateOne(
         {
           id: user.id,
+          token_version: user.token_version,
           mfa_pending_encrypted: user.mfa_pending_encrypted,
           mfa_enabled: { $ne: true },
         },
@@ -142,8 +142,11 @@ export async function authActions(
           },
           $inc: { token_version: 1 },
         },
+        { session },
       );
-    requireValue(updated.modifiedCount === 1, "Enrollment changed. Retry.");
+      requireValue(updated.modifiedCount === 1, "Enrollment changed. Retry.");
+      await employeeAudit(db, user, user, "mfa_enabled", {}, session, "security_account");
+    });
     return { message: "MFA enabled. Sign in again." };
   }
   if (route === "auth/mfa/disable" && method === "POST") {
@@ -161,10 +164,9 @@ export async function authActions(
       String(body.totp_code ?? ""),
     );
     requireValue(step !== null, "Invalid authenticator code.");
-    await db
-      .collection("users")
-      .updateOne(
-        { id: user.id },
+    await transaction(async (db, session) => {
+      const updated = await db.collection("users").updateOne(
+        { id: user.id, token_version: user.token_version, mfa_enabled: true, mfa_secret_encrypted: user.mfa_secret_encrypted },
         {
           $set: { mfa_enabled: false },
           $unset: {
@@ -174,7 +176,11 @@ export async function authActions(
           },
           $inc: { token_version: 1 },
         },
+        { session },
       );
+      requireValue(updated.modifiedCount === 1, "Account security changed. Retry.");
+      await employeeAudit(db, user, user, "mfa_disabled", {}, session, "security_account");
+    });
     return { message: "MFA disabled. Sign in again." };
   }
   return undefined;
@@ -226,11 +232,11 @@ function setupCredential() {
   };
 }
 
-async function employeeAudit(db: Db, actor: Row, target: Row, action: string, details: object, session: ClientSession) {
+async function employeeAudit(db: Db, actor: Row, target: Row, action: string, details: object, session: ClientSession, entity = "user") {
   await insertRow(db, "audit_events", {
     business_group_id: actor.business_group_id,
     company_id: target.company_id, branch_id: target.branch_id,
-    actor_id: actor.id, action, entity_type: "user", entity_id: target.id, details,
+    actor_id: actor.id, actor_name: actor.name, outcome: "recorded", action, entity_type: entity, entity_id: target.id, details,
   }, session);
 }
 

@@ -103,7 +103,7 @@ export async function governance(
         { $set: { status: "cancelled", cancelled_at: timestamp, updated_at: timestamp, reason }, $inc: { version: 1 } },
         { session },
       );
-      await audit(db, scope, "void", "invoice", invoice.id, { reason, reversal_id: reversal.id }, session);
+      await audit(db, scope, "void", "invoice", invoice.id, { reason, reversal_id: reversal.id }, session, { branchId: invoice.branch_id, reference: invoice.invoice_number });
       const result = { invoice_id: invoice.id, invoice_number: invoice.invoice_number, refund_status: reversal.refund_status };
       await saveReplay(db, state, result, session);
       return result;

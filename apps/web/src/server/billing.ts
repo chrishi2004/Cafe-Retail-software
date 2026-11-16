@@ -7,7 +7,7 @@ import { postLedger, scopedCustomer } from "./ledger";
 import { randomUUID } from "node:crypto";
 import { type ClientSession, type Db } from "mongodb";
 import { database, nextId, type Row } from "./db";
-import { invoiceInstant } from "./query";
+import { audit, invoiceInstant } from "./query";
 import { HttpError, requireValue } from "./errors";
 import { allow, digest, managers, sellers, type Scope } from "./security";
 import { businessDate, canonical, decimal, multiply, scaled } from "./money";
@@ -641,6 +641,7 @@ export async function checkout(
             { session },
           );
         if (source) await finalizeCafeBill(db, scope, invoice, session);
+        await audit(db, scope, "issue", "invoice", invoice.id, {}, session, { branchId: branch.id, reference: invoice.invoice_number });
         return { invoice, replay: false };
       },
       {

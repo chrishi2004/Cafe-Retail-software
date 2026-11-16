@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { activeVentureStorage, apiRequest } from "../api/client";
 import { getCombinedTurnover, type CombinedTurnover } from "../api/taxOperation";
 import { ConsolidatedDashboardPage } from "../pages/ConsolidatedDashboardPage";
+import { AuditPage } from "../pages/AuditPage";
 import { EmployeesPage } from "../pages/EmployeesPage";
 import { PurgeReviewPage } from "../pages/PurgeReviewPage";
 import { type AuthUser, type BusinessType } from "../auth/types";
@@ -37,10 +38,11 @@ const PAGE_TITLES = {
   dashboard: "Consolidated business dashboard",
   purge: "Protected data removal review",
   users: "Team access and roles",
+  audit: "Activity & Audit",
 } as const;
 
 export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }: SuperAdminPortalProps) {
-  const active = pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : pathname.includes("/purge") ? "purge" : "ventures";
+  const active = pathname.includes("/audit") ? "audit" : pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : pathname.includes("/purge") ? "purge" : "ventures";
   const [ventures, setVentures] = useState<Venture[]>([]);
   const [turnover, setTurnover] = useState<CombinedTurnover | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
       title="Super Admin"
       subtitle="Owner control centre"
       user={user}
-      items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "purge", label: "Purge Review" }, { key: "users", label: "Users" }]}
+      items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "purge", label: "Purge Review" }, { key: "users", label: "Users" }, { key: "audit", label: "Activity & Audit" }]}
       activeKey={active}
       onNavigate={(key) => onNavigate(`/super-admin/${key}`)}
       onLogout={onLogout}
@@ -79,14 +81,14 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
           <div>
             <p className="eyebrow">Owner workspace · All businesses</p>
             <h2>{PAGE_TITLES[active]}</h2>
-            <p className="page-description">
+            {active !== "audit" && <p className="page-description">
               Start here to open Retail or Cafe operations. Team members skip this screen and
               enter only the workspace allowed by their assigned role and branch.
-            </p>
+            </p>}
           </div>
         </div>
         {error ? <article className="panel"><p>{error}</p></article> : null}
-        {active === "dashboard" ? <ConsolidatedDashboardPage /> : active === "purge" ? <PurgeReviewPage /> : active === "ventures" ? (
+        {active === "audit" ? <AuditPage token={token} /> : active === "dashboard" ? <ConsolidatedDashboardPage /> : active === "purge" ? <PurgeReviewPage /> : active === "ventures" ? (
           <>
             {turnover ? (
               <>

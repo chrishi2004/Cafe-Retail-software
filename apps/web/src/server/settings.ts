@@ -186,9 +186,10 @@ export async function settings(
       values.gst_effective_from = null;
       values.registration_active = false;
     }
-    await db
-      .collection("business_profiles")
-      .updateOne({ company_id: scope.company.id }, { $set: values });
+    await transaction(async (db, session) => {
+      await db.collection("business_profiles").updateOne({ company_id: scope.company.id }, { $set: values }, { session });
+      await audit(db, scope, "update", "tax_operation", scope.company.id, {}, session);
+    });
     return taxState(db, scope);
   }
   if (route === "tax-operation/activate-gst" && method === "POST") {
@@ -209,18 +210,14 @@ export async function settings(
       state.can_activate_gst,
       `Complete prerequisites: ${state.missing_activation_prerequisites.join(", ")}.`,
     );
-    await db
-      .collection("business_profiles")
-      .updateOne(
+    await transaction(async (db, session) => {
+      await db.collection("business_profiles").updateOne(
         { company_id: scope.company.id },
-        {
-          $set: {
-            default_tax_mode: "gst",
-            gst_effective_from: effective,
-            updated_at: now(),
-          },
-        },
+        { $set: { default_tax_mode: "gst", gst_effective_from: effective, updated_at: now() } },
+        { session },
       );
+      await audit(db, scope, "gst_activated", "tax_operation", scope.company.id, {}, session);
+    });
     return taxState(db, scope);
   }
   const match = route.match(/^invoice-sequences(?:\/(\d+))?$/);

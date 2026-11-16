@@ -91,6 +91,8 @@ export async function indexes(db: Db) {
     "reconciliations",
   ])
     await db.collection(name).createIndex({ id: 1 }, { unique: true });
+  await db.collection("audit_events").createIndex({ company_id: 1, created_at: -1, id: -1 });
+  await db.collection("audit_events").createIndex({ business_group_id: 1, created_at: -1, id: -1 });
   await db
     .collection("inventory")
     .createIndex(

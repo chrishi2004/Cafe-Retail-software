@@ -66,7 +66,7 @@ export async function downloadClosingCsv(token: string, branchId: number, day: s
   await downloadCsv(token, `/governance/closings${query}`, `daily-closing-${day}.csv`);
 }
 
-async function downloadCsv(token: string, path: string, fallback: string): Promise<void> {
+export async function downloadCsv(token: string, path: string, fallback: string): Promise<void> {
   const headers = new Headers({ Authorization: `Bearer ${token}` });
   const activeVentureId = activeVentureStorage.get();
   if (activeVentureId !== null) headers.set("X-Venture-Id", String(activeVentureId));
