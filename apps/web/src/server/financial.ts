@@ -180,7 +180,8 @@ export async function financial(
       !["draft", "cancelled", "voided", "returned"].includes(invoice.status),
       "Invoice cannot accept payment.",
     );
-    await writableDay(db, scope, invoice.branch_id, session);
+    const paymentAt = now();
+    await writableDay(db, scope, invoice.branch_id, session, businessDate(paymentAt));
     const input = route.startsWith("cafe/") ? (body.payment ?? body) : body;
     const amount = scaled(input.amount),
       due = scaled(invoice.balance_due);
@@ -221,7 +222,8 @@ export async function financial(
         received_by: scope.user.id,
         received_by_name: scope.user.name,
         is_credit_marker: false,
-        payment_datetime: now(),
+        collection_kind: "invoice_repayment",
+        payment_datetime: paymentAt,
       },
       session,
     );

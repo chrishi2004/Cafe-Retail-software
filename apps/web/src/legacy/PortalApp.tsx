@@ -43,6 +43,13 @@ export default function PortalApp() {
   if (pathname === "/account/setup") return <PasswordSetupPage />;
   if (pathname === "/account/security") return <AccountSecurityPage />;
 
+  if (auth.status === "unavailable") {
+    return <main className="login-shell"><section className="panel page-stack">
+      <ErrorState message="Could not verify your session. Try again." />
+      <button type="button" className="action-button primary" onClick={() => void auth.refreshCurrentUser()}>Retry</button>
+    </section></main>;
+  }
+
   if (auth.status !== "authenticated" || !auth.user || !auth.token) {
     return <App />;
   }

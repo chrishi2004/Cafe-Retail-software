@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, type Page } from "@playwright/test";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
@@ -329,6 +330,39 @@ test(
           route,
         );
       }
+      // The pending Retail refund above must not remove its original cash receipt.
+      await page.getByLabel("Opening cash", { exact: true }).fill("100");
+      await page.getByRole("button", { name: "Open business day" }).click();
+      const closing = page.getByRole("article", { name: "Daily Closing summary" });
+      await closing.getByRole("heading", { name: "Daily Closing preview" }).waitFor();
+      await closing.getByRole("row").filter({ hasText: "Expected closing cash" }).getByText("₹150.25", { exact: true }).waitFor();
+      await page.getByLabel("Counted physical cash", { exact: true }).fill("150");
+      await closing.getByText("Shortage ₹0.25", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Submit count" }).click();
+      await page.getByRole("button", { name: "Close day" }).click();
+      await closing.getByText("closed", { exact: true }).waitFor();
+      // A transient session-check failure during a reload must not sign out the owner.
+      let authChecks = 0;
+      const endpoint = "**/api/auth/me";
+      await page.route(endpoint, (route) => ++authChecks === 1 ? route.abort("failed") : route.continue());
+      await page.reload();
+      await closing.getByText("closed", { exact: true }).waitFor();
+      assert(authChecks >= 2);
+      await page.unroute(endpoint);
+      const csv = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Download CSV" }).click();
+      const downloaded = await csv;
+      assert.match(downloaded.suggestedFilename(), /^daily-closing-2-.*\.csv$/);
+      const report = await readFile((await downloaded.path())!, "utf8");
+      assert(report.includes('"expected_cash"') && report.includes('"150.25"') && report.includes('"-0.25"'));
+      await page.emulateMedia({ media: "print" });
+      assert.equal(await closing.isVisible(), true);
+      assert.equal(await page.getByRole("navigation").first().isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: "Download CSV" }).isVisible(), false);
+      const printed = (await page.pdf({ preferCSSPageSize: true })).toString("latin1");
+      assert.equal([...printed.matchAll(/\/Type\s*\/Page\b/g)].length, 1, "Closing summary should fit on one printed page");
+      await page.emulateMedia({ media: "screen" });
+
       await page.screenshot({
         path: "/tmp/nextjs-inventory-owner.png",
         fullPage: true,

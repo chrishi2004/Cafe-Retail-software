@@ -4,7 +4,7 @@ import { refundRoutes } from "./refunds";
 import { consistency } from "./consistency";
 import { assistant } from "./assistant";
 import { forecasts, recommendations } from "./planning";
-import { queryScope, requiredRow, transaction, signed, dateBounds, dateOnly } from "./query";
+import { queryScope, requiredRow, transaction, signed, dateBounds } from "./query";
 import { governance } from "./governance";
 import { publicCafe, qrRoutes } from "./public-cafe";
 import { cafeBillingRoutes } from "./cafe-billing";
@@ -39,7 +39,7 @@ import { catalog, resourceNames } from "./catalog";
 import { checkout, quote, receipt, authorizedBranch } from "./billing";
 import { inventoryRows, adjust } from "./inventory";
 import { cafeReport, range, consolidated } from "./reports";
-import { closing } from "./closing";
+import { closing, readClosing } from "./closing";
 import { HttpError, requireValue } from "./errors";
 import { businessDate, decimal, scaled } from "./money";
 const json = (data: unknown, status = 200) =>
@@ -463,7 +463,7 @@ export async function handle(request: Request, path: string[]) {
       route.startsWith("customers/") ||
       route === "customer-ledger/outstanding"
     ) {
-      const value = await customerRoutes(db, scope, route, method, body, url);
+      const value = await customerRoutes(db, scope, route, method, body, url, request.headers.get("idempotency-key"));
       if (value !== undefined) return json(value);
     }
     if (
@@ -512,7 +512,7 @@ export async function handle(request: Request, path: string[]) {
       const value = await forecasts(db, scope, route, method, body, url);
       if (value !== undefined) return json(value);
     }
-    const expenseResult = await expensesRoutes(db, scope, route, method, body, url);
+    const expenseResult = await expensesRoutes(db, scope, route, method, body, url, request.headers.get("idempotency-key"));
     if (expenseResult !== undefined) return json(expenseResult);
     const stockIntakeResult = await stockIntakeRoutes(
       db,
@@ -784,19 +784,8 @@ export async function handle(request: Request, path: string[]) {
       return json(await cafeReport(db, scope, url));
     }
     if (route === "governance/closings" && method === "GET") {
-      allow(user, managers);
-      const branch = await authorizedBranch(
-        db,
-        scope,
-        url.searchParams.get("branch_id"),
-      );
-      return json(
-        await db.collection("business_day_closures").findOne({
-          ...scope.filter,
-          branch_id: branch.id,
-          business_date: dateOnly(url.searchParams.get("business_date")),
-        }),
-      );
+      const report = await readClosing(scope, url);
+      return report instanceof Response ? report : json(report);
     }
     if (route === "governance/closings" && method === "POST")
       return json(await closing(scope, body));

@@ -61,6 +61,22 @@ function triggerDownload(blob: Blob, filename: string): void {
   window.URL.revokeObjectURL(objectUrl);
 }
 
+export async function downloadClosingCsv(token: string, branchId: number, day: string) {
+  const query = queryString({ branch_id: branchId, business_date: day, format: "csv" });
+  await downloadCsv(token, `/governance/closings${query}`, `daily-closing-${day}.csv`);
+}
+
+async function downloadCsv(token: string, path: string, fallback: string): Promise<void> {
+  const headers = new Headers({ Authorization: `Bearer ${token}` });
+  const activeVentureId = activeVentureStorage.get();
+  if (activeVentureId !== null) headers.set("X-Venture-Id", String(activeVentureId));
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+  if (!response.ok) throw await parseDownloadError(response);
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const matchedFilename = /filename="?(?<filename>[^";]+)"?/i.exec(disposition)?.groups?.filename;
+  triggerDownload(await response.blob(), matchedFilename ?? fallback);
+}
+
 export async function downloadExport(
   token: string,
   kind: ExportKind,
@@ -77,16 +93,5 @@ export async function downloadExport(
     start_date: options.startDate,
     end_date: options.endDate,
   });
-  const headers = new Headers({ Authorization: `Bearer ${token}` });
-  const activeVentureId = activeVentureStorage.get();
-  if (activeVentureId !== null) headers.set("X-Venture-Id", String(activeVentureId));
-  const response = await fetch(`${API_BASE_URL}/exports/${kind}${query}`, { headers });
-
-  if (!response.ok) {
-    throw await parseDownloadError(response);
-  }
-
-  const disposition = response.headers.get("content-disposition") ?? "";
-  const matchedFilename = disposition.match(/filename="?(?<filename>[^";]+)"?/i)?.groups?.filename;
-  triggerDownload(await response.blob(), matchedFilename ?? EXPORT_FILES[kind]);
+  return downloadCsv(token, `/exports/${kind}${query}`, EXPORT_FILES[kind]);
 }

@@ -3,7 +3,7 @@ import type { ClientSession, Db } from "mongodb";
 import { authorizedBranch } from "./billing";
 import { type Row } from "./db";
 import { HttpError, requireValue } from "./errors";
-import { writableDay } from "./financial";
+import { replay, saveReplay, writableDay } from "./financial";
 import { businessDate, decimal, scaled } from "./money";
 import {
   audit,
@@ -120,6 +120,7 @@ export async function expensesRoutes(
   method: string,
   body: Row,
   url: URL,
+  key: string | null,
 ) {
   if (!route.startsWith("expenses")) return undefined;
   allow(scope.user, [...managers, "analyst"]);
@@ -132,13 +133,14 @@ export async function expensesRoutes(
   if (route === "expenses/summary" && method === "GET") {
     const filter = await expenseFilter(db, scope, url);
     const rows = await db.collection<Row>("expenses").find({ ...filter, status: { $ne: "voided" } }).toArray();
-    let total = 0, cash = 0, nonCash = 0, stockPurchases = 0;
+    let total = 0, cash = 0, nonCash = 0, unpaid = 0, stockPurchases = 0;
     const byCategory: Record<string, string> = {};
     const categoryTotals = new Map<string, number>();
     for (const row of rows) {
       const amount = scaled(row.amount);
       total += amount;
       if (row.payment_mode === "cash") cash += amount;
+      else if (row.payment_mode === "credit") unpaid += amount;
       else nonCash += amount;
       if (row.category === "stock_purchase") stockPurchases += amount;
       categoryTotals.set(row.category, (categoryTotals.get(row.category) ?? 0) + amount);
@@ -148,6 +150,7 @@ export async function expensesRoutes(
       total_expenses: decimal(total),
       cash_expenses: decimal(cash),
       non_cash_expenses: decimal(nonCash),
+      credit_expenses: decimal(unpaid),
       stock_purchase_expenses: decimal(stockPurchases),
       expense_count: rows.length,
       by_category: byCategory,
@@ -156,7 +159,16 @@ export async function expensesRoutes(
 
   if (route === "expenses" && method === "POST") {
     allow(scope.user, managers);
-    return transaction((txDb, session) => insertExpenseRecord(txDb, scope, body, session));
+    return transaction(async (txDb, session) => {
+      const state = key ? await replay(txDb, scope, key, route, body, session) : null;
+      if (state?.old) {
+        await authorizedBranch(txDb, scope, state.old.result.branch_id, session);
+        return state.old.result;
+      }
+      const expense = await insertExpenseRecord(txDb, scope, { ...body, source_type: "manual", source_id: null }, session);
+      if (state) await saveReplay(txDb, state, expense, session);
+      return expense;
+    });
   }
 
   const match = route.match(/^expenses\/(\d+)\/void$/);
@@ -192,4 +204,21 @@ export async function expensesRoutes(
   }
 
   throw new HttpError(405, "method_not_allowed", "Expense operation unavailable.");
+}
+
+// Stock intake's linked posted expense is the cash record. Stock movements
+// are stock-only, and unpaid supplier credit is not a settlement.
+export async function closingOutflows(db: Db, scope: Scope, branchId: number, day: string, session: ClientSession) {
+  const rows = await db.collection<Row>("expenses").find({
+    company_id: scope.company.id, branch_id: branchId, expense_date: day,
+    status: "posted", payment_mode: { $ne: "credit" },
+  }, { session }).toArray();
+  let cashOperating = 0, cashSupplier = 0, nonCash = 0;
+  for (const row of rows) {
+    const amount = scaled(row.amount);
+    if (row.payment_mode !== "cash") nonCash += amount;
+    else if (row.category === "stock_purchase") cashSupplier += amount;
+    else cashOperating += amount;
+  }
+  return { cashOperating, cashSupplier, nonCash };
 }
