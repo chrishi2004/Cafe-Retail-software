@@ -147,7 +147,7 @@ export async function indexes(db: Db) {
   await db.collection("invoice_refunds").createIndex({ company_id: 1, branch_id: 1, refund_date: 1 });
   for (const [table, dateField] of [
     ["invoices", "invoice_date"], ["invoice_payments", "payment_datetime"], ["customer_payments", "payment_datetime"],
-    ["invoice_refunds", "refund_date"], ["financial_reversals", "created_at"], ["stock_movements", "created_at"],
+    ["invoice_refunds", "refund_date"], ["financial_reversals", "created_at"], ["financial_reversals", "invoice_date"], ["stock_movements", "created_at"],
     ["purchase_orders", "order_date"], ["business_day_closures", "business_date"],
   ]) await db.collection(table).createIndex({ company_id: 1, [dateField]: 1, id: 1 });
   await db.collection("financial_reversals").createIndex({ company_id: 1, invoice_id: 1 });

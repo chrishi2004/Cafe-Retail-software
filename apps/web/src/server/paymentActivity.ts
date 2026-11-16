@@ -45,14 +45,18 @@ export function paymentTotals(receipts: Row[], refunds: Row[]) {
   };
 }
 
+export const emptyPaymentBreakdown = () => ({ cash: 0, upi: 0, card: 0, other_electronic: 0, other_non_cash: 0 });
+export function paymentBucket(type: unknown): keyof ReturnType<typeof emptyPaymentBreakdown> {
+  return type === "cash" || type === "upi" || type === "card" ? type :
+    type === "bank_transfer" || type === "wallet" ? "other_electronic" : "other_non_cash";
+}
+
 export function paymentBreakdown(rows: Row[]) {
-  const totals = { cash: 0, upi: 0, card: 0, other_electronic: 0, other_non_cash: 0 };
+  const totals = emptyPaymentBreakdown();
   for (const row of rows) {
     const type: unknown = row.mode_type;
     if (type === "credit") continue;
-    const key = type === "cash" || type === "upi" || type === "card" ? type :
-      type === "bank_transfer" || type === "wallet" ? "other_electronic" : "other_non_cash";
-    totals[key] += scaled(row.amount);
+    totals[paymentBucket(type)] += scaled(row.amount);
   }
   return totals;
 }

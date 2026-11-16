@@ -86,6 +86,8 @@ test("owner creates an employee, who sets a private password and can be deactiva
     await staff.waitForURL("**/cafe/pos");
     await staff.getByRole("link", { name: "Account security", exact: true }).click();
     await staff.getByRole("button", { name: "Enable authenticator", exact: true }).waitFor();
+    await staff.goto(`${origin}/super-admin/profit-loss`);
+    await staff.waitForURL("**/cafe/pos");
     await staff.goto(`${origin}/super-admin/audit`);
     await staff.waitForURL("**/cafe/pos");
     await staff.goto(`${origin}/cafe/users`);

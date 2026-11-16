@@ -38,6 +38,7 @@
   "/super-admin/dashboard",
   "/super-admin/users",
   "/super-admin/audit",
+  "/super-admin/profit-loss",
   "/super-admin/purge",
   "/retail/closing",
   "/retail/refunds",
