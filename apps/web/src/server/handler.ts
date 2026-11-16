@@ -1,3 +1,4 @@
+import { historicalExports } from "./historical-exports";
 import { operationalAudit } from "./operational-audit";
 import { inBusinessRange } from "../businessDates";
 import { invoiceHistory } from "./history";
@@ -149,6 +150,7 @@ export async function handle(request: Request, path: string[]) {
     if (route === "auth/employee-password" && method === "POST")
       return json(await claimEmployeePassword(db, body));
     const user = await currentUser(db, request);
+    if (route.startsWith("exports/history/")) return await historicalExports(db, user, request, route, url);
     if (route.startsWith("audit/")) return await operationalAudit(db, user, route, method, url);
     if (route === "auth/me" && method === "GET")
       return json(await publicUser(db, user));

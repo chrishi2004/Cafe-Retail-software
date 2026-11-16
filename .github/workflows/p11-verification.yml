@@ -40,6 +40,9 @@ jobs:
       API_DOCS_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The frozen Café V1 tests compare files against the preserved baseline commit.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

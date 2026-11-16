@@ -6,6 +6,8 @@ import { HttpError, requireValue } from "./errors";
 import { businessDate, DAY_MS, KOLKATA_OFFSET, isCalendarDate, shiftDate } from "../businessDates";
 export { shiftDate } from "../businessDates";
 
+export const excludedSalesStatuses = ["draft", "cancelled", "voided", "returned"];
+
 export const now = () => new Date().toISOString();
 export const signed = (value: unknown) => {
   const text = String(value ?? "0");

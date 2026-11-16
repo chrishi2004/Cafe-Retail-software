@@ -1,9 +1,9 @@
 name: Next.js Atlas rewrite checks
 on:
   push:
-    branches: [main, rewrite/nextjs-atlas, feature/operational-audit-dashboard]
+    branches: [main, rewrite/nextjs-atlas, feature/operational-audit-dashboard, feature/reliable-historical-exports]
   pull_request:
-    branches: [main, rewrite/nextjs-atlas, feature/financial-cash-reconciliation]
+    branches: [main, rewrite/nextjs-atlas, feature/financial-cash-reconciliation, feature/operational-audit-dashboard]
   workflow_dispatch:
 permissions:
   contents: read

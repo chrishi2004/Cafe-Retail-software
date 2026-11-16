@@ -145,6 +145,12 @@ export async function indexes(db: Db) {
     .collection("stock_intakes")
     .createIndex({ company_id: 1, branch_id: 1, purchase_date: -1 });
   await db.collection("invoice_refunds").createIndex({ company_id: 1, branch_id: 1, refund_date: 1 });
+  for (const [table, dateField] of [
+    ["invoices", "invoice_date"], ["invoice_payments", "payment_datetime"], ["customer_payments", "payment_datetime"],
+    ["invoice_refunds", "refund_date"], ["financial_reversals", "created_at"], ["stock_movements", "created_at"],
+    ["purchase_orders", "order_date"], ["business_day_closures", "business_date"],
+  ]) await db.collection(table).createIndex({ company_id: 1, [dateField]: 1, id: 1 });
+  await db.collection("financial_reversals").createIndex({ company_id: 1, invoice_id: 1 });
   await db.collection("invoice_refunds").createIndex(
     { company_id: 1, mode_type: 1, reference_number: 1 },
     { unique: true, partialFilterExpression: { reference_number: { $type: "string" } } },

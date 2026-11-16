@@ -3,6 +3,15 @@ import type { ClientSession, Db, Filter } from "mongodb";
 import type { Row } from "./db";
 import { decimal, scaled } from "./money";
 
+export type ReceiptSource = "invoice_payments" | "customer_payments";
+export function receiptFilter(source: ReceiptSource): Filter<Row> {
+  return {
+    ...(source === "invoice_payments" ? { is_credit_marker: { $ne: true } } : {}),
+    mode_type: { $ne: "credit" },
+    receipt_corrected_at: null,
+  };
+}
+
 export async function paymentActivity(
   db: Db,
   filter: Filter<Row>,
@@ -11,11 +20,11 @@ export async function paymentActivity(
   { session, customerPayments = false }: { session?: ClientSession; customerPayments?: boolean } = {},
 ) {
   const invoiceReceipts = (await db.collection<Row>("invoice_payments").find({
-    ...filter, is_credit_marker: { $ne: true }, mode_type: { $ne: "credit" }, receipt_corrected_at: null,
+    ...filter, ...receiptFilter("invoice_payments"),
   }, { session }).toArray()).filter((p) => inBusinessRange(p.payment_datetime, start, end));
   const customerReceipts = customerPayments
     ? (await db.collection<Row>("customer_payments").find({
-        ...filter, mode_type: { $ne: "credit" }, receipt_corrected_at: null,
+        ...filter, ...receiptFilter("customer_payments"),
       }, { session }).toArray()).filter((p) => inBusinessRange(p.payment_datetime, start, end))
     : [];
   // Old voids suppressed the receipt without recording a refund. Legacy
