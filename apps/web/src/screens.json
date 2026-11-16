@@ -1,5 +1,9 @@
 [
   "/login",
+  "/account/setup",
+  "/account/security",
+  "/cafe/users",
+  "/retail/users",
   "/order/{token}",
   "/retail/overview",
   "/retail/products",

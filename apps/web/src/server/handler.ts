@@ -9,7 +9,8 @@ import { governance } from "./governance";
 import { publicCafe, qrRoutes } from "./public-cafe";
 import { cafeBillingRoutes } from "./cafe-billing";
 import { cafeRoutes } from "./cafe";
-import { authActions, ventureUsers } from "./accounts";
+import { setSessionControl } from "./security";
+import { authActions, claimEmployeePassword, ventureUsers } from "./accounts";
 import { financial } from "./financial";
 import { customerRoutes } from "./ledger";
 import {
@@ -144,13 +145,13 @@ export async function handle(request: Request, path: string[]) {
       );
     if (route.startsWith("public/"))
       throw new HttpError(404, "not_found", "Public endpoint unavailable.");
+    if (route === "auth/employee-password" && method === "POST")
+      return json(await claimEmployeePassword(db, body));
     const user = await currentUser(db, request);
     if (route === "auth/me" && method === "GET")
       return json(await publicUser(db, user));
     if (route === "auth/logout" && method === "POST") {
-      await db
-        .collection("users")
-        .updateOne({ id: user.id }, { $inc: { token_version: 1 } });
+      await setSessionControl(db, user, { revoked_at: new Date().toISOString() });
       return json({ message: "Logged out." });
     }
     const authResult = await authActions(db, user, route, method, body);
@@ -171,14 +172,6 @@ export async function handle(request: Request, path: string[]) {
           .find({ business_group_id: user.business_group_id, is_active: true })
           .toArray(),
       );
-    }
-    if (route === "venture-users" && method === "GET") {
-      allow(user, ["super_admin"]);
-      const users = await db
-        .collection<Row>("users")
-        .find({ business_group_id: user.business_group_id })
-        .toArray();
-      return json(await Promise.all(users.map((u) => publicUser(db, u))));
     }
     if (route === "tax-operation/combined-turnover" && method === "GET") {
       allow(user, ["super_admin"]);

@@ -107,6 +107,11 @@ export async function indexes(db: Db) {
     .collection("public_limits")
     .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
+  await db.collection("users").createIndex(
+    { password_setup_hash: 1 },
+    { unique: true, partialFilterExpression: { password_setup_hash: { $type: "string" } } },
+  );
+  await db.collection("auth_session_controls").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await db
     .collection("companies")
     .createIndex({ business_group_id: 1, slug: 1 }, { unique: true });

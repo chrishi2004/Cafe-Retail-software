@@ -120,6 +120,7 @@ export function AppLayout({
                 <span>Switch business</span>
               </button>
             ) : null}
+            <a className="logout-button" href="/account/security">Account security</a>
             <button className="logout-button" onClick={onLogout} type="button">
               <LogOut aria-hidden="true" size={17} />
               <span>Logout</span>

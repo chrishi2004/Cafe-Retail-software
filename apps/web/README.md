@@ -99,3 +99,9 @@ Check print preview with a short receipt from history before testing the printer
 As an owner or venture admin, use **Delete invoice** next to an eligible bill in **Café → Receipt history** or **Retail → Sales Summary**, then confirm once. The active admin login authorizes the action.
 
 The action supports today's non-GST counter and retail invoices while the branch's day is open. It retains the invoice as Cancelled and excludes its amounts from net sales, collections, and closing. Stock remains unchanged. If money was received, return it outside the POS before confirming.
+
+### Staff access
+
+The owner can manage employees in **Super Admin → Users**, including assigning employees to Café or Retail. Venture admins can manage non-admin employees in their own venture. Store managers can manage Cashier / Staff, Order Taker and Kitchen accounts in their assigned branch; the latter two roles are Café only. A Business Owner account is protected from staff-management edits.
+
+When adding an employee or resetting a password, share the private one-time setup link directly with that employee. It expires in one hour. The employee chooses their own password; a reset revokes existing sessions and keeps the employee's MFA enrollment. Employees can enroll an authenticator in **Account security**. The owner can promote an employee to Venture Admin after MFA enrollment. Ordinary logout signs out only that session; deactivation and access changes revoke all the employee's sessions.
