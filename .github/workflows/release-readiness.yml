@@ -40,7 +40,9 @@ jobs:
       HC3_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
       HC2_TEST_CLOUD_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_cloud_coordination
       SECRET_KEY: github-actions-release-readiness-only
-      KALPVRIK_BACKUP_ROOT: /tmp/kalpvrik-backups
+      KALPVRIK_DATA_DIR: /tmp/kalpvrik-release-ci
+      KALPVRIK_BACKUP_ROOT: /tmp/kalpvrik-release-ci/backups
+      KALPVRIK_PYTHON: python
     steps:
       - uses: actions/checkout@v4
         with:
@@ -121,9 +123,9 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          DUMP="$(find /tmp/kalpvrik-backups -type f -name '*.dump' | sort | tail -n1)"
+          DUMP="$(find "$KALPVRIK_BACKUP_ROOT" -type f -name '*.dump' | sort | tail -n1)"
           test -n "$DUMP"
-          sha256sum -c "${DUMP}.sha256"
+          (cd "$(dirname "$DUMP")" && sha256sum -c "$(basename "$DUMP").sha256")
           psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi_restore;"
           pg_restore -h localhost -U postgres -d hybrid_retail_bi_restore --no-owner --no-privileges "$DUMP"
           test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20261018_0020"
