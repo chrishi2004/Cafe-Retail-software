@@ -93,14 +93,18 @@ jobs:
         run: python scripts/verify_hc4_backup_restore.py seed
       - name: Dump Local Hub with pending continuity state
         env:
-          PGPASSWORD: postgres
-        run: pg_dump -h localhost -U postgres -d hybrid_retail_bi --format=custom --file=/tmp/hc4-local-hub.dump
-      - name: Restore Local Hub backup into fresh database
-        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi_restore;"
-          pg_restore -h localhost -U postgres -d hybrid_retail_bi_restore --no-owner --no-privileges /tmp/hc4-local-hub.dump
+          # Use the PostgreSQL 16 tools in the service container, not the runner's clients.
+          docker exec --env PGPASSWORD "$PG_CONTAINER" pg_dump -h 127.0.0.1 -U postgres -d hybrid_retail_bi --format=custom > /tmp/hc4-local-hub.dump
+      - name: Restore Local Hub backup into fresh database
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+          PGPASSWORD: postgres
+        run: |
+          docker exec --env PGPASSWORD "$PG_CONTAINER" psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE hybrid_retail_bi_restore;"
+          docker exec -i --env PGPASSWORD "$PG_CONTAINER" pg_restore -h 127.0.0.1 -U postgres -d hybrid_retail_bi_restore --exit-on-error --no-owner --no-privileges < /tmp/hc4-local-hub.dump
       - name: Verify queue checkpoint device and reconciliation survived restore
         working-directory: backend
         env:
