@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   backend-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -43,6 +43,8 @@ jobs:
       KALPVRIK_BACKUP_ROOT: /tmp/kalpvrik-backups
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The V1 preservation tests inspect an ancestor commit.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -66,7 +68,7 @@ jobs:
       - name: Verify independent release migration heads
         working-directory: backend
         run: |
-          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260821_0019"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20261018_0020"
           test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260821_cloud_0003"
           test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
       - name: Run release security and synchronization tests
@@ -124,12 +126,12 @@ jobs:
           sha256sum -c "${DUMP}.sha256"
           psql -h localhost -U postgres -d postgres -c "CREATE DATABASE hybrid_retail_bi_restore;"
           pg_restore -h localhost -U postgres -d hybrid_retail_bi_restore --no-owner --no-privileges "$DUMP"
-          test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20260821_0019"
+          test "$(psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc 'SELECT version_num FROM alembic_version')" = "20261018_0020"
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.users') IS NOT NULL" | grep -q t
           psql -h localhost -U postgres -d hybrid_retail_bi_restore -tAc "SELECT to_regclass('public.sync_inbox') IS NOT NULL" | grep -q t
 
   frontend-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v5
@@ -151,15 +153,14 @@ jobs:
       - name: Build hosted frontend
         working-directory: frontend
         env:
+          VITE_ENABLE_LOCAL_HUB_CONTINUITY: "true"
           VITE_API_BASE_URL: http://127.0.0.1:4173/api
           VITE_CLOUD_API_BASE_URL: http://127.0.0.1:4173/api
           VITE_OPERATIONAL_API_BASE_URL: http://127.0.0.1:4173/api
         run: npm run build
       - name: Install browser smoke runner
         working-directory: frontend
-        run: |
-          npm install --no-save @playwright/test@1.55.0
-          npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
       - name: Run browser release smoke
         working-directory: frontend
         run: npx playwright test --config=playwright.release.config.mjs

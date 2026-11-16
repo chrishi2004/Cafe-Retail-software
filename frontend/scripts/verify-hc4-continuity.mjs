@@ -19,7 +19,10 @@ const assertions = [
   [page.includes("pending_inbox") && page.includes("pending_outbox"), "queue counts must be visible"],
   [page.includes("attention_message"), "attention reason must be visible"],
   [page.includes('server_role === "admin"') && page.includes('server_role === "store_manager"'), "mutating continuity actions must remain role-gated"],
-  [portal.includes("CafeContinuityPage") && portal.includes('active === "dashboard"'), "Cafe dashboard must surface HC4 continuity state"],
+  [portal.includes('import.meta.env.VITE_ENABLE_LOCAL_HUB_CONTINUITY === "true"')
+    && portal.includes('active === "dashboard"')
+    && portal.includes("showContinuity ? <CafeContinuityPage />"), "Cafe dashboard must surface continuity when explicitly configured"],
+  [portal.includes('["super_admin", "admin", "store_manager"].includes(user.server_role)'), "continuity dashboard must be limited to owner and management roles"],
   [!page.includes("SUPABASE_SERVICE_ROLE_KEY") && !page.includes("SYNC_DEVICE_SECRET"), "continuity UI must contain no server-only credential names"],
 ];
 

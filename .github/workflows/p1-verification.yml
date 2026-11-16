@@ -27,6 +27,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The V1 preservation tests inspect an ancestor commit.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -85,14 +87,38 @@ jobs:
           tests/test_invoices.py
           tests/test_sync_foundation.py
           tests/test_deployment_modes.py
-      - name: Verify multi-venture development reseed
+      # Keep the non-demo migration fixture intact. Assert the guard on that
+      # database, then test the reseed flow on a separate CI-only database.
+      - name: Verify reseed refuses to modify preserved business data
         working-directory: backend
         env:
           DEPLOYMENT_MODE: local_hub
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
           LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi
           SECRET_KEY: github-actions-p1-only
-        run: python -m scripts.seed_multi_venture --reset
+        run: |
+          if python -m scripts.seed_multi_venture --reset > "$RUNNER_TEMP/p1-seed-guard.log" 2>&1; then
+            echo "Reseeding unexpectedly accepted a non-demo database" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/p1-seed-guard.log"
+          grep -Fq 'Demo seed/reset refused: non-demo business data exists.' "$RUNNER_TEMP/p1-seed-guard.log"
+          python scripts/verify_p1_migration.py verify
+      - name: Create isolated demo database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE hybrid_retail_bi_p1_demo;"
+      - name: Verify multi-venture development seed and reseed
+        working-directory: backend
+        env:
+          DEPLOYMENT_MODE: local_hub
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi_p1_demo
+          LOCAL_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/hybrid_retail_bi_p1_demo
+          SECRET_KEY: github-actions-p1-only
+        run: |
+          alembic -c alembic.ini upgrade head
+          python -m scripts.seed_multi_venture
+          python -m scripts.seed_multi_venture --reset
       - name: Run complete backend regression
         working-directory: backend
         run: python -m pytest -q --disable-warnings

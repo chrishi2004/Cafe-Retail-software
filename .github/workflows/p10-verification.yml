@@ -27,6 +27,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The V1 preservation tests inspect an ancestor commit.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -101,7 +103,10 @@ jobs:
       - name: Verify P10 boundary
         run: |
           grep -q 'governance' backend/app/api/routes/governance.py
-          grep -q 'data-p10-scope' frontend/src/pages/CafeClosingPage.tsx
+          grep -Fq '<CafeClosingPage' frontend/src/portals/CafePortal.tsx
+          grep -Fq 'getClosing(token, branchId, today)' frontend/src/pages/CafeClosingPage.tsx
+          grep -Fq 'createClosing(token, { branch_id: branchId' frontend/src/pages/CafeClosingPage.tsx
+          grep -Fq 'submitClosing(token, closing.id, countedCash)' frontend/src/pages/CafeClosingPage.tsx
           grep -q 'data-p10-scope' frontend/src/pages/PurgeReviewPage.tsx
       - name: Typecheck frontend
         working-directory: frontend

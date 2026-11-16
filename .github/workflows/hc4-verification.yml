@@ -35,6 +35,8 @@ jobs:
       SECRET_KEY: github-actions-hc4-only
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The V1 preservation tests inspect an ancestor commit.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -59,7 +61,7 @@ jobs:
       - name: Verify migration heads remain independent
         working-directory: backend
         run: |
-          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20260821_0019"
+          test "$(alembic -c alembic.ini heads | awk '{print $1}')" = "20261018_0020"
           test "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')" = "20260821_cloud_0003"
           test "$(alembic -c alembic.ini heads | awk '{print $1}')" != "$(alembic -c alembic_cloud.ini heads | awk '{print $1}')"
       - name: Run HC4 release-blocking continuity tests
