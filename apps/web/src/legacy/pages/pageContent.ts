@@ -12,6 +12,7 @@ export type DashboardRouteKey = Exclude<
   RouteKey,
   | "closing"
   | "refunds"
+  | "users"
   | "products"
   | "customers"
   | "pos"

@@ -7,6 +7,7 @@ import { ErrorState } from "./components/ui";
 import { useAuth } from "./auth/AuthContext";
 import { portalFromPath, safePathForUser } from "./portalRouting";
 import { CafePortal } from "./portals/CafePortal";
+import { AccountSecurityPage, PasswordSetupPage } from "./pages/AccountAccessPage";
 import { SuperAdminPortal } from "./portals/SuperAdminPortal";
 
 export default function PortalApp() {
@@ -17,9 +18,10 @@ export default function PortalApp() {
 
   const navigate = (path: string) => router.push(path);
   const currentUser = auth.user;
-  let target = currentUser ? safePathForUser(currentUser, pathname) : pathname;
+  const accountPage = pathname === "/account/setup" || pathname === "/account/security";
+  let target = currentUser && !accountPage ? safePathForUser(currentUser, pathname) : pathname;
   if (
-    currentUser?.server_role === "super_admin" &&
+    !accountPage && currentUser?.server_role === "super_admin" &&
     portalFromPath(target) !== "super-admin" &&
     !activeVentureStorage.get()
   )
@@ -37,6 +39,16 @@ export default function PortalApp() {
       setLogoutError("Logout could not reach the server. Please retry.");
     }
   };
+
+  if (pathname === "/account/setup") return <PasswordSetupPage />;
+  if (pathname === "/account/security") return <AccountSecurityPage />;
+
+  if (auth.status === "unavailable") {
+    return <main className="login-shell"><section className="panel page-stack">
+      <ErrorState message="Could not verify your session. Try again." />
+      <button type="button" className="action-button primary" onClick={() => void auth.refreshCurrentUser()}>Retry</button>
+    </section></main>;
+  }
 
   if (auth.status !== "authenticated" || !auth.user || !auth.token) {
     return <App />;

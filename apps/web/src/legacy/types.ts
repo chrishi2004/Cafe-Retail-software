@@ -28,6 +28,7 @@ export type RouteKey =
   | "overview"
   | "closing"
   | "refunds"
+  | "users"
   | "products"
   | "customers"
   | "pos"

@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "test \"$(git log -1 --format=%s)\" = 'Merge phases A1-A5 into main [hold-production]'"
+}

@@ -3,6 +3,15 @@ import type { ClientSession, Db, Filter } from "mongodb";
 import type { Row } from "./db";
 import { decimal, scaled } from "./money";
 
+export type ReceiptSource = "invoice_payments" | "customer_payments";
+export function receiptFilter(source: ReceiptSource): Filter<Row> {
+  return {
+    ...(source === "invoice_payments" ? { is_credit_marker: { $ne: true } } : {}),
+    mode_type: { $ne: "credit" },
+    receipt_corrected_at: null,
+  };
+}
+
 export async function paymentActivity(
   db: Db,
   filter: Filter<Row>,
@@ -10,19 +19,20 @@ export async function paymentActivity(
   end: string,
   { session, customerPayments = false }: { session?: ClientSession; customerPayments?: boolean } = {},
 ) {
-  const receipts = (await db.collection<Row>("invoice_payments").find({
-    ...filter, is_credit_marker: { $ne: true }, receipt_corrected_at: null,
+  const invoiceReceipts = (await db.collection<Row>("invoice_payments").find({
+    ...filter, ...receiptFilter("invoice_payments"),
   }, { session }).toArray()).filter((p) => inBusinessRange(p.payment_datetime, start, end));
-  if (customerPayments)
-    receipts.push(...(await db.collection<Row>("customer_payments").find(
-      filter, { session },
-    ).toArray()).filter((p) => inBusinessRange(p.payment_datetime, start, end)));
+  const customerReceipts = customerPayments
+    ? (await db.collection<Row>("customer_payments").find({
+        ...filter, ...receiptFilter("customer_payments"),
+      }, { session }).toArray()).filter((p) => inBusinessRange(p.payment_datetime, start, end))
+    : [];
   // Old voids suppressed the receipt without recording a refund. Legacy
   // voided_at markers are audit evidence only, so receipts remain included.
   const refunds = await db.collection<Row>("invoice_refunds").find({
     ...filter, refund_date: { $gte: start, $lte: end },
   }, { session }).toArray();
-  return { receipts, refunds };
+  return { receipts: [...invoiceReceipts, ...customerReceipts], invoiceReceipts, customerReceipts, refunds };
 }
 
 export function paymentTotals(receipts: Row[], refunds: Row[]) {
@@ -33,4 +43,20 @@ export function paymentTotals(receipts: Row[], refunds: Row[]) {
     refunds: decimal(refunded),
     collections: decimal(gross - refunded),
   };
+}
+
+export const emptyPaymentBreakdown = () => ({ cash: 0, upi: 0, card: 0, other_electronic: 0, other_non_cash: 0 });
+export function paymentBucket(type: unknown): keyof ReturnType<typeof emptyPaymentBreakdown> {
+  return type === "cash" || type === "upi" || type === "card" ? type :
+    type === "bank_transfer" || type === "wallet" ? "other_electronic" : "other_non_cash";
+}
+
+export function paymentBreakdown(rows: Row[]) {
+  const totals = emptyPaymentBreakdown();
+  for (const row of rows) {
+    const type: unknown = row.mode_type;
+    if (type === "credit") continue;
+    totals[paymentBucket(type)] += scaled(row.amount);
+  }
+  return totals;
 }

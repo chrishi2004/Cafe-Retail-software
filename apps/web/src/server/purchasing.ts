@@ -301,6 +301,8 @@ export async function purchases(
               ...filter,
               movement_type: "purchase_received",
               quantity_change: decimal(quantity),
+              unit_cost: item.unit_cost,
+              line_total: decimal(multiply(scaled(item.unit_cost), quantity)),
               reason: "Purchase receipt",
               reference_type: "purchase_order",
               reference_id: row.id,
@@ -348,6 +350,7 @@ export async function purchases(
       row.id,
       {},
       session,
+      { branchId: row.branch_id, reference: row.po_number },
     );
     if (state) await saveReplay(db, state, row, session);
     return row;

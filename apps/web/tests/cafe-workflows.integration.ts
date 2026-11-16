@@ -261,12 +261,14 @@ test(
       const staff = await ok("venture-users", "POST", {
         name: "Kitchen worker",
         email: "kitchen@test.example",
-        password: "Kitchen-123-password",
         role: "kitchen",
         company_id: 1,
         branch_id: 1,
       });
       assert.equal(staff.role, "kitchen");
+      assert.equal((await call("auth/employee-password", "POST", {
+        code: staff.setup.code, password: "Kitchen-123-password",
+      })).status, 200);
       const cashierLogin = await ok("auth/login", "POST", {
         email: "cafe@test.example",
         password: "Cafe-123-password",

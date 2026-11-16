@@ -1,3 +1,4 @@
+import { EmployeesPage } from "./pages/EmployeesPage";
 import { RefundsPage } from "./pages/RefundsPage";
 import { CafeClosingPage } from "./pages/CafeClosingPage";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -32,6 +33,7 @@ const ROUTE_KEYS: RouteKey[] = [
   "overview",
   "closing",
   "refunds",
+  "users",
   "products",
   "customers",
   "pos",
@@ -118,6 +120,8 @@ function App() {
         <POSPage />
       ) : availableRoute === "closing" ? (
         <CafeClosingPage title="Retail cash reconciliation" />
+      ) : availableRoute === "users" ? (
+        <EmployeesPage />
       ) : availableRoute === "refunds" ? (
         <RefundsPage />
       ) : availableRoute === "overview" ? (

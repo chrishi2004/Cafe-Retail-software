@@ -90,7 +90,7 @@ export async function financial(
     return transaction(async (db, session) => {
       const calculated = await quote(db, scope, body, false, session);
       const branch = await authorizedBranch(db, scope, body.branch_id, session);
-      return insertRow(
+      const draft = await insertRow(
         db,
         "invoices",
         {
@@ -113,6 +113,8 @@ export async function financial(
         },
         session,
       );
+      await audit(db, scope, "draft_create", "invoice", draft.id, {}, session, { branchId: branch.id, reference: draft.invoice_number });
+      return draft;
     });
   }
   const match = route.match(
@@ -171,6 +173,7 @@ export async function financial(
         id,
         { reason: body.reason },
         session,
+        { branchId: invoice.branch_id, reference: invoice.invoice_number },
       );
       return { ...invoice, status: "cancelled" };
     }
@@ -180,7 +183,8 @@ export async function financial(
       !["draft", "cancelled", "voided", "returned"].includes(invoice.status),
       "Invoice cannot accept payment.",
     );
-    await writableDay(db, scope, invoice.branch_id, session);
+    const paymentAt = now();
+    await writableDay(db, scope, invoice.branch_id, session, businessDate(paymentAt));
     const input = route.startsWith("cafe/") ? (body.payment ?? body) : body;
     const amount = scaled(input.amount),
       due = scaled(invoice.balance_due);
@@ -221,7 +225,8 @@ export async function financial(
         received_by: scope.user.id,
         received_by_name: scope.user.name,
         is_credit_marker: false,
-        payment_datetime: now(),
+        collection_kind: "invoice_repayment",
+        payment_datetime: paymentAt,
       },
       session,
     );
@@ -285,6 +290,7 @@ export async function financial(
           order_status: remaining ? "billed" : "closed",
         }
       : updated;
+    await audit(db, scope, "record_payment", "invoice_payment", payment.id, {}, session, { branchId: invoice.branch_id, reference: invoice.invoice_number });
     await saveReplay(db, state, result, session);
     return result;
   });

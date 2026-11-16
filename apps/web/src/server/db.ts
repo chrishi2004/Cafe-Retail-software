@@ -91,6 +91,8 @@ export async function indexes(db: Db) {
     "reconciliations",
   ])
     await db.collection(name).createIndex({ id: 1 }, { unique: true });
+  await db.collection("audit_events").createIndex({ company_id: 1, created_at: -1, id: -1 });
+  await db.collection("audit_events").createIndex({ business_group_id: 1, created_at: -1, id: -1 });
   await db
     .collection("inventory")
     .createIndex(
@@ -107,6 +109,11 @@ export async function indexes(db: Db) {
     .collection("public_limits")
     .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
+  await db.collection("users").createIndex(
+    { password_setup_hash: 1 },
+    { unique: true, partialFilterExpression: { password_setup_hash: { $type: "string" } } },
+  );
+  await db.collection("auth_session_controls").createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await db
     .collection("companies")
     .createIndex({ business_group_id: 1, slug: 1 }, { unique: true });
@@ -138,6 +145,12 @@ export async function indexes(db: Db) {
     .collection("stock_intakes")
     .createIndex({ company_id: 1, branch_id: 1, purchase_date: -1 });
   await db.collection("invoice_refunds").createIndex({ company_id: 1, branch_id: 1, refund_date: 1 });
+  for (const [table, dateField] of [
+    ["invoices", "invoice_date"], ["invoice_payments", "payment_datetime"], ["customer_payments", "payment_datetime"],
+    ["invoice_refunds", "refund_date"], ["financial_reversals", "created_at"], ["financial_reversals", "invoice_date"], ["stock_movements", "created_at"],
+    ["purchase_orders", "order_date"], ["business_day_closures", "business_date"],
+  ]) await db.collection(table).createIndex({ company_id: 1, [dateField]: 1, id: 1 });
+  await db.collection("financial_reversals").createIndex({ company_id: 1, invoice_id: 1 });
   await db.collection("invoice_refunds").createIndex(
     { company_id: 1, mode_type: 1, reference_number: 1 },
     { unique: true, partialFilterExpression: { reference_number: { $type: "string" } } },

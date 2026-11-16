@@ -19,7 +19,7 @@ import { defaultPathForUser } from "../portalRouting";
 import { useRouter } from "next/navigation";
 import { normalizeAuthUser, type AuthUser, type ServerAuthUser } from "./types";
 
-type AuthStatus = "checking" | "authenticated" | "unauthenticated";
+type AuthStatus = "checking" | "authenticated" | "unauthenticated" | "unavailable";
 
 type AuthContextValue = {
   status: AuthStatus;
@@ -60,18 +60,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    try {
-      const currentUser = await apiRequest<ServerAuthUser>(
-        "/auth/me",
-        {},
-        storedToken,
-      );
-      setToken(storedToken);
-      setUser(normalizeAuthUser(currentUser));
-      setStatus("authenticated");
-    } catch {
-      clearAuth();
+    setStatus("checking");
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const currentUser = await apiRequest<ServerAuthUser>("/auth/me", {}, storedToken);
+        if (authTokenStorage.get() !== storedToken) return;
+        setToken(storedToken);
+        setUser(normalizeAuthUser(currentUser));
+        setStatus("authenticated");
+        return;
+      } catch (error) {
+        if (authTokenStorage.get() !== storedToken) return;
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearAuth();
+          return;
+        }
+      }
     }
+    // A cancelled, failed, or incomplete response doesn't revoke a valid session.
+    setStatus("unavailable");
   }, [clearAuth]);
 
   useEffect(() => {

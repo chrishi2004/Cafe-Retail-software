@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { activeVentureStorage, apiRequest } from "../api/client";
 import { getCombinedTurnover, type CombinedTurnover } from "../api/taxOperation";
 import { ConsolidatedDashboardPage } from "../pages/ConsolidatedDashboardPage";
+import { ProfitLossPage } from "../pages/ProfitLossPage";
+import { AuditPage } from "../pages/AuditPage";
+import { EmployeesPage } from "../pages/EmployeesPage";
 import { PurgeReviewPage } from "../pages/PurgeReviewPage";
-import { SERVER_ROLE_LABELS, type AuthUser, type BusinessType, type ServerUserRole } from "../auth/types";
+import { type AuthUser, type BusinessType } from "../auth/types";
 import { PortalFrame } from "./PortalFrame";
 
 type Venture = {
@@ -16,16 +19,6 @@ type Venture = {
   name: string;
   legal_name: string;
   trade_name: string | null;
-  is_active: boolean;
-};
-
-type VentureUser = {
-  id: number;
-  company_id: number | null;
-  branch_id: number | null;
-  name: string;
-  email: string;
-  role: string;
   is_active: boolean;
 };
 
@@ -46,12 +39,13 @@ const PAGE_TITLES = {
   dashboard: "Consolidated business dashboard",
   purge: "Protected data removal review",
   users: "Team access and roles",
+  audit: "Activity & Audit",
+  "profit-loss": "Profit & Loss",
 } as const;
 
 export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }: SuperAdminPortalProps) {
-  const active = pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : pathname.includes("/purge") ? "purge" : "ventures";
+  const active = pathname.includes("/profit-loss") ? "profit-loss" : pathname.includes("/audit") ? "audit" : pathname.includes("/users") ? "users" : pathname.includes("/dashboard") ? "dashboard" : pathname.includes("/purge") ? "purge" : "ventures";
   const [ventures, setVentures] = useState<Venture[]>([]);
-  const [users, setUsers] = useState<VentureUser[]>([]);
   const [turnover, setTurnover] = useState<CombinedTurnover | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,13 +63,6 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
       .catch((err: Error) => setError(err.message));
   }, [token]);
 
-  useEffect(() => {
-    if (active !== "users") return;
-    void apiRequest<VentureUser[]>( "/venture-users", {}, token)
-      .then(setUsers)
-      .catch((err: Error) => setError(err.message));
-  }, [active, token]);
-
   const enterVenture = (venture: Venture) => {
     activeVentureStorage.set(venture.id);
     onNavigate(venture.business_type === "cafe" ? "/cafe/dashboard" : "/retail/overview");
@@ -86,7 +73,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
       title="Super Admin"
       subtitle="Owner control centre"
       user={user}
-      items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "purge", label: "Purge Review" }, { key: "users", label: "Users" }]}
+      items={[{ key: "ventures", label: "Ventures" }, { key: "dashboard", label: "Consolidated Dashboard" }, { key: "purge", label: "Purge Review" }, { key: "users", label: "Users" }, { key: "audit", label: "Activity & Audit" }, { key: "profit-loss", label: "Profit & Loss" }]}
       activeKey={active}
       onNavigate={(key) => onNavigate(`/super-admin/${key}`)}
       onLogout={onLogout}
@@ -96,14 +83,14 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
           <div>
             <p className="eyebrow">Owner workspace · All businesses</p>
             <h2>{PAGE_TITLES[active]}</h2>
-            <p className="page-description">
+            {active !== "audit" && active !== "profit-loss" && <p className="page-description">
               Start here to open Retail or Cafe operations. Team members skip this screen and
               enter only the workspace allowed by their assigned role and branch.
-            </p>
+            </p>}
           </div>
         </div>
         {error ? <article className="panel"><p>{error}</p></article> : null}
-        {active === "dashboard" ? <ConsolidatedDashboardPage /> : active === "purge" ? <PurgeReviewPage /> : active === "ventures" ? (
+        {active === "profit-loss" ? <ProfitLossPage token={token} /> : active === "audit" ? <AuditPage token={token} /> : active === "dashboard" ? <ConsolidatedDashboardPage /> : active === "purge" ? <PurgeReviewPage /> : active === "ventures" ? (
           <>
             {turnover ? (
               <>
@@ -145,25 +132,7 @@ export function SuperAdminPortal({ user, token, pathname, onNavigate, onLogout }
             </section>
           </>
         ) : (
-          <article className="panel wide">
-            <div className="panel-header"><div><h3>Business group users</h3><p className="page-description">Each team member receives a separate login and opens directly in the assigned workspace.</p></div></div>
-            <div className="data-table-shell">
-              <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Status</th></tr></thead>
-                <tbody>
-                  {users.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.name}</td>
-                      <td>{item.email}</td>
-                      <td>{SERVER_ROLE_LABELS[item.role as ServerUserRole] ?? item.role}</td>
-                      <td>{ventures.find((venture) => venture.id === item.company_id)?.name ?? "All businesses"}</td>
-                      <td>{item.is_active ? "Active" : "Inactive"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+          <EmployeesPage />
         )}
       </section>
     </PortalFrame>

@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReceiptIndianRupee, RefreshCw } from "lucide-react";
 
 import {
@@ -54,6 +54,7 @@ export function ExpensesPage() {
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const submission = useRef({ payload: "", key: "", busy: false });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -113,17 +114,23 @@ export function ExpensesPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!token || !canWrite || !form.branch_id) return;
+    if (!token || !canWrite || !form.branch_id || submission.current.busy) return;
+    submission.current.busy = true;
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      const saved = await createExpense(token, {
+      const payload = {
         ...form,
         vendor_name: form.vendor_name.trim() || null,
         reference_number: form.reference_number.trim() || null,
         notes: form.notes.trim() || null,
-      });
+      };
+      const serialized = JSON.stringify(payload);
+      if (submission.current.payload !== serialized)
+        submission.current = { payload: serialized, key: crypto.randomUUID(), busy: true };
+      const saved = await createExpense(token, payload, submission.current.key);
+      submission.current.payload = "";
       setSuccess(`Expense #${saved.id} recorded for ${saved.branch_name}.`);
       setForm((current) => ({
         ...current,
@@ -137,6 +144,7 @@ export function ExpensesPage() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
+      submission.current.busy = false;
       setSaving(false);
     }
   };
@@ -178,7 +186,8 @@ export function ExpensesPage() {
         <section className="metric-grid">
           <MetricCard metric={{ label: "Total Expenses", value: formatCurrency(summary.total_expenses), detail: `${summary.expense_count} posted entries`, tone: "rose" }} />
           <MetricCard metric={{ label: "Cash Outflow", value: formatCurrency(summary.cash_expenses), detail: "Reduces expected cash at closing", tone: "amber" }} />
-          <MetricCard metric={{ label: "Non-Cash", value: formatCurrency(summary.non_cash_expenses), detail: "UPI, card, bank, credit and other", tone: "blue" }} />
+          <MetricCard metric={{ label: "Non-cash paid", value: formatCurrency(summary.non_cash_expenses), detail: "UPI, card, bank and other", tone: "blue" }} />
+          <MetricCard metric={{ label: "Recorded on credit", value: formatCurrency(summary.credit_expenses), detail: "No settlement recorded", tone: "slate" }} />
           <MetricCard metric={{ label: "Stock Purchases", value: formatCurrency(summary.stock_purchase_expenses), detail: "Linked stock-feed purchases", tone: "green" }} />
         </section>
       ) : null}

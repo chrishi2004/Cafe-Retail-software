@@ -10,7 +10,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { SignJWT, jwtVerify } from "jose";
-import { type Db } from "mongodb";
+import { type ClientSession, type Db } from "mongodb";
 import { type Row } from "./db";
 import { HttpError, requireValue } from "./errors";
 const scrypt = promisify(derive);
@@ -24,13 +24,14 @@ export function secret() {
 }
 export async function hashPassword(value: string) {
   requireValue(
-    value.length >= 12,
-    "Password must have at least 12 characters.",
+    value.length >= 12 && value.length <= 256,
+    "Password must be 12–256 characters.",
   );
   const salt = randomBytes(16).toString("hex");
   return `scrypt$${salt}$${((await scrypt(value, salt, 64)) as Buffer).toString("hex")}`;
 }
-export async function verifyPassword(value: string, hash: string) {
+export async function verifyPassword(value: string, hash?: string) {
+  if (!hash || value.length > 256) return false;
   const [algorithm, salt, expected] = hash.split("$");
   if (algorithm !== "scrypt" || !salt || !expected) return false;
   const actual = (await scrypt(value, salt, 64)) as Buffer;
@@ -103,7 +104,7 @@ export type Scope = {
   company: Row;
   filter: Record<string, unknown>;
 };
-export async function accountActive(db: Db, user: Row) {
+export async function accountActive(db: Db, user: Row, session?: ClientSession) {
   if (
     ![
       "super_admin",
@@ -118,7 +119,7 @@ export async function accountActive(db: Db, user: Row) {
     throw new HttpError(401, "unauthorized", "Invalid role assignment.");
   const group = await db
     .collection<Row>("business_groups")
-    .findOne({ id: user.business_group_id, is_active: true });
+    .findOne({ id: user.business_group_id, is_active: true }, { session });
   if (!group)
     throw new HttpError(401, "unauthorized", "Account scope is inactive.");
   if (user.role === "super_admin") {
@@ -130,7 +131,7 @@ export async function accountActive(db: Db, user: Row) {
     id: user.company_id,
     business_group_id: user.business_group_id,
     is_active: true,
-  });
+  }, { session });
   if (!company)
     throw new HttpError(401, "unauthorized", "Account scope is inactive.");
   if (user.role === "admin" && user.branch_id)
@@ -153,7 +154,7 @@ export async function accountActive(db: Db, user: Row) {
     user.branch_id &&
     !(await db
       .collection("branches")
-      .findOne({ id: user.branch_id, company_id: company.id, is_active: true }))
+      .findOne({ id: user.branch_id, company_id: company.id, is_active: true }, { session }))
   )
     throw new HttpError(401, "unauthorized", "Invalid branch scope.");
 }
@@ -172,12 +173,17 @@ export async function currentUser(db: Db, request: Request): Promise<Row> {
   } catch {
     throw new HttpError(401, "unauthorized", "Session expired.");
   }
-  const user = await db.collection<Row>("users").findOne({
-    id: Number(payload.sub),
-    is_active: true,
-    token_version: payload.version,
-  });
-  if (!user) throw new HttpError(401, "unauthorized", "Session revoked.");
+  const fingerprint = digest(token);
+  const [user, control] = await Promise.all([
+    db.collection<Row>("users").findOne({
+      id: Number(payload.sub),
+      is_active: true,
+      token_version: payload.version,
+      password_setup_required: { $ne: true },
+    }),
+    db.collection<SessionControl>("auth_session_controls").findOne({ _id: fingerprint }),
+  ]);
+  if (!user || control?.revoked_at) throw new HttpError(401, "unauthorized", "Session revoked.");
   await accountActive(db, user);
   if (["admin", "super_admin"].includes(user.role) && !user.mfa_enabled)
     throw new HttpError(
@@ -185,8 +191,21 @@ export async function currentUser(db: Db, request: Request): Promise<Row> {
       "mfa_required",
       "Privileged accounts require MFA.",
     );
-  return { ...user, session_fingerprint: digest(token) };
+  return {
+    ...user, session_fingerprint: fingerprint, session_expires_at: new Date(Number(payload.exp) * 1000),
+    last_step_up_at: control?.verified_at ?? (user.last_step_up_session === fingerprint ? user.last_step_up_at : null),
+  };
 }
+type SessionControl = { _id: string; expires_at: Date; verified_at?: string; revoked_at?: string };
+
+export async function setSessionControl(db: Db, user: Row, fields: Pick<SessionControl, "verified_at" | "revoked_at">) {
+  await db.collection<SessionControl>("auth_session_controls").updateOne(
+    { _id: user.session_fingerprint },
+    { $set: { ...fields, expires_at: user.session_expires_at } },
+    { upsert: true },
+  );
+}
+
 export async function scoped(
   db: Db,
   user: Row,
@@ -270,7 +289,7 @@ export async function login(db: Db, body: Record<string, unknown>) {
     );
   const user = await db
     .collection<Row>("users")
-    .findOne({ email, is_active: true });
+    .findOne({ email, is_active: true, password_setup_required: { $ne: true } });
   if (!user || !(await verifyPassword(password, user.password_hash)))
     throw new HttpError(
       401,
@@ -278,13 +297,16 @@ export async function login(db: Db, body: Record<string, unknown>) {
       "Email, password or authenticator code is invalid.",
     );
   await accountActive(db, user);
+  const loginFilter = {
+    id: user.id, is_active: true, token_version: user.token_version,
+    password_setup_required: { $ne: true },
+  };
   if (user.mfa_enabled && body.recovery_code) {
     const consumed = await db
       .collection("users")
       .updateOne(
         {
-          id: user.id,
-          is_active: true,
+          ...loginFilter,
           mfa_recovery_hashes: digest(String(body.recovery_code)),
         },
         {
@@ -312,7 +334,7 @@ export async function login(db: Db, body: Record<string, unknown>) {
       );
     const consumed = await db.collection("users").updateOne(
       {
-        id: user.id,
+        ...loginFilter,
         $or: [
           { last_totp_step: { $lt: step } },
           { last_totp_step: { $exists: false } },
@@ -332,6 +354,11 @@ export async function login(db: Db, body: Record<string, unknown>) {
       "mfa_required",
       "Privileged accounts require MFA enrollment through the bootstrap console.",
     );
+  const lastLogin = await db.collection("users").updateOne(loginFilter, {
+    $max: { last_login_at: new Date().toISOString() },
+  });
+  if (!lastLogin.matchedCount)
+    throw new HttpError(401, "unauthorized", "Account access changed. Sign in again.");
   await attempts.deleteOne({ _id: key as never });
   const expires = new Date(Date.now() + 8 * 3600000);
   const token = await new SignJWT({ version: user.token_version })

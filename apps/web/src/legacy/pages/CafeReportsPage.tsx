@@ -1,3 +1,4 @@
+import { HistoricalExports } from "../components/HistoricalExports";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { downloadExport } from "../api/exports";
@@ -84,6 +85,7 @@ export function CafeReportsPage() {
         </div>
       </div>
 
+      <HistoricalExports initialRange={{ startDate, endDate }} />
       {error ? <ErrorState message={error} /> : null}
       {report ? (
         <>

@@ -1,15 +1,19 @@
+import { profitLoss } from "./profit-loss";
+import { historicalExports } from "./historical-exports";
+import { operationalAudit } from "./operational-audit";
 import { inBusinessRange } from "../businessDates";
 import { invoiceHistory } from "./history";
 import { refundRoutes } from "./refunds";
 import { consistency } from "./consistency";
 import { assistant } from "./assistant";
 import { forecasts, recommendations } from "./planning";
-import { queryScope, requiredRow, transaction, signed, dateBounds, dateOnly } from "./query";
+import { queryScope, requiredRow, transaction, signed, dateBounds } from "./query";
 import { governance } from "./governance";
 import { publicCafe, qrRoutes } from "./public-cafe";
 import { cafeBillingRoutes } from "./cafe-billing";
 import { cafeRoutes } from "./cafe";
-import { authActions, ventureUsers } from "./accounts";
+import { setSessionControl } from "./security";
+import { authActions, claimEmployeePassword, ventureUsers } from "./accounts";
 import { financial } from "./financial";
 import { customerRoutes } from "./ledger";
 import {
@@ -38,7 +42,7 @@ import { catalog, resourceNames } from "./catalog";
 import { checkout, quote, receipt, authorizedBranch } from "./billing";
 import { inventoryRows, adjust } from "./inventory";
 import { cafeReport, range, consolidated } from "./reports";
-import { closing } from "./closing";
+import { closing, readClosing } from "./closing";
 import { HttpError, requireValue } from "./errors";
 import { businessDate, decimal, scaled } from "./money";
 const json = (data: unknown, status = 200) =>
@@ -144,13 +148,16 @@ export async function handle(request: Request, path: string[]) {
       );
     if (route.startsWith("public/"))
       throw new HttpError(404, "not_found", "Public endpoint unavailable.");
+    if (route === "auth/employee-password" && method === "POST")
+      return json(await claimEmployeePassword(db, body));
     const user = await currentUser(db, request);
+    if (route === "financial/profit-loss" || route === "financial/profit-loss/options") return await profitLoss(db, user, request, url, route);
+    if (route.startsWith("exports/history/")) return await historicalExports(db, user, request, route, url);
+    if (route.startsWith("audit/")) return await operationalAudit(db, user, route, method, url);
     if (route === "auth/me" && method === "GET")
       return json(await publicUser(db, user));
     if (route === "auth/logout" && method === "POST") {
-      await db
-        .collection("users")
-        .updateOne({ id: user.id }, { $inc: { token_version: 1 } });
+      await setSessionControl(db, user, { revoked_at: new Date().toISOString() });
       return json({ message: "Logged out." });
     }
     const authResult = await authActions(db, user, route, method, body);
@@ -171,14 +178,6 @@ export async function handle(request: Request, path: string[]) {
           .find({ business_group_id: user.business_group_id, is_active: true })
           .toArray(),
       );
-    }
-    if (route === "venture-users" && method === "GET") {
-      allow(user, ["super_admin"]);
-      const users = await db
-        .collection<Row>("users")
-        .find({ business_group_id: user.business_group_id })
-        .toArray();
-      return json(await Promise.all(users.map((u) => publicUser(db, u))));
     }
     if (route === "tax-operation/combined-turnover" && method === "GET") {
       allow(user, ["super_admin"]);
@@ -470,7 +469,7 @@ export async function handle(request: Request, path: string[]) {
       route.startsWith("customers/") ||
       route === "customer-ledger/outstanding"
     ) {
-      const value = await customerRoutes(db, scope, route, method, body, url);
+      const value = await customerRoutes(db, scope, route, method, body, url, request.headers.get("idempotency-key"));
       if (value !== undefined) return json(value);
     }
     if (
@@ -519,7 +518,7 @@ export async function handle(request: Request, path: string[]) {
       const value = await forecasts(db, scope, route, method, body, url);
       if (value !== undefined) return json(value);
     }
-    const expenseResult = await expensesRoutes(db, scope, route, method, body, url);
+    const expenseResult = await expensesRoutes(db, scope, route, method, body, url, request.headers.get("idempotency-key"));
     if (expenseResult !== undefined) return json(expenseResult);
     const stockIntakeResult = await stockIntakeRoutes(
       db,
@@ -791,19 +790,8 @@ export async function handle(request: Request, path: string[]) {
       return json(await cafeReport(db, scope, url));
     }
     if (route === "governance/closings" && method === "GET") {
-      allow(user, managers);
-      const branch = await authorizedBranch(
-        db,
-        scope,
-        url.searchParams.get("branch_id"),
-      );
-      return json(
-        await db.collection("business_day_closures").findOne({
-          ...scope.filter,
-          branch_id: branch.id,
-          business_date: dateOnly(url.searchParams.get("business_date")),
-        }),
-      );
+      const report = await readClosing(scope, url);
+      return report instanceof Response ? report : json(report);
     }
     if (route === "governance/closings" && method === "POST")
       return json(await closing(scope, body));

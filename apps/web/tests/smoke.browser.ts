@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, type Page } from "@playwright/test";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
@@ -329,6 +330,39 @@ test(
           route,
         );
       }
+      // The pending Retail refund above must not remove its original cash receipt.
+      await page.getByLabel("Opening cash", { exact: true }).fill("100");
+      await page.getByRole("button", { name: "Open business day" }).click();
+      const closing = page.getByRole("article", { name: "Daily Closing summary" });
+      await closing.getByRole("heading", { name: "Daily Closing preview" }).waitFor();
+      await closing.getByRole("row").filter({ hasText: "Expected closing cash" }).getByText("₹150.25", { exact: true }).waitFor();
+      await page.getByLabel("Counted physical cash", { exact: true }).fill("150");
+      await closing.getByText("Shortage ₹0.25", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Submit count" }).click();
+      await page.getByRole("button", { name: "Close day" }).click();
+      await closing.getByText("closed", { exact: true }).waitFor();
+      // A transient session-check failure during a reload must not sign out the owner.
+      let authChecks = 0;
+      const endpoint = "**/api/auth/me";
+      await page.route(endpoint, (route) => ++authChecks === 1 ? route.abort("failed") : route.continue());
+      await page.reload();
+      await closing.getByText("closed", { exact: true }).waitFor();
+      assert(authChecks >= 2);
+      await page.unroute(endpoint);
+      const csv = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Download CSV" }).click();
+      const downloaded = await csv;
+      assert.match(downloaded.suggestedFilename(), /^daily-closing-2-.*\.csv$/);
+      const report = await readFile((await downloaded.path())!, "utf8");
+      assert(report.includes('"expected_cash"') && report.includes('"150.25"') && report.includes('"-0.25"'));
+      await page.emulateMedia({ media: "print" });
+      assert.equal(await closing.isVisible(), true);
+      assert.equal(await page.getByRole("navigation").first().isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: "Download CSV" }).isVisible(), false);
+      const printed = (await page.pdf({ preferCSSPageSize: true })).toString("latin1");
+      assert.equal([...printed.matchAll(/\/Type\s*\/Page\b/g)].length, 1, "Closing summary should fit on one printed page");
+      await page.emulateMedia({ media: "screen" });
+
       await page.screenshot({
         path: "/tmp/nextjs-inventory-owner.png",
         fullPage: true,
@@ -362,6 +396,17 @@ test(
       await kpi("Net collections").getByText("₹0.00", { exact: true }).waitFor();
       await kpi("Refunds recorded").getByText("₹100.00", { exact: true }).waitFor();
       assert.equal(await metrics.getByText("Ordered value", { exact: true }).count(), 0);
+      await page.goto("http://127.0.0.1:4317/cafe/reports");
+      const historyExport = page.getByRole("article", { name: "Historical CSV exports" });
+      await historyExport.getByLabel("Historical report", { exact: true }).selectOption("reversals");
+      const refundCsv = page.waitForEvent("download");
+      await historyExport.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const refundDownload = await refundCsv;
+      assert.match(refundDownload.suggestedFilename(), /^reversals-.*\.csv$/);
+      const historyText = await readFile((await refundDownload.path())!, "utf8");
+      assert(historyText.includes('"invoice_reversal"') && historyText.includes('"refund"') && historyText.includes('"CAFE-000001"'));
+      assert(!historyText.includes("RETAIL-000001"));
+
       const cafeManagementScreens = [
         ["expenses", "Expense management"],
         ["stock-feed", "Inventory stock feed"],
@@ -383,6 +428,23 @@ test(
       }
 
       assert.deepEqual(failedApis, []);
+      await page.goto("http://127.0.0.1:4317/super-admin/dashboard");
+      const ownerHistory = page.getByRole("article", { name: "Historical CSV exports" });
+      await ownerHistory.getByLabel("Export venture", { exact: true }).selectOption("2");
+      const ownerCsv = page.waitForEvent("download");
+      await ownerHistory.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const ownerText = await readFile((await (await ownerCsv).path())!, "utf8");
+      assert(ownerText.includes('period_start_ist') && ownerText.includes('"2"'));
+      assert(!ownerText.split("\r\n").some(line => line.startsWith('"1",')));
+      await page.evaluate(() => window.sessionStorage.setItem("hybrid_retail_active_venture_id", "2"));
+      await page.goto("http://127.0.0.1:4317/retail/power-bi");
+      const retailHistory = page.getByRole("article", { name: "Historical CSV exports" });
+      await retailHistory.getByLabel("Historical report", { exact: true }).selectOption("payments");
+      const retailCsv = page.waitForEvent("download");
+      await retailHistory.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const retailText = await readFile((await (await retailCsv).path())!, "utf8");
+      assert(retailText.includes('"RETAIL-000001"') && !retailText.includes('"CAFE-000001"'));
+
       const guestPage = await browser.newPage();
       guestPage.on("pageerror", (e) => errors.push(e.message));
       await guestPage.goto("http://127.0.0.1:4317/order/" + qr.raw_token);
@@ -407,6 +469,34 @@ test(
         "Guest order must not create an invoice.",
       );
       await guestPage.close();
+
+      // Check owner reporting against a mix of fully costed Retail and incomplete Café sales.
+      const reportDate = new Date().toISOString();
+      const reportingInvoice = { invoice_date: reportDate, issued_at: reportDate, invoice_type: "non_gst", status: "paid", balance_due: "0.00" };
+      await db.collection("invoices").insertMany([
+        { ...reportingInvoice, id: 601, company_id: 1, branch_id: 1, invoice_number: "PL-CAFE", idempotency_key: "pl-cafe-browser",
+          grand_total: "69.00", items: [{ quantity: "1.00", line_total: "69.00", taxable_value: "69.00", gross_profit: "69.00", product_name_snapshot: "Reporting Café item" }] },
+        { ...reportingInvoice, id: 602, company_id: 2, branch_id: 2, invoice_number: "PL-RETAIL", idempotency_key: "pl-retail-browser",
+          grand_total: "200.00", items: [{ quantity: "1.00", line_total: "200.00", taxable_value: "200.00", recorded_cogs: "90.00", product_name_snapshot: "Reporting Retail item" }] },
+      ]);
+      await page.goto("http://127.0.0.1:4317/super-admin/dashboard");
+      await page.getByRole("button", { name: "Profit & Loss", exact: true }).click();
+      await page.getByRole("heading", { name: "Profit & Loss", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "Venture comparison", exact: true }).waitFor();
+      const quality = page.getByRole("article", { name: "Data quality" });
+      await quality.getByText("Cost data incomplete", { exact: true }).waitFor();
+      await page.getByLabel("Financial venture", { exact: true }).selectOption("2");
+      await page.getByLabel("Financial branch", { exact: true }).selectOption("2");
+      await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+      await quality.getByText("Recorded cost coverage", { exact: true }).waitFor();
+      const finance = page.getByRole("table", { name: "Financial performance", exact: true });
+      await finance.getByRole("row", { name: /Recorded operating result/ }).getByText("₹110.00", { exact: true }).waitFor();
+      const downloadProfit = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Download CSV", exact: true }).click();
+      const profitDownload = await downloadProfit;
+      assert.match(profitDownload.suggestedFilename(), /^profit-loss-.*\.csv$/);
+      const profitCsv = await readFile((await profitDownload.path())!, "utf8");
+      assert(profitCsv.includes('"110.00"') && !profitCsv.includes('"69.00"'));
 
       // At midnight in Kolkata, neither UTC nor the browser has changed dates yet.
       await page.clock.setFixedTime(new Date("2026-11-14T18:30:00.000Z"));

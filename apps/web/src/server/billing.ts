@@ -7,7 +7,7 @@ import { postLedger, scopedCustomer } from "./ledger";
 import { randomUUID } from "node:crypto";
 import { type ClientSession, type Db } from "mongodb";
 import { database, nextId, type Row } from "./db";
-import { invoiceInstant } from "./query";
+import { audit, invoiceInstant } from "./query";
 import { HttpError, requireValue } from "./errors";
 import { allow, digest, managers, sellers, type Scope } from "./security";
 import { businessDate, canonical, decimal, multiply, scaled } from "./money";
@@ -203,6 +203,8 @@ export async function quote(
             taxable_value: decimal(taxable),
             tax_amount: decimal(amount),
           });
+    const unitCost = scaled(linkedProduct?.unit_cost ?? "0");
+    const lineCost = multiply(unitCost, quantity);
     items.push({
       id: items.length + 1,
       product_id: productId ?? null,
@@ -224,11 +226,9 @@ export async function quote(
       line_total: decimal(taxable + cgst + sgst + igst + cess),
       tracks_stock: !!productId && linkedProduct?.item_type !== "service",
       taxes,
-      gross_profit: decimal(
-        gross -
-          lineDiscount -
-          multiply(scaled(linkedProduct?.unit_cost ?? "0"), quantity),
-      ),
+      gross_profit: decimal(taxable - lineCost),
+      // Zero is also the catalogue default; it does not prove this item had no cost.
+      ...(unitCost > 0 ? { recorded_cogs: decimal(lineCost) } : {}),
       quantity_on_hand: decimal(inventory?.quantity_scaled ?? 0),
       hsn_sac_code: item.hsn_sac_code ?? null,
       mrp: item.mrp ?? null,
@@ -641,6 +641,7 @@ export async function checkout(
             { session },
           );
         if (source) await finalizeCafeBill(db, scope, invoice, session);
+        await audit(db, scope, "issue", "invoice", invoice.id, {}, session, { branchId: branch.id, reference: invoice.invoice_number });
         return { invoice, replay: false };
       },
       {

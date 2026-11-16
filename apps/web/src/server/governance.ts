@@ -66,6 +66,12 @@ export async function governance(
         invoice_id: invoice.id,
         invoice_number: invoice.invoice_number,
         invoice_date: businessDate(invoice.invoice_date),
+        original_invoice_datetime: invoice.invoice_date,
+        original_issued_at: invoice.issued_at ?? null,
+        original_invoice_type: invoice.invoice_type,
+        original_operator_id: invoice.created_by,
+        original_payment_status: invoice.payment_status,
+        original_balance_due: invoice.balance_due,
         checkout_key: invoice.idempotency_key,
         reversal_type: "void",
         amount: invoice.grand_total,
@@ -103,7 +109,7 @@ export async function governance(
         { $set: { status: "cancelled", cancelled_at: timestamp, updated_at: timestamp, reason }, $inc: { version: 1 } },
         { session },
       );
-      await audit(db, scope, "void", "invoice", invoice.id, { reason, reversal_id: reversal.id }, session);
+      await audit(db, scope, "void", "invoice", invoice.id, { reason, reversal_id: reversal.id }, session, { branchId: invoice.branch_id, reference: invoice.invoice_number });
       const result = { invoice_id: invoice.id, invoice_number: invoice.invoice_number, refund_status: reversal.refund_status };
       await saveReplay(db, state, result, session);
       return result;

@@ -28,7 +28,7 @@ export async function refundRoutes(db: Db, scope: Scope, route: string, method: 
     const invoiceIds = reversals.slice(0, pageSize).map((row) => row.invoice_id);
     const related = { ...filter, invoice_id: { $in: invoiceIds } };
     const [payments, refunds, legacyInvoices] = await Promise.all([
-      db.collection<Row>("invoice_payments").find({ ...related, is_credit_marker: { $ne: true } }).sort({ id: 1 }).toArray(),
+      db.collection<Row>("invoice_payments").find({ ...related, is_credit_marker: { $ne: true }, mode_type: { $ne: "credit" } }).sort({ id: 1 }).toArray(),
       db.collection<Row>("invoice_refunds").find(related).sort({ id: -1 }).toArray(),
       db.collection<Row>("invoices").find({ ...filter, id: { $in: invoiceIds } }).project({ id: 1, invoice_number: 1 }).toArray(),
     ]);
@@ -71,7 +71,7 @@ export async function refundRoutes(db: Db, scope: Scope, route: string, method: 
     }, session);
     const related = { company_id: row.company_id, branch_id: row.branch_id, invoice_id: row.invoice_id };
     const payment = await requiredRow(db, "invoice_payments", {
-      ...related, id: Number(match[2]), is_credit_marker: { $ne: true },
+      ...related, id: Number(match[2]), is_credit_marker: { $ne: true }, mode_type: { $ne: "credit" },
     }, session);
     if (payment.receipt_corrected_at)
       throw new HttpError(409, "payment_resolved", "This payment was already corrected.");
@@ -81,7 +81,7 @@ export async function refundRoutes(db: Db, scope: Scope, route: string, method: 
     // This branch write serializes close, refunds, and simultaneous resolutions.
     await writableDay(db, scope, row.branch_id, session, day);
     const receipts = await db.collection<Row>("invoice_payments").find({
-      ...related, is_credit_marker: { $ne: true },
+      ...related, is_credit_marker: { $ne: true }, mode_type: { $ne: "credit" },
     }, { session }).toArray();
     const refunds: Row[] = await db.collection<Row>("invoice_refunds").find(related, { session }).toArray();
     const refunded = sumRefunds(refunds.filter((entry) => entry.payment_id === payment.id));
@@ -123,7 +123,7 @@ export async function refundRoutes(db: Db, scope: Scope, route: string, method: 
     await db.collection<Row>("financial_reversals").updateOne({ ...related, id: row.id },
       { $set: { refund_status, updated_at: recordedAt } }, { session });
     await audit(db, scope, correction ? "payment_not_received" : "record_refund", "invoice_payment",
-      payment.id, { reversal_id: row.id, ...auditDetails }, session);
+      payment.id, { reversal_id: row.id, ...auditDetails }, session, { branchId: row.branch_id, reference: row.invoice_number });
     const result = { refund_status, remaining: decimal(outstanding) };
     await saveReplay(db, state, result, session);
     return result;

@@ -6,6 +6,8 @@ import { HttpError, requireValue } from "./errors";
 import { businessDate, DAY_MS, KOLKATA_OFFSET, isCalendarDate, shiftDate } from "../businessDates";
 export { shiftDate } from "../businessDates";
 
+export const excludedSalesStatuses = ["draft", "cancelled", "voided", "returned"];
+
 export const now = () => new Date().toISOString();
 export const signed = (value: unknown) => {
   const text = String(value ?? "0");
@@ -116,14 +118,20 @@ export async function audit(
   entity: string,
   id: number,
   details: Record<string, unknown>,
-  session?: ClientSession,
+  session: ClientSession,
+  context: { branchId?: number; reference?: string } = {},
 ) {
   await insertRow(
     db,
     "audit_events",
     {
       ...scope.filter,
+      business_group_id: scope.user.business_group_id,
+      branch_id: context.branchId ?? details.branch_id ?? scope.filter.branch_id ?? null,
       actor_id: scope.user.id,
+      actor_name: scope.user.name,
+      outcome: "recorded",
+      ...(context.reference ? { record_reference: context.reference } : {}),
       action,
       entity_type: entity,
       entity_id: id,

@@ -1,9 +1,10 @@
 import type { Db, ClientSession } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow, sellers } from "./security";
-import { requiredRow, insertRow, transaction, now, queryScope } from "./query";
-import { scaled, decimal } from "./money";
+import { requiredRow, insertRow, transaction, now, queryScope, audit } from "./query";
+import { businessDate, scaled, decimal } from "./money";
 import { requireValue, HttpError } from "./errors";
+import { replay, saveReplay, writableDay } from "./financial";
 import { authorizedBranch } from "./billing";
 export async function scopedCustomer(
   db: Db,
@@ -94,6 +95,7 @@ export async function customerRoutes(
   method: string,
   body: Row,
   url: URL,
+  key: string | null,
 ) {
   allow(scope.user, [...sellers, "analyst"]);
   if (route === "customer-ledger/outstanding" && method === "GET") {
@@ -174,6 +176,7 @@ export async function customerRoutes(
   }
   if (match[2] === "payments" && method === "POST") {
     allow(scope.user, sellers);
+    const paymentAt = now();
     return transaction(async (db, session) => {
       const c = await scopedCustomer(db, scope, customer.id, session),
         branch = await authorizedBranch(
@@ -182,6 +185,13 @@ export async function customerRoutes(
           body.branch_id ?? c.branch_id,
           session,
         );
+      const state = key ? await replay(db, scope, key, route, body, session) : null;
+      if (state?.old) {
+        if (state.old.result.branch_id !== branch.id)
+          throw new HttpError(409, "idempotency_conflict", "This payment attempt belongs to another branch.");
+        return state.old.result;
+      }
+      await writableDay(db, scope, branch.id, session, businessDate(paymentAt));
       const amount = scaled(body.amount);
       requireValue(amount > 0, "Payment must be positive.");
       const mode = await requiredRow(
@@ -213,7 +223,7 @@ export async function customerRoutes(
           mode_name: mode.name,
           mode_type: mode.mode_type,
           amount: decimal(amount),
-          payment_datetime: now(),
+          payment_datetime: paymentAt,
           reference_number: body.reference_number ?? null,
           notes: body.notes ?? null,
           received_by: scope.user.id,
@@ -240,11 +250,10 @@ export async function customerRoutes(
           { $set: { ledger_entry_id: entry.id } },
           { session },
         );
-      return {
-        ...payment,
-        ledger_entry_id: entry.id,
-        outstanding_balance: entry.running_balance,
-      };
+      const result = { ...payment, ledger_entry_id: entry.id, outstanding_balance: entry.running_balance };
+      await audit(db, scope, "record_payment", "customer_payment", payment.id, {}, session, { branchId: payment.branch_id });
+      if (state) await saveReplay(db, state, result, session);
+      return result;
     });
   }
   throw new HttpError(
