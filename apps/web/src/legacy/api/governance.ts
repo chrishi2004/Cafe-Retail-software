@@ -1,5 +1,6 @@
 import { apiRequest } from "./client";
 
+type ClosingTender = { cash: string; upi: string; card: string; other_electronic: string; other_non_cash?: string };
 export type Closing = {
   id: number; company_id: number; branch_id: number; business_date: string;
   opening_cash: string; cash_collections: string; cash_refunds: string; cash_expenses: string;
@@ -7,6 +8,13 @@ export type Closing = {
   non_cash_refunds?: string; non_cash_total: string; non_cash_expenses: string; status: string; submitted_by: number | null; closed_by: number | null;
   reopened_by: number | null; reason: string | null; reopened_reason: string | null;
   created_at: string; updated_at: string;
+  opened_by_name?: string | null; submitted_by_name?: string | null;
+  closed_by_name?: string | null; reopened_by_name?: string | null;
+  company_name?: string; branch_name?: string; preview_token?: string;
+  breakdown?: {
+    sales: ClosingTender; repayments: ClosingTender; refunds: ClosingTender;
+    cash_operating_expenses: string; cash_supplier_payments: string;
+  };
 };
 
 export type PurgeRequest = {
@@ -19,8 +27,8 @@ export type PurgeRequest = {
 export function createClosing(token: string, payload: { branch_id: number; business_date: string; opening_cash: string }) {
   return apiRequest<Closing>("/governance/closings", { method: "POST", body: JSON.stringify(payload) }, token);
 }
-export function submitClosing(token: string, id: number, counted_cash: string) {
-  return apiRequest<Closing>(`/governance/closings/${id}/submit`, { method: "POST", body: JSON.stringify({ counted_cash }) }, token);
+export function submitClosing(token: string, id: number, counted_cash: string, preview_token: string) {
+  return apiRequest<Closing>(`/governance/closings/${id}/submit`, { method: "POST", body: JSON.stringify({ counted_cash, preview_token }) }, token);
 }
 export function closeClosing(token: string, id: number) {
   return apiRequest<Closing>(`/governance/closings/${id}/close`, { method: "POST" }, token);
@@ -30,7 +38,7 @@ export function requestPurge(token: string, payload: { entity_type: string; enti
 }
 
 export function getClosing(token: string, branchId: number, businessDate: string) {
-  return apiRequest<Closing | null>(`/governance/closings?branch_id=${branchId}&business_date=${businessDate}`, {}, token);
+  return apiRequest<Closing | null>(`/governance/closings?branch_id=${branchId}&business_date=${businessDate}&preview=true`, {}, token);
 }
 
 export function reopenClosing(token: string, id: number, reason: string) {

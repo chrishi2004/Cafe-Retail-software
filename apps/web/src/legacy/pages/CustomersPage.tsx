@@ -1,5 +1,5 @@
 import { formatDateTime } from "../utils/format";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CreditCard, Edit3, Plus, ReceiptText, RotateCw, Search } from "lucide-react";
 
 import { ApiError } from "../api/client";
@@ -89,6 +89,7 @@ export function CustomersPage() {
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState(false);
+  const paymentSubmission = useRef({ payload: "", key: "", busy: false });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -229,20 +230,26 @@ export function CustomersPage() {
 
   const submitPayment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!token || !selectedCustomer || !canRecordPayment) {
+    if (!token || !selectedCustomer || !canRecordPayment || paymentSubmission.current.busy) {
       return;
     }
+    paymentSubmission.current.busy = true;
     setPaymentSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      const payment = await createCustomerPayment(token, selectedCustomer.id, {
+      const payload = {
         ...paymentForm,
         branch_id: paymentForm.branch_id || selectedCustomer.branch_id || defaultBranchId,
         payment_mode_id: paymentForm.payment_mode_id || null,
         reference_number: cleanOptional(paymentForm.reference_number),
         notes: cleanOptional(paymentForm.notes),
-      });
+      };
+      const serialized = JSON.stringify([selectedCustomer.id, payload]);
+      if (paymentSubmission.current.payload !== serialized)
+        paymentSubmission.current = { payload: serialized, key: crypto.randomUUID(), busy: true };
+      const payment = await createCustomerPayment(token, selectedCustomer.id, payload, paymentSubmission.current.key);
+      paymentSubmission.current.payload = "";
       setSuccess(`Payment recorded. Outstanding is ${formatCurrency(payment.outstanding_balance)}.`);
       setPaymentForm({ ...emptyPaymentForm, branch_id: selectedCustomer.branch_id ?? defaultBranchId });
       await load();
@@ -250,6 +257,7 @@ export function CustomersPage() {
     } catch (paymentError) {
       setError(errorMessage(paymentError));
     } finally {
+      paymentSubmission.current.busy = false;
       setPaymentSaving(false);
     }
   };

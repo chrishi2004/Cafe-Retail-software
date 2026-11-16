@@ -43,6 +43,7 @@ export type ExpenseSummary = {
   total_expenses: string;
   cash_expenses: string;
   non_cash_expenses: string;
+  credit_expenses: string;
   stock_purchase_expenses: string;
   expense_count: number;
   by_category: Record<string, string>;
@@ -89,10 +90,10 @@ export function getExpenseSummary(token: string, filters: ExpenseFilters = {}) {
   return apiRequest<ExpenseSummary>(`/expenses/summary${query(filters)}`, {}, token);
 }
 
-export function createExpense(token: string, payload: ExpensePayload) {
+export function createExpense(token: string, payload: ExpensePayload, key: string) {
   return apiRequest<Expense>(
     "/expenses",
-    { method: "POST", body: JSON.stringify(payload) },
+    { method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify(payload) },
     token,
   );
 }

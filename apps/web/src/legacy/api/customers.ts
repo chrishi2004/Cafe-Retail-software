@@ -63,10 +63,11 @@ export function createCustomerPayment(
   token: string,
   id: number,
   payload: CustomerPaymentPayload,
+  key: string,
 ): Promise<CustomerPayment> {
   return apiRequest<CustomerPayment>(
     `/customers/${id}/payments`,
-    { method: "POST", body: JSON.stringify(payload) },
+    { method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify(payload) },
     token,
   );
 }

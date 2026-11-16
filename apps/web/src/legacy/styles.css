@@ -2640,3 +2640,34 @@ select:focus-visible {
     grid-column: auto;
   }
 }
+
+.daily-closing-print { display: none; }
+
+@media print {
+  html:has(.daily-closing-print), body:has(.daily-closing-print) {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  body:has(.daily-closing-print) > :not(.daily-closing-print) { display: none !important; }
+  body:has(.daily-closing-print) > .daily-closing-print { display: block !important; }
+  .daily-closing-print .daily-closing-summary {
+    display: block;
+    break-inside: avoid;
+    font-size: 10pt;
+    color: #000;
+    background: #fff;
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+  .daily-closing-print .table-wrap { overflow: visible; margin-block: 0.7rem; }
+  .daily-closing-print tr { break-inside: avoid; }
+  .daily-closing-print :is(th, td) { padding: 3px 7px; }
+}
