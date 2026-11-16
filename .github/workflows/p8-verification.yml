@@ -27,6 +27,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The V1 preservation tests inspect an ancestor commit.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -94,8 +96,9 @@ jobs:
           grep -q 'quoteCafeTableSession' frontend/src/pages/CafeBillingPage.tsx
           grep -q 'checkoutKey' frontend/src/pages/CafeBillingPage.tsx
           grep -q 'Idempotency-Key' frontend/src/api/cafeBilling.ts
-          grep -q 'window.print()' frontend/src/pages/CafeBillingPage.tsx
-          ! grep -R -q 'dangerouslySetInnerHTML' frontend/src/pages/CafeBillingPage.tsx
+          grep -q 'CafeReceiptView' frontend/src/pages/CafeBillingPage.tsx
+          grep -Fq 'window.print()' frontend/src/components/CafeReceipt.tsx
+          ! grep -q 'dangerouslySetInnerHTML' frontend/src/pages/CafeBillingPage.tsx frontend/src/components/CafeReceipt.tsx
       - name: Verify authenticated portal boundaries
         working-directory: frontend
         run: node scripts/verify-portals.mjs

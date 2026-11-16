@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   preservation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -49,7 +49,6 @@ jobs:
           npm run typecheck
           VITE_API_BASE_URL=http://127.0.0.1:8000/api npm run build
           node --test tests/cafe-v1.test.mjs
-          npm install --no-save --package-lock=false @playwright/test@1.51.1
           npx playwright install --with-deps chromium
       - name: Resolve browser tooling for the existing V1 acceptance runner
         working-directory: frontend

@@ -4,6 +4,7 @@ import { TaxOperationPanel } from "../components/TaxOperationPanel";
 import { CafeBillingPage } from "../pages/CafeBillingPage";
 import { CafePOSPage } from "../pages/CafePOSPage";
 import { CafeClosingPage } from "../pages/CafeClosingPage";
+import { CafeContinuityPage } from "../pages/CafeContinuityPage";
 import { CafeDashboardPage } from "../pages/CafeDashboardPage";
 import { CafeKitchenPage } from "../pages/CafeKitchenPage";
 import { CafeLiveOrdersPage } from "../pages/CafeLiveOrdersPage";
@@ -46,8 +47,12 @@ export function CafePortal({ user, pathname, onNavigate, onLogout }: CafePortalP
   const requested = pathname.split("/").filter(Boolean)[1] ?? sections[0] ?? "dashboard";
   const active = sections.includes(requested) ? requested : sections[0] ?? "dashboard";
 
+  const showContinuity = import.meta.env.VITE_ENABLE_LOCAL_HUB_CONTINUITY === "true"
+    && ["super_admin", "admin", "store_manager"].includes(user.server_role);
   let content;
-  if (active === "dashboard") content = <CafeDashboardPage />;
+  if (active === "dashboard") {
+    content = <><CafeDashboardPage />{showContinuity ? <CafeContinuityPage /> : null}</>;
+  }
   else if (active === "orders") content = <CafeLiveOrdersPage />;
   else if (active === "pos") content = <CafePOSPage />;
   else if (active === "new-order") content = <CafeNewOrderPage />;
