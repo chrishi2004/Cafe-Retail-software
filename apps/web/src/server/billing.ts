@@ -203,6 +203,8 @@ export async function quote(
             taxable_value: decimal(taxable),
             tax_amount: decimal(amount),
           });
+    const unitCost = scaled(linkedProduct?.unit_cost ?? "0");
+    const lineCost = multiply(unitCost, quantity);
     items.push({
       id: items.length + 1,
       product_id: productId ?? null,
@@ -224,11 +226,9 @@ export async function quote(
       line_total: decimal(taxable + cgst + sgst + igst + cess),
       tracks_stock: !!productId && linkedProduct?.item_type !== "service",
       taxes,
-      gross_profit: decimal(
-        gross -
-          lineDiscount -
-          multiply(scaled(linkedProduct?.unit_cost ?? "0"), quantity),
-      ),
+      gross_profit: decimal(taxable - lineCost),
+      // Zero is also the catalogue default; it does not prove this item had no cost.
+      ...(unitCost > 0 ? { recorded_cogs: decimal(lineCost) } : {}),
       quantity_on_hand: decimal(inventory?.quantity_scaled ?? 0),
       hsn_sac_code: item.hsn_sac_code ?? null,
       mrp: item.mrp ?? null,

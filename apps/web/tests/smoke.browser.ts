@@ -470,6 +470,34 @@ test(
       );
       await guestPage.close();
 
+      // Check owner reporting against a mix of fully costed Retail and incomplete Café sales.
+      const reportDate = new Date().toISOString();
+      const reportingInvoice = { invoice_date: reportDate, issued_at: reportDate, invoice_type: "non_gst", status: "paid", balance_due: "0.00" };
+      await db.collection("invoices").insertMany([
+        { ...reportingInvoice, id: 601, company_id: 1, branch_id: 1, invoice_number: "PL-CAFE", idempotency_key: "pl-cafe-browser",
+          grand_total: "69.00", items: [{ quantity: "1.00", line_total: "69.00", taxable_value: "69.00", gross_profit: "69.00", product_name_snapshot: "Reporting Café item" }] },
+        { ...reportingInvoice, id: 602, company_id: 2, branch_id: 2, invoice_number: "PL-RETAIL", idempotency_key: "pl-retail-browser",
+          grand_total: "200.00", items: [{ quantity: "1.00", line_total: "200.00", taxable_value: "200.00", recorded_cogs: "90.00", product_name_snapshot: "Reporting Retail item" }] },
+      ]);
+      await page.goto("http://127.0.0.1:4317/super-admin/dashboard");
+      await page.getByRole("button", { name: "Profit & Loss", exact: true }).click();
+      await page.getByRole("heading", { name: "Profit & Loss", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "Venture comparison", exact: true }).waitFor();
+      const quality = page.getByRole("article", { name: "Data quality" });
+      await quality.getByText("Cost data incomplete", { exact: true }).waitFor();
+      await page.getByLabel("Financial venture", { exact: true }).selectOption("2");
+      await page.getByLabel("Financial branch", { exact: true }).selectOption("2");
+      await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+      await quality.getByText("Recorded cost coverage", { exact: true }).waitFor();
+      const finance = page.getByRole("table", { name: "Financial performance", exact: true });
+      await finance.getByRole("row", { name: /Recorded operating result/ }).getByText("₹110.00", { exact: true }).waitFor();
+      const downloadProfit = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Download CSV", exact: true }).click();
+      const profitDownload = await downloadProfit;
+      assert.match(profitDownload.suggestedFilename(), /^profit-loss-.*\.csv$/);
+      const profitCsv = await readFile((await profitDownload.path())!, "utf8");
+      assert(profitCsv.includes('"110.00"') && !profitCsv.includes('"69.00"'));
+
       // At midnight in Kolkata, neither UTC nor the browser has changed dates yet.
       await page.clock.setFixedTime(new Date("2026-11-14T18:30:00.000Z"));
       await page.evaluate(() =>

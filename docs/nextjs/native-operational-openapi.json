@@ -335,6 +335,38 @@
           }
         }
       }
+    },
+    "/api/financial/profit-loss": {
+      "get": {
+        "tags": [
+          "financial performance"
+        ],
+        "summary": "Read or export the owner profit and loss report",
+        "responses": {
+          "200": {
+            "description": "Scoped financial report or filter data"
+          },
+          "403": {
+            "description": "Owner permission and authorized venture or branch required"
+          }
+        }
+      }
+    },
+    "/api/financial/profit-loss/options": {
+      "get": {
+        "tags": [
+          "financial performance"
+        ],
+        "summary": "List the owner profit and loss scopes",
+        "responses": {
+          "200": {
+            "description": "Scoped financial report or filter data"
+          },
+          "403": {
+            "description": "Owner permission and authorized venture or branch required"
+          }
+        }
+      }
     }
   }
 }

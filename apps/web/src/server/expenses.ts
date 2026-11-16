@@ -208,6 +208,10 @@ export async function expensesRoutes(
 
 // Stock intake's linked posted expense is the cash record. Stock movements
 // are stock-only, and unpaid supplier credit is not a settlement.
+export function isStockOrSupplierExpense(category: unknown, sourceType: unknown) {
+  return category === "stock_purchase" || (typeof sourceType === "string" && ["stock_intake", "purchase_order", "supplier_payment"].includes(sourceType));
+}
+
 export async function closingOutflows(db: Db, scope: Scope, branchId: number, day: string, session: ClientSession) {
   const rows = await db.collection<Row>("expenses").find({
     company_id: scope.company.id, branch_id: branchId, expense_date: day,
@@ -217,7 +221,7 @@ export async function closingOutflows(db: Db, scope: Scope, branchId: number, da
   for (const row of rows) {
     const amount = scaled(row.amount);
     if (row.payment_mode !== "cash") nonCash += amount;
-    else if (row.category === "stock_purchase") cashSupplier += amount;
+    else if (isStockOrSupplierExpense(row.category, row.source_type)) cashSupplier += amount;
     else cashOperating += amount;
   }
   return { cashOperating, cashSupplier, nonCash };

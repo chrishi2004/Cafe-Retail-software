@@ -112,6 +112,9 @@ test(
         items: [{ item_id: po.items[0].id, quantity_received: "6" }],
       });
       assert.equal((await ok("inventory"))[0].quantity_on_hand, "10.00");
+      const { db } = await database();
+      const receipts = await db.collection("stock_movements").find({ company_id: 2, reference_type: "purchase_order", reference_id: po.id }).sort({ id: 1 }).toArray();
+      assert.deepEqual(receipts.map(row => [row.unit_cost, row.line_total]), [["40.00", "160.00"], ["40.00", "240.00"]]);
       assert.equal((await ok("inventory"))[0].quantity_on_order, "0.00");
       assert.equal(
         (
@@ -136,6 +139,8 @@ test(
       };
       const sale = await ok("pos/checkout", "POST", cart, "credit-sale-key");
       assert.equal(sale.balance_due, "150.00");
+      const storedInvoice = await db.collection("invoices").findOne({ id: sale.id, company_id: 2 });
+      assert.equal(storedInvoice?.items[0].recorded_cogs, "80.00");
       const ledger = await ok(`customers/${customer.id}/ledger`);
       assert.equal(ledger.at(-1).running_balance, "170.00");
       const pay = { payment_mode_id: 5, amount: "150" };
@@ -267,7 +272,6 @@ test(
         403,
       );
       assert.equal((await call("dashboard/inventory?branch_id=1")).status, 404);
-      const { db } = await database();
       assert.equal(
         await db
           .collection("invoice_payments")

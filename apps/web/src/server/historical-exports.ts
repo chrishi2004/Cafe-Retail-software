@@ -24,9 +24,9 @@ const layouts = {
   employees: `${scopeColumns},period_start_ist,period_end_ist,employee_id,invoice_count,billed_revenue,gross_collections,refunds,net_collections`,
 } as const;
 type Kind = keyof typeof layouts;
-type Range = { start: string; end: string };
-type ExportScope = { company: Row; branchId: number | null; branches: Map<number, string> };
-type SnapshotScope = ExportScope & { session: ClientSession };
+export type Range = { start: string; end: string };
+export type ExportScope = { company: Row; branchId: number | null; branches: Map<number, string> };
+export type SnapshotScope = ExportScope & { session: ClientSession };
 type Cadence = "daily" | "weekly" | "monthly" | "period";
 type CsvRow = Record<string, unknown>;
 
@@ -58,12 +58,12 @@ function getRange(params: URLSearchParams): Range {
   return { start, end };
 }
 
-async function exportScopes(db: Db, user: Row, request: Request, params: URLSearchParams, consolidated: boolean) {
+export async function exportScopes(db: Db, user: Row, request: Request, params: URLSearchParams, consolidated: boolean, respectVentureHeader = true) {
   allow(user, [...managers, "analyst"]);
   if (consolidated) allow(user, ["super_admin"]);
   const requestedCompany = queryId(params.get("company_id"));
   const requestedBranch = queryId(params.get("branch_id"));
-  const header = queryId(request.headers.get("x-venture-id"));
+  const header = respectVentureHeader ? queryId(request.headers.get("x-venture-id")) : null;
   let companies: Row[];
   if (user.role === "super_admin") {
     const id = requestedCompany ?? header;
@@ -104,7 +104,7 @@ function dateFields(field: string, range: Range, instant: boolean): Filter<Row> 
   ] };
 }
 
-async function* scan(db: Db, scope: SnapshotScope, table: string, fields: string, options: {
+export async function* scan(db: Db, scope: SnapshotScope, table: string, fields: string, options: {
   dates?: Range; field?: string; instant?: boolean; where?: Filter<Row>; sortField?: string;
 } = {}) {
   const { dates, field, instant = false, where = {}, sortField = field } = options;
@@ -120,7 +120,7 @@ async function* scan(db: Db, scope: SnapshotScope, table: string, fields: string
   } finally { await cursor.close(); }
 }
 
-function day(value: unknown) {
+export function day(value: unknown) {
   return (typeof value === "string" && inBusinessRange(value, null, null)) || (value instanceof Date && Number.isFinite(value.getTime()))
     ? businessDate(value as string | Date) : null;
 }
@@ -133,8 +133,7 @@ function csvCell(value: unknown) {
   return '"' + text.replaceAll('"', '""') + '"';
 }
 
-function streamCsv(kind: Kind, range: Range, rows: AsyncGenerator<CsvRow>) {
-  const columns = layouts[kind].split(",");
+export function streamCsv(filename: string, columns: readonly string[], rows: AsyncGenerator<CsvRow>) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) { controller.enqueue(encoder.encode("\uFEFF" + columns.join(",") + "\r\n")); },
@@ -160,11 +159,11 @@ function streamCsv(kind: Kind, range: Range, rows: AsyncGenerator<CsvRow>) {
   });
   return new Response(stream, { headers: {
     "Content-Type": "text/csv; charset=utf-8", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
-    "Content-Disposition": `attachment; filename="${kind}-${range.start}-${range.end}.csv"`,
+    "Content-Disposition": `attachment; filename="${filename}.csv"`,
   } });
 }
 
-function linkedLookup(db: Db, scope: SnapshotScope, table: string, field: string, columns: string) {
+export function linkedLookup(db: Db, scope: SnapshotScope, table: string, field: string, columns: string) {
   const projection = Object.fromEntries(columns.split(",").map(column => [column, 1]));
   const memo = new Map<string, Row | null>();
   return async (id: unknown, branchId: number) => {
@@ -383,5 +382,5 @@ export async function historicalExports(db: Db, user: Row, request: Request, rou
   requireValue(["daily", "weekly", "monthly", "period"].includes(cadence), "Invalid reporting interval.");
   const scopes = await exportScopes(db, user, request, url.searchParams, kind === "consolidated");
   const effectiveRange = kind === "inventory" ? { start: businessDate(), end: businessDate() } : range;
-  return streamCsv(kind, effectiveRange, exportRows(db, scopes, effectiveRange, kind, kind === "employees" ? "period" : cadence));
+  return streamCsv(`${kind}-${effectiveRange.start}-${effectiveRange.end}`, layouts[kind].split(","), exportRows(db, scopes, effectiveRange, kind, kind === "employees" ? "period" : cadence));
 }
