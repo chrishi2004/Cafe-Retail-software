@@ -198,7 +198,7 @@ export async function expensesRoutes(
         { $set: values },
         { session },
       );
-      await audit(txDb, scope, "void", "expense", row.id, { reason }, session);
+      await audit(txDb, scope, "void", "expense", row.id, { reason }, session, { branchId: row.branch_id });
       return { ...row, ...values };
     });
   }

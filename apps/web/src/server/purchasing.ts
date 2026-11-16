@@ -348,6 +348,7 @@ export async function purchases(
       row.id,
       {},
       session,
+      { branchId: row.branch_id, reference: row.po_number },
     );
     if (state) await saveReplay(db, state, row, session);
     return row;

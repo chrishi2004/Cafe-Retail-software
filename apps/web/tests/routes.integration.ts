@@ -7,7 +7,7 @@ import { disconnect } from "../src/server/db";
 import { handle } from "../src/server/handler";
 
 test(
-  "169 operational operations dispatch natively; obsolete Local Hub retry is explicitly retired",
+  "171 operational operations dispatch natively; obsolete Local Hub retry is explicitly retired",
   { timeout: 180000 },
   async () => {
     const server = await MongoMemoryReplSet.create({
@@ -49,8 +49,9 @@ test(
           "utf8",
         ),
       );
+      const hostedSpec = JSON.parse(readFileSync(new URL("../../../docs/nextjs/native-operational-openapi.json", import.meta.url), "utf8"));
       let count = 0;
-      for (const [template, methods] of Object.entries(spec.paths) as [
+      for (const [template, methods] of Object.entries({ ...spec.paths, ...hostedSpec.paths }) as [
         string,
         Record<string, unknown>,
       ][]) {
@@ -100,7 +101,7 @@ test(
             );
         }
       }
-      assert.equal(count, 169);
+      assert.equal(count, 171);
       const logout = await handle(
         new Request("http://localhost/api/auth/logout", {
           method: "POST",

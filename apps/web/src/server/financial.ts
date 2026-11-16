@@ -90,7 +90,7 @@ export async function financial(
     return transaction(async (db, session) => {
       const calculated = await quote(db, scope, body, false, session);
       const branch = await authorizedBranch(db, scope, body.branch_id, session);
-      return insertRow(
+      const draft = await insertRow(
         db,
         "invoices",
         {
@@ -113,6 +113,8 @@ export async function financial(
         },
         session,
       );
+      await audit(db, scope, "draft_create", "invoice", draft.id, {}, session, { branchId: branch.id, reference: draft.invoice_number });
+      return draft;
     });
   }
   const match = route.match(
@@ -171,6 +173,7 @@ export async function financial(
         id,
         { reason: body.reason },
         session,
+        { branchId: invoice.branch_id, reference: invoice.invoice_number },
       );
       return { ...invoice, status: "cancelled" };
     }
@@ -287,6 +290,7 @@ export async function financial(
           order_status: remaining ? "billed" : "closed",
         }
       : updated;
+    await audit(db, scope, "record_payment", "invoice_payment", payment.id, {}, session, { branchId: invoice.branch_id, reference: invoice.invoice_number });
     await saveReplay(db, state, result, session);
     return result;
   });

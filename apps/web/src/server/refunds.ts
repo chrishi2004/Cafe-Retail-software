@@ -123,7 +123,7 @@ export async function refundRoutes(db: Db, scope: Scope, route: string, method: 
     await db.collection<Row>("financial_reversals").updateOne({ ...related, id: row.id },
       { $set: { refund_status, updated_at: recordedAt } }, { session });
     await audit(db, scope, correction ? "payment_not_received" : "record_refund", "invoice_payment",
-      payment.id, { reversal_id: row.id, ...auditDetails }, session);
+      payment.id, { reversal_id: row.id, ...auditDetails }, session, { branchId: row.branch_id, reference: row.invoice_number });
     const result = { refund_status, remaining: decimal(outstanding) };
     await saveReplay(db, state, result, session);
     return result;

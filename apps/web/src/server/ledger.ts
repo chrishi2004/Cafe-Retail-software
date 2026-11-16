@@ -1,7 +1,7 @@
 import type { Db, ClientSession } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow, sellers } from "./security";
-import { requiredRow, insertRow, transaction, now, queryScope } from "./query";
+import { requiredRow, insertRow, transaction, now, queryScope, audit } from "./query";
 import { businessDate, scaled, decimal } from "./money";
 import { requireValue, HttpError } from "./errors";
 import { replay, saveReplay, writableDay } from "./financial";
@@ -251,6 +251,7 @@ export async function customerRoutes(
           { session },
         );
       const result = { ...payment, ledger_entry_id: entry.id, outstanding_balance: entry.running_balance };
+      await audit(db, scope, "record_payment", "customer_payment", payment.id, {}, session, { branchId: payment.branch_id });
       if (state) await saveReplay(db, state, result, session);
       return result;
     });

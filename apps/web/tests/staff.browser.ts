@@ -86,6 +86,8 @@ test("owner creates an employee, who sets a private password and can be deactiva
     await staff.waitForURL("**/cafe/pos");
     await staff.getByRole("link", { name: "Account security", exact: true }).click();
     await staff.getByRole("button", { name: "Enable authenticator", exact: true }).waitFor();
+    await staff.goto(`${origin}/super-admin/audit`);
+    await staff.waitForURL("**/cafe/pos");
     await staff.goto(`${origin}/cafe/users`);
     await staff.waitForURL("**/cafe/pos");
 
@@ -100,6 +102,18 @@ test("owner creates an employee, who sets a private password and can be deactiva
     owner.once("dialog", (dialog) => void dialog.accept());
     await row.getByRole("button", { name: "Deactivate", exact: true }).click();
     await row.getByText("Inactive", { exact: true }).waitFor();
+    await owner.getByRole("button", { name: "Activity & Audit", exact: true }).click();
+    await owner.getByRole("heading", { name: "Activity & Audit", exact: true }).waitFor();
+    const deactivation = owner.getByRole("row").filter({ hasText: "Employee deactivated" });
+    await deactivation.waitFor();
+    assert.match(await deactivation.innerText(), /IST/);
+    await owner.getByLabel("Category", { exact: true }).selectOption("employees");
+    await owner.getByRole("button", { name: "Apply filters", exact: true }).click();
+    await deactivation.waitFor();
+    const auditDownload = owner.waitForEvent("download");
+    await owner.getByRole("button", { name: "Download CSV", exact: true }).click();
+    assert.match((await auditDownload).suggestedFilename(), /^operational-audit-.*\.csv$/);
+
     await staff.reload();
     await staff.getByRole("button", { name: "Sign in", exact: true }).waitFor();
     assert.deepEqual(errors, []);

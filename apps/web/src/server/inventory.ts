@@ -1,3 +1,4 @@
+import { audit } from "./query";
 import { type Db } from "mongodb";
 import { database, nextId, type Row } from "./db";
 import { authorizedBranch } from "./billing";
@@ -140,6 +141,7 @@ export async function adjust(scope: Scope, body: Row) {
         created_at: new Date().toISOString(),
       };
       await db.collection("stock_movements").insertOne(movement, { session });
+      await audit(db, scope, "adjust", "stock_movement", movement.id, {}, session, { branchId: branch.id });
       return { movement };
     });
   } finally {

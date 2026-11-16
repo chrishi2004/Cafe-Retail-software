@@ -338,6 +338,16 @@ test(
       const finish = await call(refundPath, "POST", { ...refund, amount: "60" }, ot, "final-refund", 1);
       assert.equal(finish.body.refund_status, "refunded");
       assert.equal(await db.collection("invoice_refunds").countDocuments({ invoice_id: invoiceId }), 2);
+      const invoiceNumber = voids[0].body.invoice_number ?? (await db.collection("financial_reversals").findOne({ invoice_id: invoiceId }))?.invoice_number;
+      assert.match(invoiceNumber, /^CAFE-/);
+      const activity = await call(`audit/events?company_id=1&branch_id=1&reference=${invoiceNumber}`, "GET", undefined, ot);
+      assert.equal(activity.status, 200, JSON.stringify(activity.body));
+      const actions = activity.body.rows.map((row: { action: string }) => row.action);
+      assert.equal(actions.filter((action: string) => action === "Invoice issued").length, 1);
+      assert.equal(actions.filter((action: string) => action === "Voided").length, 1);
+      assert.equal(actions.filter((action: string) => action === "Refund recorded").length, 2);
+      assert(activity.body.rows.every((row: { reference: string; outcome: string }) => row.reference === invoiceNumber && row.outcome === "Recorded"));
+
       const group = (await call("dashboard/consolidated", "GET", undefined, ot)).body;
       assert.equal(group.kpis.billed_revenue, "900.00");
       assert.equal(group.kpis.gross_collections, "1000.00");

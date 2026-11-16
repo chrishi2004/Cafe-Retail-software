@@ -278,6 +278,7 @@ export async function catalog(
     return rows;
   }
   allow(scope.user, managers);
+  requireValue(session, "Catalog writes require a transaction.");
   if (!["POST", "PUT", "PATCH"].includes(method))
     throw new HttpError(405, "method_not_allowed", "Method unavailable.");
   if (body.company_id != null && body.company_id !== scope.company.id)
@@ -476,6 +477,6 @@ export async function catalog(
     { returnDocument: "after", session },
   );
   if (!row) throw new HttpError(404, "not_found", "Record unavailable.");
-  await audit(db, scope, "update", config.collection, row.id, {}, session);
+  await audit(db, scope, values.is_active === false ? "deactivate" : "update", config.collection, row.id, {}, session, { branchId: row.branch_id });
   return row;
 }
