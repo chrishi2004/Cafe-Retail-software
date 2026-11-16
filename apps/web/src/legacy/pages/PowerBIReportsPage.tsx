@@ -1,3 +1,4 @@
+import { HistoricalExports } from "../components/HistoricalExports";
 import { useCallback, useMemo, useState } from "react";
 import {
   CloudOff,
@@ -231,6 +232,7 @@ export function PowerBIReportsPage() {
         </div>
       ) : null}
 
+      <HistoricalExports />
       <section className="powerbi-grid">
         <article className="panel">
           <div className="panel-header">

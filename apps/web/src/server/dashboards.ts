@@ -5,7 +5,7 @@ import type { Row } from "./db";
 import { type Scope, allow } from "./security";
 import { inventoryRows } from "./inventory";
 import { businessDate, decimal, scaled } from "./money";
-import { period, queryScope, signed } from "./query";
+import { period, queryScope, signed, excludedSalesStatuses } from "./query";
 
 const sum = (rows: Record<string, unknown>[], key: string) =>
   rows.reduce((n, r) => n + signed(r[key] ?? "0"), 0);
@@ -32,7 +32,7 @@ export async function salesRows(
   const rows: Row[] = [];
   for (const invoice of await db
     .collection<Row>("invoices")
-    .find({ ...filter, status: { $nin: ["draft", "cancelled", "voided", "returned"] } })
+    .find({ ...filter, status: { $nin: excludedSalesStatuses } })
     .toArray()) {
     if (!inBusinessRange(invoice.invoice_date, p.start, p.end)) continue;
     const items = (invoice.items as Row[])

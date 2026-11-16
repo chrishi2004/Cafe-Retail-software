@@ -3,7 +3,7 @@ import type { Db } from "mongodb";
 import type { Row } from "./db";
 import { type Scope, allow } from "./security";
 import { decimal, scaled } from "./money";
-import { queryScope, period, signed } from "./query";
+import { queryScope, period, signed, excludedSalesStatuses } from "./query";
 import { paymentActivity, paymentTotals } from "./paymentActivity";
 export function range(url: URL) {
   const p = period(url, 1);
@@ -15,7 +15,7 @@ export async function cafeReport(db: Db, scope: Scope, url: URL) {
   let invoices = (
     await db.collection<Row>("invoices").find(filter).toArray()
   ).filter((i) => i.status !== "draft" && inBusinessRange(i.invoice_date, start, end));
-  const voidedInvoiceIds = new Set(invoices.filter((i) => ["cancelled", "returned", "voided"].includes(i.status)).map((i) => i.id));
+  const voidedInvoiceIds = new Set(invoices.filter((i) => excludedSalesStatuses.includes(i.status)).map((i) => i.id));
   let orders = (
     await db.collection<Row>("cafe_orders").find(filter).toArray()
   );

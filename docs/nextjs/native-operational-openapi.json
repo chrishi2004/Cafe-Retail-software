@@ -36,6 +36,305 @@
           }
         }
       }
+    },
+    "/api/exports/history/sales": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download sales as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/consolidated": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download consolidated as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/invoices": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download invoices as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/payments": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download payments as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/reversals": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download reversals as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/expenses": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download expenses as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/inventory": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download inventory as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/movements": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download movements as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/stock-feeds": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download stock-feeds as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/purchases": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download purchases as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/supplier-payments": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download supplier-payments as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/closings": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download closings as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
+    },
+    "/api/exports/history/employees": {
+      "get": {
+        "tags": [
+          "historical exports"
+        ],
+        "summary": "Download employees as a scoped CSV",
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV for the selected scope and IST dates",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient venture or branch access"
+          }
+        }
+      }
     }
   }
 }

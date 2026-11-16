@@ -396,6 +396,17 @@ test(
       await kpi("Net collections").getByText("₹0.00", { exact: true }).waitFor();
       await kpi("Refunds recorded").getByText("₹100.00", { exact: true }).waitFor();
       assert.equal(await metrics.getByText("Ordered value", { exact: true }).count(), 0);
+      await page.goto("http://127.0.0.1:4317/cafe/reports");
+      const historyExport = page.getByRole("article", { name: "Historical CSV exports" });
+      await historyExport.getByLabel("Historical report", { exact: true }).selectOption("reversals");
+      const refundCsv = page.waitForEvent("download");
+      await historyExport.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const refundDownload = await refundCsv;
+      assert.match(refundDownload.suggestedFilename(), /^reversals-.*\.csv$/);
+      const historyText = await readFile((await refundDownload.path())!, "utf8");
+      assert(historyText.includes('"invoice_reversal"') && historyText.includes('"refund"') && historyText.includes('"CAFE-000001"'));
+      assert(!historyText.includes("RETAIL-000001"));
+
       const cafeManagementScreens = [
         ["expenses", "Expense management"],
         ["stock-feed", "Inventory stock feed"],
@@ -417,6 +428,23 @@ test(
       }
 
       assert.deepEqual(failedApis, []);
+      await page.goto("http://127.0.0.1:4317/super-admin/dashboard");
+      const ownerHistory = page.getByRole("article", { name: "Historical CSV exports" });
+      await ownerHistory.getByLabel("Export venture", { exact: true }).selectOption("2");
+      const ownerCsv = page.waitForEvent("download");
+      await ownerHistory.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const ownerText = await readFile((await (await ownerCsv).path())!, "utf8");
+      assert(ownerText.includes('period_start_ist') && ownerText.includes('"2"'));
+      assert(!ownerText.split("\r\n").some(line => line.startsWith('"1",')));
+      await page.evaluate(() => window.sessionStorage.setItem("hybrid_retail_active_venture_id", "2"));
+      await page.goto("http://127.0.0.1:4317/retail/power-bi");
+      const retailHistory = page.getByRole("article", { name: "Historical CSV exports" });
+      await retailHistory.getByLabel("Historical report", { exact: true }).selectOption("payments");
+      const retailCsv = page.waitForEvent("download");
+      await retailHistory.getByRole("button", { name: "Download historical CSV", exact: true }).click();
+      const retailText = await readFile((await (await retailCsv).path())!, "utf8");
+      assert(retailText.includes('"RETAIL-000001"') && !retailText.includes('"CAFE-000001"'));
+
       const guestPage = await browser.newPage();
       guestPage.on("pageerror", (e) => errors.push(e.message));
       await guestPage.goto("http://127.0.0.1:4317/order/" + qr.raw_token);
