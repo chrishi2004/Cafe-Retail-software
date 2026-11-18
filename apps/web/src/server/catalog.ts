@@ -329,6 +329,12 @@ export async function catalog(
     }
     values.recipe = ingredients;
   }
+  if (resource === "cafe/menu/items" && (values.consume_recipe_on_bill !== undefined || values.recipe !== undefined)) {
+    const current = id ? await collection.findOne(filter, { session }) : null;
+    const recipe = values.recipe ?? current?.recipe;
+    if (values.consume_recipe_on_bill ?? current?.consume_recipe_on_bill)
+      requireValue(Array.isArray(recipe) && recipe.length > 0, "Add an ingredient or turn off recipe deduction.");
+  }
   if (body.is_active !== undefined) {
     requireValue(
       typeof body.is_active === "boolean",

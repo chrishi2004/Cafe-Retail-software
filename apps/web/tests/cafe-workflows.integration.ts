@@ -91,6 +91,7 @@ test(
         table_code: "T1",
         display_name: "Table One",
       });
+      assert.equal((await call(`cafe/menu/items/${item.id}`, "PUT", { recipe: [] })).status, 422);
       const opened = await Promise.all([
         call("cafe/table-sessions", "POST", { table_id: table.id }),
         call("cafe/table-sessions", "POST", { table_id: table.id }),
