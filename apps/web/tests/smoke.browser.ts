@@ -445,11 +445,20 @@ test(
       const retailText = await readFile((await (await retailCsv).path())!, "utf8");
       assert(retailText.includes('"RETAIL-000001"') && !retailText.includes('"CAFE-000001"'));
       await page.goto("http://127.0.0.1:4317/retail/products");
+      await page.evaluate(() => {
+        const open = window.open.bind(window);
+        window.open = (...args) => {
+          const popup = open(...args);
+          if (popup) popup.print = () => { popup.document.body.dataset.printRequested = "yes"; };
+          return popup;
+        };
+      });
       const labelWindow = page.waitForEvent("popup");
       await page.getByRole("button", { name: "Print label" }).first().click();
       const label = await labelWindow;
       await label.locator("svg rect").first().waitFor({ state: "attached" });
       assert.equal(await label.locator("svg text").textContent(), "890000000001");
+      assert.equal(await label.locator("body").getAttribute("data-print-requested"), "yes");
       await label.close();
 
       const guestPage = await browser.newPage();
