@@ -57,6 +57,12 @@ export function CafeMenuPage() {
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemForm, setItemForm] = useState<MenuItemInput>(() => emptyItem());
+  const recipe = itemForm.recipe ?? [];
+  const ingredientCosts = recipe.map(line => {
+    const unitCost = Number(products.find(product => product.id === line.product_id)?.unit_cost);
+    const quantity = Number(line.quantity);
+    return unitCost > 0 && quantity > 0 ? Math.round(unitCost * quantity * 100) : null;
+  });
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -283,6 +289,9 @@ export function CafeMenuPage() {
             </label>
             <fieldset disabled={saving}>
               <legend>Recipe per serving</legend>
+              {recipe.length > 0 && <p>{ingredientCosts.some(cost => cost === null)
+                ? "Enter quantities and catalogue costs for every ingredient to estimate cost."
+                : "Estimated ingredient cost per serving ₹" + (ingredientCosts.reduce<number>((sum, cost) => sum + (cost ?? 0), 0) / 100).toFixed(2)}</p>}
               {(itemForm.recipe ?? []).map((line, index, recipe) => (
                 <div key={index}>
                   <label>Ingredient<select required value={line.product_id || ""} onChange={event => setItemForm({ ...itemForm, recipe: recipe.map((row, i) => i === index ? { ...row, product_id: Number(event.target.value) } : row) })}>

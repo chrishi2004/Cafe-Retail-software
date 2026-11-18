@@ -606,7 +606,11 @@ export type StockMovementType =
   | "purchase_received"
   | "manual_adjustment"
   | "return"
-  | "transfer";
+  | "transfer"
+  | "transfer_in"
+  | "transfer_out"
+  | "stock_count"
+  | "waste";
 
 export type StockMovement = {
   batch_number?: string;

@@ -253,12 +253,12 @@ export function InventoryPage() {
         }, token);
       } else {
         const response = await createStockAdjustment(token, {
-        product_id: selectedItem.product_id,
-        branch_id: selectedItem.branch_id,
-        quantity_change: quantityChange,
-        reason,
-      });
-      setSelectedItem(response.inventory);
+          product_id: selectedItem.product_id,
+          branch_id: selectedItem.branch_id,
+          quantity_change: quantityChange,
+          reason,
+        });
+        setSelectedItem(response.inventory);
       }
       setAdjustmentOpen(false);
       await loadInventory();
