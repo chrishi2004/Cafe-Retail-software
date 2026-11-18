@@ -18,8 +18,8 @@ import {
 import { databaseName } from "../src/server/db";
 import { inBusinessRange } from "../src/businessDates";
 import { dateBounds, invoiceInstant } from "../src/server/query";
-import { cafeRange } from "../src/legacy/utils/cafeDates";
-import { inputDateDaysAgo } from "../src/legacy/utils/format";
+import { cafeRange } from "../src/ui/utils/cafeDates";
+import { inputDateDaysAgo } from "../src/ui/utils/format";
 process.env.AUTH_SECRET = "unit-test-only-secret-with-at-least-32-characters";
 test("money is exact in paise and rejects excessive precision", () => {
   assert.equal(scaled("10.25"), 1025);

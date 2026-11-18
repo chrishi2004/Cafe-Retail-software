@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "../src/legacy/styles.css";
+import "../src/ui/styles.css";
 export const metadata: Metadata = {
   title: "Kalpvriksh Group",
   description: "Kalpvriksh Retail and Cafe operations",

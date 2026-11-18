@@ -7,7 +7,7 @@ import { disconnect } from "../src/server/db";
 import { handle } from "../src/server/handler";
 
 test(
-  "186 operational operations dispatch natively; obsolete Local Hub retry is explicitly retired",
+  "180 web operations dispatch natively",
   { timeout: 180000 },
   async () => {
     const server = await MongoMemoryReplSet.create({
@@ -43,13 +43,13 @@ test(
       const spec = JSON.parse(
         readFileSync(
           new URL(
-            "../../../docs/nextjs/operational-openapi.json",
+            "./contracts/operational-openapi.json",
             import.meta.url,
           ),
           "utf8",
         ),
       );
-      const hostedSpec = JSON.parse(readFileSync(new URL("../../../docs/nextjs/native-operational-openapi.json", import.meta.url), "utf8"));
+      const hostedSpec = JSON.parse(readFileSync(new URL("./contracts/native-operational-openapi.json", import.meta.url), "utf8"));
       let count = 0;
       for (const [template, methods] of Object.entries({ ...spec.paths, ...hostedSpec.paths }) as [
         string,
@@ -91,17 +91,14 @@ test(
             !/^API .* is not defined/.test(data.error?.message ?? ""),
             `${method} ${template} has no native handler`,
           );
-          if (template.includes("/sync/dead-letters/") && method === "post")
-            assert.equal(response.status, 410);
-          else
-            assert.notEqual(
-              response.status,
-              410,
-              `${method} ${template} unexpectedly retired`,
-            );
+          assert.notEqual(
+            response.status,
+            410,
+            `${method} ${template} unexpectedly retired`,
+          );
         }
       }
-      assert.equal(count, 186);
+      assert.equal(count, 180);
       const logout = await handle(
         new Request("http://localhost/api/auth/logout", {
           method: "POST",

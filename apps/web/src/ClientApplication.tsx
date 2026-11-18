@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-const Application = dynamic(() => import("./MigratedApplication"), {
+const Application = dynamic(() => import("./WebApplication"), {
   ssr: false,
   loading: () => (
     <main className="login-shell">
