@@ -21,7 +21,7 @@
 
 ## Remaining Café product work
 
-- Ingredient recipes can be saved on menu items. Inventory supports recording waste and physical counts. Automatic ingredient consumption and invoice cost snapshots still require the shop's consumption and costing policy.
+- Managers can enable recipe consumption per menu item. Billing deducts ingredients and records their current catalogue costs on the invoice. Orders retain their recipe at placement. Existing menu items retain their previous billing behavior. Confirm this timing and cost basis with the shop before enabling it.
 - Stock Feed receives ingredients from suppliers, values purchases and optionally records the associated expense.
 - Confirm kitchen tickets, bill edits, discounts and closing policy with staff
 

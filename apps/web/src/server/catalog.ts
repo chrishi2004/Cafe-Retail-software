@@ -309,6 +309,10 @@ export async function catalog(
       );
       values[field] = Number(values[field]);
     }
+  if (resource === "cafe/menu/items" && body.consume_recipe_on_bill !== undefined) {
+    requireValue(typeof body.consume_recipe_on_bill === "boolean", "Choose whether to consume ingredients at billing.");
+    values.consume_recipe_on_bill = body.consume_recipe_on_bill;
+  }
   if (resource === "cafe/menu/items" && body.recipe !== undefined) {
     requireValue(Array.isArray(body.recipe) && body.recipe.length <= 50, "Use up to 50 ingredients.");
     const ingredients = [];

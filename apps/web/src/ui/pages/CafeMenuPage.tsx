@@ -151,6 +151,7 @@ export function CafeMenuPage() {
       category_id: item.category_id,
       product_id: item.product_id,
       recipe: item.recipe ?? [],
+      consume_recipe_on_bill: item.consume_recipe_on_bill ?? false,
       name: item.name,
       description: item.description,
       image_reference: item.image_reference,
@@ -289,6 +290,7 @@ export function CafeMenuPage() {
             </label>
             <fieldset disabled={saving}>
               <legend>Recipe per serving</legend>
+              <label><input type="checkbox" checked={!!itemForm.consume_recipe_on_bill} onChange={event => setItemForm({ ...itemForm, consume_recipe_on_bill: event.target.checked })}/>On billing, deduct recipe ingredients in place of linked product stock and record their catalogue costs.</label>
               {recipe.length > 0 && <p>{ingredientCosts.some(cost => cost === null)
                 ? "Enter quantities and catalogue costs for every ingredient to estimate cost."
                 : "Estimated ingredient cost per serving ₹" + (ingredientCosts.reduce<number>((sum, cost) => sum + (cost ?? 0), 0) / 100).toFixed(2)}</p>}

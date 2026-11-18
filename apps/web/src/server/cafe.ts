@@ -108,6 +108,7 @@ export async function createOrder(
       id: items.length + 1,
       menu_item_public_id: item.public_id,
       menu_item_id: item.id,
+      ...(item.consume_recipe_on_bill && item.recipe?.length ? { recipe: item.recipe, consume_recipe_on_bill: true } : {}),
       product_id: item.product_id ?? null,
       name: item.name,
       quantity: input.quantity,

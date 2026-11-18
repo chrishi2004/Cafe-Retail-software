@@ -204,7 +204,20 @@ export async function quote(
             tax_amount: decimal(amount),
           });
     const unitCost = scaled(linkedProduct?.unit_cost ?? "0");
-    const lineCost = multiply(unitCost, quantity);
+    let lineCost = multiply(unitCost, quantity);
+    const ingredients: { product_id: number; quantity: string; unit_cost: string }[] = [];
+    if (cafe && item.consume_recipe_on_bill && item.recipe?.length) {
+      lineCost = 0;
+      for (const line of item.recipe) {
+        const ingredient = await db.collection<Row>("products").findOne({ company_id: scope.company.id, id: line.product_id, is_active: true, item_type: { $ne: "service" } }, { session });
+        requireValue(ingredient, "A recipe ingredient is unavailable.");
+        const used = multiply(scaled(line.quantity), quantity);
+        const cost = scaled(ingredient.unit_cost ?? "0");
+        requireValue(used > 0 && cost > 0, "Each billed ingredient needs a measurable quantity and a catalogue cost.");
+        lineCost += multiply(used, cost);
+        ingredients.push({ product_id: ingredient.id, quantity: decimal(used), unit_cost: decimal(cost) });
+      }
+    }
     items.push({
       id: items.length + 1,
       product_id: productId ?? null,
@@ -224,11 +237,12 @@ export async function quote(
       igst_total: decimal(igst),
       cess_total: decimal(cess),
       line_total: decimal(taxable + cgst + sgst + igst + cess),
-      tracks_stock: !!productId && linkedProduct?.item_type !== "service",
+      tracks_stock: !ingredients.length && !!productId && linkedProduct?.item_type !== "service",
+      ...(ingredients.length ? { consumed_ingredients: ingredients, recipe_cost_recorded: true } : {}),
       taxes,
       gross_profit: decimal(taxable - lineCost),
       // Zero is also the catalogue default; it does not prove this item had no cost.
-      ...(unitCost > 0 ? { recorded_cogs: decimal(lineCost) } : {}),
+      ...(ingredients.length || unitCost > 0 ? { recorded_cogs: decimal(lineCost) } : {}),
       quantity_on_hand: decimal(inventory?.quantity_scaled ?? 0),
       hsn_sac_code: item.hsn_sac_code ?? null,
       mrp: item.mrp ?? null,
@@ -443,12 +457,18 @@ export async function checkout(
           );
         }
         const requested = new Map<number, number>();
-        for (const item of calculated.items)
+        const recipeProducts = new Set<number>();
+        for (const item of calculated.items) {
+          for (const ingredient of item.consumed_ingredients ?? []) {
+            recipeProducts.add(ingredient.product_id);
+            requested.set(ingredient.product_id, (requested.get(ingredient.product_id) ?? 0) + scaled(ingredient.quantity));
+          }
           if (item.product_id && item.tracks_stock)
             requested.set(
               item.product_id,
               (requested.get(item.product_id) ?? 0) + scaled(item.quantity),
             );
+        }
         const id = draftId ?? (await nextId(db, "invoices", session));
         for (const [product, quantity] of requested) {
           const updated = await db.collection("inventory").updateOne(
@@ -457,6 +477,7 @@ export async function checkout(
               branch_id: branch.id,
               product_id: product,
               quantity_scaled: { $gte: quantity },
+              ...(recipeProducts.has(product) ? { $expr: { $gte: [{ $subtract: ["$quantity_scaled", { $ifNull: ["$reserved_scaled", 0] }] }, quantity] } } : {}),
             },
             {
               $inc: { quantity_scaled: -quantity },
