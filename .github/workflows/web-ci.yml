@@ -2,7 +2,7 @@ name: Web CI
 
 on:
   push:
-    branches: [main, codex/web-only-cleanup]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
