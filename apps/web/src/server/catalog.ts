@@ -33,6 +33,7 @@ const resources: Record<
       "manufacturer",
       "item_type",
       "batch_tracking_enabled",
+      "enforce_lot_checkout",
       "serial_tracking_enabled",
       "expiry_tracking_enabled",
     ],
@@ -339,6 +340,7 @@ export async function catalog(
     "available",
     "requires_reference",
     "batch_tracking_enabled",
+    "enforce_lot_checkout",
     "serial_tracking_enabled",
     "expiry_tracking_enabled",
   ])

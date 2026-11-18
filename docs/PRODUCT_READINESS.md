@@ -28,7 +28,7 @@
 ## Remaining Retail product work
 
 - Inventory supports branch transfers, damage write-offs and physical counts. Partial invoice returns, exchanges and customer credit adjustments require a return policy.
-- Purchase receipts capture batch and expiry details in the stock movement history. Lot-level balances, expiry enforcement and allocation at checkout are pending.
+- Retail receiving records lot balances. Checkout allocates the earliest expiry first and excludes expired lots. Managers can classify existing on-hand stock before enabling mandatory recorded lots per product. Confirm physical picking follows the recorded batch.
 - Product management prints Code 128 labels for existing barcodes. Confirm physical scanner/printer compatibility.
 
 ## Business and operational acceptance

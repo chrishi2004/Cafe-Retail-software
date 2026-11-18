@@ -11,6 +11,7 @@ import { audit, invoiceInstant } from "./query";
 import { HttpError, requireValue } from "./errors";
 import { allow, digest, managers, sellers, type Scope } from "./security";
 import { businessDate, canonical, decimal, multiply, scaled } from "./money";
+import { allocateLots } from "./lots";
 export async function authorizedBranch(
   db: Db,
   scope: Scope,
@@ -471,6 +472,12 @@ export async function checkout(
         }
         const id = draftId ?? (await nextId(db, "invoices", session));
         for (const [product, quantity] of requested) {
+          const stockFilter = { company_id: scope.company.id, branch_id: branch.id, product_id: product };
+          const stock = await db.collection<Row>("inventory").findOne(stockFilter, { session });
+          const tracked = !cafe && await db.collection<Row>("products").findOne({ company_id: scope.company.id, id: product }, { session });
+          const strict = !!(tracked && tracked.enforce_lot_checkout);
+          const allocation = stock && (stock.lots?.length || strict)
+            ? allocateLots(stock.lots ?? [], stock.quantity_scaled, quantity, true, !!(strict && tracked && tracked.expiry_tracking_enabled), strict) : null;
           const updated = await db.collection("inventory").updateOne(
             {
               company_id: scope.company.id,
@@ -481,7 +488,7 @@ export async function checkout(
             },
             {
               $inc: { quantity_scaled: -quantity },
-              $set: { last_updated_at: now },
+              $set: { last_updated_at: now, ...(allocation ? { lots: allocation.lots } : {}) },
             },
             { session },
           );
@@ -498,6 +505,7 @@ export async function checkout(
               branch_id: branch.id,
               product_id: product,
               movement_type: "sale",
+              ...(allocation ? { allocated_lots: allocation.allocated } : {}),
               quantity_change: decimal(-quantity),
               created_by: scope.user.id,
               reference_type: "invoice",

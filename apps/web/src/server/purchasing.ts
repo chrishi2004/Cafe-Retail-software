@@ -1,4 +1,5 @@
 import { replay, saveReplay } from "./financial";
+import { receiveLots } from "./lots";
 import type { Db, ClientSession } from "mongodb";
 import { type Row } from "./db";
 import { type Scope, managers, allow } from "./security";
@@ -241,6 +242,9 @@ export async function purchases(
           requireValue(batch.length <= 100, "Batch number exceeds 100 characters.");
           item.receipt_batch = batch || null;
           item.receipt_expiry = input.expiry_date ? dateOnly(input.expiry_date) : null;
+          const product = await requiredRow(db, "products", { id: item.product_id, company_id: scope.company.id }, session);
+          requireValue(!product.enforce_lot_checkout || batch, "Enter the batch number for this product.");
+          requireValue(!product.enforce_lot_checkout || !product.expiry_tracking_enabled || item.receipt_expiry, "Enter the expiry date for this product.");
           item.quantity_received = decimal(
             scaled(item.quantity_received) + quantity,
           );
@@ -293,7 +297,9 @@ export async function purchases(
                 quantity_scaled: action === "receive" ? quantity : 0,
                 on_order_scaled: ordered,
               },
-              $set: { last_updated_at: now() },
+              $set: { last_updated_at: now(), ...(action === "receive" && (item.receipt_batch || item.receipt_expiry) ? {
+                lots: receiveLots(stock.lots, [{ batch_number: item.receipt_batch ?? "", expiry_date: item.receipt_expiry, quantity_scaled: quantity }]),
+              } : {}) },
             },
             { session },
           );

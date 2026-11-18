@@ -320,6 +320,7 @@ function ProductsPage() {
       manufacturer: product.manufacturer ?? "",
       item_type: product.item_type,
       batch_tracking_enabled: product.batch_tracking_enabled,
+      enforce_lot_checkout: product.enforce_lot_checkout ?? false,
       serial_tracking_enabled: product.serial_tracking_enabled,
       expiry_tracking_enabled: product.expiry_tracking_enabled,
       reorder_threshold: product.reorder_threshold,
@@ -512,6 +513,7 @@ function ProductsPage() {
               <label className="checkbox-row"><input checked={form.batch_tracking_enabled} onChange={(event) => setForm({ ...form, batch_tracking_enabled: event.target.checked })} type="checkbox" /> Batch tracking</label>
               <label className="checkbox-row"><input checked={form.serial_tracking_enabled} onChange={(event) => setForm({ ...form, serial_tracking_enabled: event.target.checked })} type="checkbox" /> Serial tracking</label>
               <label className="checkbox-row"><input checked={form.expiry_tracking_enabled} onChange={(event) => setForm({ ...form, expiry_tracking_enabled: event.target.checked })} type="checkbox" /> Expiry tracking</label>
+              <label className="checkbox-row"><input checked={!!form.enforce_lot_checkout} onChange={event => setForm({ ...form, enforce_lot_checkout: event.target.checked })} type="checkbox" /> Require recorded lots at checkout (receive opening lots first)</label>
               <label className="checkbox-row"><input checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} type="checkbox" /> Active product</label>
               <FormButtons editing={Boolean(editingId)} onCancel={resetForm} saving={saving} />
             </form>

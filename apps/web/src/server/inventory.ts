@@ -1,4 +1,5 @@
-import { audit, insertRow, now, transaction } from "./query";
+import { audit, dateOnly, insertRow, now, transaction } from "./query";
+import { allocateLots, receiveLots } from "./lots";
 import { replay, saveReplay, writableDay } from "./financial";
 import { type Db } from "mongodb";
 import { database, nextId, type Row } from "./db";
@@ -92,13 +93,16 @@ export async function moveStock(scope: Scope, body: Row, key: string | null, kin
     const stock = await db.collection<Row>("inventory").findOne(filter, { session });
     requireValue(stock && stock.quantity_scaled - (stock.reserved_scaled ?? 0) >= quantity, "Insufficient available stock.");
     const stamp = { last_updated_at: now() };
-    await db.collection("inventory").updateOne(filter, { $inc: { quantity_scaled: -quantity }, $set: stamp }, { session });
+    const allocation = allocateLots(stock.lots ?? [], stock.quantity_scaled, quantity, false);
+    await db.collection("inventory").updateOne(filter, { $inc: { quantity_scaled: -quantity }, $set: { ...stamp, lots: allocation.lots } }, { session });
     const details = { ...filter, reason, created_by: scope.user.id, created_by_name: scope.user.name, reference_type: kind, unit_cost: product.unit_cost, line_total: decimal(multiply(scaled(product.unit_cost ?? "0"), quantity)) };
-    const out = await insertRow(db, "stock_movements", { ...details, movement_type: destination ? "transfer_out" : "waste", quantity_change: decimal(-quantity), destination_id: destination?.id }, session);
+    const out = await insertRow(db, "stock_movements", { ...details, allocated_lots: allocation.allocated, movement_type: destination ? "transfer_out" : "waste", quantity_change: decimal(-quantity), destination_id: destination?.id }, session);
     if (destination) {
       const target = { ...filter, branch_id: destination.id };
-      const updated = await db.collection("inventory").updateOne(target, { $inc: { quantity_scaled: quantity }, $set: stamp }, { session });
-      if (!updated.matchedCount) await insertRow(db, "inventory", { ...target, quantity_scaled: quantity, reserved_scaled: 0, on_order_scaled: 0, ...stamp }, session);
+      const existing = await db.collection<Row>("inventory").findOne(target, { session });
+      const lots = receiveLots(existing?.lots, allocation.allocated);
+      if (existing) await db.collection("inventory").updateOne(target, { $inc: { quantity_scaled: quantity }, $set: { ...stamp, lots } }, { session });
+      else await insertRow(db, "inventory", { ...target, quantity_scaled: quantity, reserved_scaled: 0, on_order_scaled: 0, lots, ...stamp }, session);
       await insertRow(db, "stock_movements", { ...details, ...target, movement_type: "transfer_in", reference_id: out.id, quantity_change: decimal(quantity) }, session);
     }
     await audit(db, scope, kind, "stock_movement", out.id, { product_id: product.id, quantity: decimal(quantity), destination_id: destination?.id }, session, { branchId: source.id });
@@ -114,19 +118,21 @@ export async function adjust(scope: Scope, body: Row, key: string | null = null)
     String(body.reason ?? "").trim().length >= 3,
     "Adjustment reason is required.",
   );
+  const classify = body.classify_quantity !== undefined;
+  const classifyQuantity = classify ? scaled(body.classify_quantity) : 0;
   const count = body.counted_quantity === undefined ? null : scaled(body.counted_quantity);
   const raw = String(body.quantity_change ?? "0");
   const delta =
     scaled(raw.replace(/^-/, "") as string) * (raw.startsWith("-") ? -1 : 1);
-  requireValue(count !== null || delta !== 0, "Adjustment must be nonzero.");
+  requireValue(classify ? classifyQuantity > 0 && count === null && delta === 0 : count !== null || delta !== 0, "Enter a valid adjustment quantity.");
   const { db, client } = await database();
   const session = client.startSession();
   try {
     return await session.withTransaction(async () => {
-      const state = count === null ? null : await replay(db, scope, key, "stock_count", body, session);
+      const state = count === null && !classify ? null : await replay(db, scope, key, classify ? "classify_lot" : "stock_count", body, session);
       if (state?.old) return state.old.result as { movement: Row };
       const branch = await authorizedBranch(db, scope, body.branch_id, session);
-      if (count !== null) await writableDay(db, scope, branch.id, session);
+      if (count !== null || classify) await writableDay(db, scope, branch.id, session);
       const product = await db.collection<Row>("products").findOne(
         {
           id: Number(body.product_id),
@@ -146,6 +152,20 @@ export async function adjust(scope: Scope, body: Row, key: string | null = null)
         .collection<Row>("inventory")
         .findOne(filter, { session });
       const baseline = row?.quantity_scaled ?? 0;
+      if (classify) {
+        const batch = String(body.batch_number ?? "").trim();
+        requireValue(row && batch.length > 0 && batch.length <= 100, "Select stock and enter its batch number.");
+        const expiry = body.expiry_date ? dateOnly(body.expiry_date) : null;
+        requireValue(!product.expiry_tracking_enabled || expiry, "Enter the expiry date.");
+        const existing = receiveLots(row.lots, []);
+        requireValue(classifyQuantity <= baseline - existing.reduce((sum, lot) => sum + lot.quantity_scaled, 0), "Quantity exceeds stock without a recorded lot.");
+        const lot = { batch_number: batch, expiry_date: expiry, quantity_scaled: classifyQuantity };
+        await db.collection("inventory").updateOne(filter, { $set: { lots: receiveLots(existing, [lot]), last_updated_at: now() } }, { session });
+        const movement = await insertRow(db, "stock_movements", { ...filter, movement_type: "lot_classification", quantity_change: "0.00", allocated_lots: [lot], reason: body.reason, created_by: scope.user.id }, session);
+        await audit(db, scope, "classify", "stock_movement", movement.id, { batch }, session, { branchId: branch.id });
+        await saveReplay(db, state!, { movement }, session);
+        return { movement };
+      }
       if (count !== null) {
         requireValue(baseline === scaled(body.expected_quantity), "Stock changed. Reload inventory and recount.");
         requireValue(count >= (row?.reserved_scaled ?? 0), "Count is below reserved stock.");
@@ -170,7 +190,7 @@ export async function adjust(scope: Scope, body: Row, key: string | null = null)
         filter,
         {
           $inc: { quantity_scaled: change },
-          $set: { last_updated_at: new Date().toISOString() },
+          $set: { last_updated_at: new Date().toISOString(), ...(change < 0 && row.lots?.length ? { lots: allocateLots(row.lots, baseline, -change, false).lots } : {}) },
         },
         { session },
       );

@@ -116,6 +116,7 @@ export type Product = {
   manufacturer: string | null;
   item_type: ProductItemType;
   batch_tracking_enabled: boolean;
+  enforce_lot_checkout?: boolean;
   serial_tracking_enabled: boolean;
   expiry_tracking_enabled: boolean;
   reorder_threshold: string;
@@ -568,6 +569,7 @@ export type InvoiceSequencePayload = Omit<
 };
 
 export type InventoryItem = {
+  lots?: { batch_number: string; expiry_date: string | null; quantity_scaled: number }[];
   id: number;
   product_id: number;
   product_sku: string;
@@ -613,6 +615,7 @@ export type StockMovementType =
   | "waste";
 
 export type StockMovement = {
+  allocated_lots?: { batch_number: string; expiry_date: string | null; quantity_scaled: number }[];
   batch_number?: string;
   expiry_date?: string;
   id: number;

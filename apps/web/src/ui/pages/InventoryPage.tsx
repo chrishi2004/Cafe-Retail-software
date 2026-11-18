@@ -95,6 +95,8 @@ export function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [operation, setOperation] = useState("adjustment");
+  const [batchNumber, setBatchNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
   const [destination, setDestination] = useState("");
   const [operationKey, setOperationKey] = useState("");
   const [quantityChange, setQuantityChange] = useState("0.00");
@@ -225,6 +227,8 @@ export function InventoryPage() {
 
   const openAdjustment = (item: InventoryItem) => {
     setOperation("adjustment");
+    setBatchNumber("");
+    setExpiryDate("");
     setDestination("");
     setOperationKey(crypto.randomUUID());
     setSelectedItem(item);
@@ -239,7 +243,12 @@ export function InventoryPage() {
     setSavingAdjustment(true);
     setError(null);
     try {
-      if (operation === "count") {
+      if (operation === "lot") {
+        await apiRequest("/inventory/adjustments", {
+          method: "POST", headers: { "Idempotency-Key": operationKey },
+          body: JSON.stringify({ branch_id: selectedItem.branch_id, product_id: selectedItem.product_id, classify_quantity: quantityChange, batch_number: batchNumber, expiry_date: expiryDate, reason }),
+        }, token);
+      } else if (operation === "count") {
         await apiRequest("/inventory/adjustments", {
           method: "POST", headers: { "Idempotency-Key": operationKey },
           body: JSON.stringify({ branch_id: selectedItem.branch_id, product_id: selectedItem.product_id,
@@ -628,6 +637,7 @@ export function InventoryPage() {
                         <p>{movement.reason ?? "No reason provided"}</p>
                         {movement.batch_number && <p>Batch {movement.batch_number}</p>}
                         {movement.expiry_date && <p>Expires {movement.expiry_date}</p>}
+                        {movement.allocated_lots?.map(lot => <p key={JSON.stringify([lot.batch_number, lot.expiry_date])}>Batch {lot.batch_number || "unspecified"} · {lot.quantity_scaled / 100} units{lot.expiry_date && " · expires " + lot.expiry_date}</p>)}
                       </article>
                     ))}
                   </div>
@@ -646,6 +656,7 @@ export function InventoryPage() {
                 <p className="eyebrow">Manual stock adjustment</p>
                 <h3 id="adjustment-title">{selectedItem.product_name}</h3>
                 <p className="page-description">{selectedItem.branch_name}</p>
+                {selectedItem.lots?.map(lot => <p key={JSON.stringify([lot.batch_number, lot.expiry_date])}>Batch {lot.batch_number || "unspecified"} · {lot.quantity_scaled / 100} on hand{lot.expiry_date && " · expires " + lot.expiry_date}</p>)}
               </div>
               <button
                 aria-label="Close adjustment modal"
@@ -661,6 +672,7 @@ export function InventoryPage() {
                 <select value={operation} onChange={(event) => setOperation(event.target.value)}>
                   <option value="adjustment">Stock adjustment</option>
                   <option value="count">Record physical count</option>
+                  <option value="lot">Assign existing stock to a batch</option>
                   <option value="waste">Record waste or damage</option>
                   {visibleBranches.some(branch => branch.id !== selectedItem.branch_id) && <option value="transfer">Transfer to branch</option>}
                 </select>
@@ -671,6 +683,10 @@ export function InventoryPage() {
                   {visibleBranches.filter(branch => branch.id !== selectedItem.branch_id).map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
                 </select>
               </label>}
+              {operation === "lot" && <>
+                <label>Batch number<input required maxLength={100} value={batchNumber} onChange={event => setBatchNumber(event.target.value)}/></label>
+                <label>Expiry date<input type="date" value={expiryDate} onChange={event => setExpiryDate(event.target.value)}/></label>
+              </>}
               <label>
                 {operation === "count" ? "Counted quantity" : operation === "adjustment" ? "Quantity change" : "Quantity"}
                 <input
