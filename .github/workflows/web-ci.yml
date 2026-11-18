@@ -35,5 +35,5 @@ jobs:
       - run: npm run test:integration
       - run: npm run build
       - run: npm audit --audit-level=high
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium-headless-shell
       - run: npm run test:browser
