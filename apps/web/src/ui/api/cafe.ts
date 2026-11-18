@@ -17,6 +17,7 @@ export type MenuCategory = {
 };
 
 export type MenuItem = {
+  recipe?: Ingredient[];
   id: number;
   public_id: string;
   company_id: number;
@@ -43,7 +44,10 @@ export type MenuCategoryInput = {
   is_active: boolean;
 };
 
+type Ingredient = { product_id: number; quantity: string };
+
 export type MenuItemInput = {
+  recipe?: Ingredient[];
   branch_id: number | null;
   category_id: number;
   product_id: number | null;

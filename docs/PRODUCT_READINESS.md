@@ -21,15 +21,15 @@
 
 ## Remaining Café product work
 
-- Implement Café ingredient recipes, consumption, waste and reliable COGS
-- Add supplier purchase/receiving workflows tailored to Café ingredients
+- Ingredient recipes can be saved on menu items. Inventory supports recording waste and physical counts. Automatic ingredient consumption and invoice cost snapshots still require the shop's consumption and costing policy.
+- Stock Feed receives ingredients from suppliers, values purchases and optionally records the associated expense.
 - Confirm kitchen tickets, bill edits, discounts and closing policy with staff
 
 ## Remaining Retail product work
 
-- Implement Retail returns/exchanges, stock disposition and branch transfers
-- Complete batch/expiry workflows where the shop requires them
-- Validate barcode coverage, labels, credit collection and stock-count workflow
+- Inventory supports branch transfers, damage write-offs and physical counts. Partial invoice returns, exchanges and customer credit adjustments require a return policy.
+- Purchase receipts capture batch and expiry details in the stock movement history. Lot-level balances, expiry enforcement and allocation at checkout are pending.
+- Product management prints Code 128 labels for existing barcodes. Confirm physical scanner/printer compatibility.
 
 ## Business and operational acceptance
 

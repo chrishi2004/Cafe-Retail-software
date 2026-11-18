@@ -39,7 +39,7 @@ import {
 } from "./security";
 import { catalog, resourceNames } from "./catalog";
 import { checkout, quote, receipt, authorizedBranch } from "./billing";
-import { inventoryRows, adjust } from "./inventory";
+import { inventoryRows, adjust, moveStock } from "./inventory";
 import { cafeReport, range, consolidated } from "./reports";
 import { closing, readClosing } from "./closing";
 import { HttpError, requireValue } from "./errors";
@@ -701,8 +701,11 @@ export async function handle(request: Request, path: string[]) {
         route.endsWith("low-stock") ? rows.filter((r) => r.is_low_stock) : rows,
       );
     }
+    if ((route === "inventory/transfer" || route === "inventory/waste") && method === "POST") {
+      return json(await moveStock(scope, body, request.headers.get("Idempotency-Key"), route === "inventory/transfer" ? "transfer" : "waste"));
+    }
     if (route === "inventory/adjustments" && method === "POST") {
-      const result = await adjust(scope, body);
+      const result = await adjust(scope, body, request.headers.get("Idempotency-Key"));
       let rows = await inventoryRows(db, scope, Number(body.branch_id));
       return json({
         ...result,

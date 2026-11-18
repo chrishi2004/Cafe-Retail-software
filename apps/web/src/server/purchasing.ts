@@ -237,6 +237,10 @@ export async function purchases(
             "Receipt exceeds remaining quantity.",
           );
           item.received_now = quantity;
+          const batch = String(input.batch_number ?? "").trim();
+          requireValue(batch.length <= 100, "Batch number exceeds 100 characters.");
+          item.receipt_batch = batch || null;
+          item.receipt_expiry = input.expiry_date ? dateOnly(input.expiry_date) : null;
           item.quantity_received = decimal(
             scaled(item.quantity_received) + quantity,
           );
@@ -300,6 +304,8 @@ export async function purchases(
             {
               ...filter,
               movement_type: "purchase_received",
+              batch_number: item.receipt_batch,
+              expiry_date: item.receipt_expiry,
               quantity_change: decimal(quantity),
               unit_cost: item.unit_cost,
               line_total: decimal(multiply(scaled(item.unit_cost), quantity)),
@@ -312,6 +318,8 @@ export async function purchases(
             session,
           );
         delete item.received_now;
+        delete item.receipt_batch;
+        delete item.receipt_expiry;
       }
       const status =
         action === "receive" &&

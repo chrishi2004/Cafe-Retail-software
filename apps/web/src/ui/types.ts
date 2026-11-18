@@ -609,6 +609,8 @@ export type StockMovementType =
   | "transfer";
 
 export type StockMovement = {
+  batch_number?: string;
+  expiry_date?: string;
   id: number;
   product_id: number;
   product_sku: string;

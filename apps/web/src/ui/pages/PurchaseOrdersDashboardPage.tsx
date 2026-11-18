@@ -126,6 +126,7 @@ export function PurchaseOrdersDashboardPage() {
   const [form, setForm] = useState<OrderForm>(() => emptyForm(user?.branch_id ?? 0));
   const [editingId, setEditingId] = useState<number | null>(null);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
+  const [lots, setLots] = useState<Record<number, { batch_number?: string; expiry_date?: string }>>({});
   const [receiveQuantities, setReceiveQuantities] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -333,6 +334,7 @@ export function PurchaseOrdersDashboardPage() {
       }
     });
     setReceiveQuantities(nextQuantities);
+    setLots({});
     setReceiveModalOpen(true);
   };
 
@@ -343,6 +345,7 @@ export function PurchaseOrdersDashboardPage() {
       .map(([itemId, value]) => ({
         item_id: Number(itemId),
         quantity_received: value,
+        ...lots[Number(itemId)],
       }));
     if (items.length === 0) {
       setError("Enter at least one received quantity.");
@@ -825,6 +828,8 @@ export function PurchaseOrdersDashboardPage() {
           onSubmit={() => void submitReceiving()}
           order={selectedOrder}
           quantities={receiveQuantities}
+          lots={lots}
+          updateLot={(id, patch) => setLots(current => ({ ...current, [id]: { ...current[id], ...patch } }))}
           saving={saving}
           setQuantities={setReceiveQuantities}
         />
@@ -834,6 +839,7 @@ export function PurchaseOrdersDashboardPage() {
 }
 
 function ReceiveModal({
+  lots, updateLot,
   onClose,
   onSubmit,
   order,
@@ -844,6 +850,8 @@ function ReceiveModal({
   onClose: () => void;
   onSubmit: () => void;
   order: PurchaseOrder;
+  lots: Record<number, { batch_number?: string; expiry_date?: string }>;
+  updateLot: (id: number, patch: { batch_number?: string; expiry_date?: string }) => void;
   quantities: Record<number, string>;
   saving: boolean;
   setQuantities: (value: Record<number, string>) => void;
@@ -864,7 +872,7 @@ function ReceiveModal({
         </div>
         <div className="receive-line-list">
           {receivableItems.map((item: PurchaseOrderItem) => (
-            <label key={item.id}>
+            <div key={item.id}><label>
               <span>
                 {item.product_name}
                 <b>Remaining {formatQuantity(item.remaining_quantity)}</b>
@@ -883,6 +891,8 @@ function ReceiveModal({
                 }
               />
             </label>
+            <label>Batch number<input value={lots[item.id]?.batch_number ?? ""} maxLength={100} onChange={event => updateLot(item.id, { batch_number: event.target.value })} /></label>
+            <label>Expiry date<input type="date" value={lots[item.id]?.expiry_date ?? ""} onChange={event => updateLot(item.id, { expiry_date: event.target.value })} /></label></div>
           ))}
         </div>
         <div className="sale-button-row">

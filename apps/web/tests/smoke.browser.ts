@@ -444,6 +444,13 @@ test(
       await retailHistory.getByRole("button", { name: "Download historical CSV", exact: true }).click();
       const retailText = await readFile((await (await retailCsv).path())!, "utf8");
       assert(retailText.includes('"RETAIL-000001"') && !retailText.includes('"CAFE-000001"'));
+      await page.goto("http://127.0.0.1:4317/retail/products");
+      const labelWindow = page.waitForEvent("popup");
+      await page.getByRole("button", { name: "Print label" }).first().click();
+      const label = await labelWindow;
+      await label.locator("svg rect").first().waitFor({ state: "attached" });
+      assert.equal(await label.locator("svg text").textContent(), "890000000001");
+      await label.close();
 
       const guestPage = await browser.newPage();
       guestPage.on("pageerror", (e) => errors.push(e.message));

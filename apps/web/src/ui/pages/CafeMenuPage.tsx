@@ -144,6 +144,7 @@ export function CafeMenuPage() {
       branch_id: item.branch_id,
       category_id: item.category_id,
       product_id: item.product_id,
+      recipe: item.recipe ?? [],
       name: item.name,
       description: item.description,
       image_reference: item.image_reference,
@@ -280,6 +281,20 @@ export function CafeMenuPage() {
                 {products.map((product) => <option key={product.id} value={product.id}>{product.name} ({product.sku})</option>)}
               </select>
             </label>
+            <fieldset disabled={saving}>
+              <legend>Recipe per serving</legend>
+              {(itemForm.recipe ?? []).map((line, index, recipe) => (
+                <div key={index}>
+                  <label>Ingredient<select required value={line.product_id || ""} onChange={event => setItemForm({ ...itemForm, recipe: recipe.map((row, i) => i === index ? { ...row, product_id: Number(event.target.value) } : row) })}>
+                    <option value="">Select ingredient</option>
+                    {products.filter(p => p.item_type !== "service").map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit_of_measure})</option>)}
+                  </select></label>
+                  <label>Quantity per serving<input type="number" min="0.01" step="0.01" required value={line.quantity} onChange={event => setItemForm({ ...itemForm, recipe: recipe.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row) })}/></label>
+                  <button type="button" onClick={() => setItemForm({ ...itemForm, recipe: recipe.filter((_, i) => i !== index) })}>Remove ingredient</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setItemForm({ ...itemForm, recipe: [...(itemForm.recipe ?? []), { product_id: 0, quantity: "" }] })}>Add ingredient</button>
+            </fieldset>
             <label>Selling price<input type="number" min="0" step="0.01" value={itemForm.selling_price} onChange={(event) => setItemForm({ ...itemForm, selling_price: event.target.value })} disabled={saving} /></label>
             <label>
               Preparation area

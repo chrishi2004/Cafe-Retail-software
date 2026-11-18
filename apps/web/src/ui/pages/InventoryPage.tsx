@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { ApiError } from "../api/client";
+import { ApiError, apiRequest } from "../api/client";
 import { getInventoryDashboard } from "../api/dashboard";
 import {
   createStockAdjustment,
@@ -94,6 +94,9 @@ export function InventoryPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [operation, setOperation] = useState("adjustment");
+  const [destination, setDestination] = useState("");
+  const [operationKey, setOperationKey] = useState("");
   const [quantityChange, setQuantityChange] = useState("0.00");
   const [reason, setReason] = useState("");
   const [savingAdjustment, setSavingAdjustment] = useState(false);
@@ -221,6 +224,9 @@ export function InventoryPage() {
   );
 
   const openAdjustment = (item: InventoryItem) => {
+    setOperation("adjustment");
+    setDestination("");
+    setOperationKey(crypto.randomUUID());
     setSelectedItem(item);
     setQuantityChange("0.00");
     setReason("");
@@ -233,13 +239,27 @@ export function InventoryPage() {
     setSavingAdjustment(true);
     setError(null);
     try {
-      const response = await createStockAdjustment(token, {
+      if (operation === "count") {
+        await apiRequest("/inventory/adjustments", {
+          method: "POST", headers: { "Idempotency-Key": operationKey },
+          body: JSON.stringify({ branch_id: selectedItem.branch_id, product_id: selectedItem.product_id,
+            expected_quantity: selectedItem.quantity_on_hand, counted_quantity: quantityChange, reason }),
+        }, token);
+      } else if (operation !== "adjustment") {
+        await apiRequest("/inventory/" + operation, {
+          method: "POST", headers: { "Idempotency-Key": operationKey },
+          body: JSON.stringify({ product_id: selectedItem.product_id, branch_id: selectedItem.branch_id,
+            destination_id: operation === "transfer" ? Number(destination) : undefined, quantity: quantityChange, reason }),
+        }, token);
+      } else {
+        const response = await createStockAdjustment(token, {
         product_id: selectedItem.product_id,
         branch_id: selectedItem.branch_id,
         quantity_change: quantityChange,
         reason,
       });
       setSelectedItem(response.inventory);
+      }
       setAdjustmentOpen(false);
       await loadInventory();
       await loadMovements();
@@ -606,6 +626,8 @@ export function InventoryPage() {
                         </div>
                         <b>{formatQuantity(movement.quantity_change)}</b>
                         <p>{movement.reason ?? "No reason provided"}</p>
+                        {movement.batch_number && <p>Batch {movement.batch_number}</p>}
+                        {movement.expiry_date && <p>Expires {movement.expiry_date}</p>}
                       </article>
                     ))}
                   </div>
@@ -635,8 +657,22 @@ export function InventoryPage() {
               </button>
             </div>
             <form className="master-form" onSubmit={submitAdjustment}>
+              <label>Operation
+                <select value={operation} onChange={(event) => setOperation(event.target.value)}>
+                  <option value="adjustment">Stock adjustment</option>
+                  <option value="count">Record physical count</option>
+                  <option value="waste">Record waste or damage</option>
+                  {visibleBranches.some(branch => branch.id !== selectedItem.branch_id) && <option value="transfer">Transfer to branch</option>}
+                </select>
+              </label>
+              {operation === "transfer" && <label>Receiving branch
+                <select required value={destination} onChange={(event) => setDestination(event.target.value)}>
+                  <option value="">Select branch</option>
+                  {visibleBranches.filter(branch => branch.id !== selectedItem.branch_id).map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </select>
+              </label>}
               <label>
-                Quantity change
+                {operation === "count" ? "Counted quantity" : operation === "adjustment" ? "Quantity change" : "Quantity"}
                 <input
                   required
                   inputMode="decimal"

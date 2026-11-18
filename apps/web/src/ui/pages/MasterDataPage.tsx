@@ -1,5 +1,6 @@
 import { FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import { Edit3, Plus, RotateCw, Search } from "lucide-react";
+import JsBarcode from "jsbarcode";
 
 import { listTaxRates } from "../api/businessSettings";
 import { ApiError } from "../api/client";
@@ -190,6 +191,30 @@ function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  function printLabel(product: Product) {
+    const barcode = product.primary_barcode;
+    if (!barcode) return;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    try {
+      JsBarcode(svg, barcode, { format: "CODE128", height: 48, margin: 12 });
+    } catch {
+      setError("This barcode cannot be printed as Code 128. Check the barcode in the catalogue.");
+      return;
+    }
+    const label = window.open("", "_blank", "popup,width=450,height=290");
+    if (!label) {
+      setError("Allow the label window to open before printing.");
+      return;
+    }
+    label.opener = null;
+    label.document.title = product.sku;
+    const name = label.document.createElement("strong");
+    name.textContent = product.name;
+    label.document.body.append(name, label.document.createElement("br"), svg);
+    label.addEventListener("afterprint", () => label.close(), { once: true });
+    label.focus();
+    label.print();
+  }
 
   const load = useCallback(async () => {
     if (!token) {
@@ -399,7 +424,7 @@ function ProductsPage() {
                         <strong>{product.name}</strong>
                         <span>{product.category_name} / {product.supplier_name}</span>
                       </td>
-                      <td>{product.primary_barcode ?? "Not set"}</td>
+                      <td>{product.primary_barcode ?? "Not set"} {product.primary_barcode && <button type="button" onClick={() => printLabel(product)}>Print label</button>}</td>
                       <td>
                         <strong>{product.hsn_sac_code ?? "No HSN"}</strong>
                         <span>{product.gst_rate_name ?? "No GST rate"}</span>

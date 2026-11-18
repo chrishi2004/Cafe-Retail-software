@@ -101,9 +101,12 @@ test(
       await ok(`purchase-orders/${po.id}/mark-ordered`, "POST", {});
       assert.equal((await ok("inventory"))[0].quantity_on_order, "10.00");
       const part = await ok(`purchase-orders/${po.id}/receive`, "POST", {
-        items: [{ item_id: po.items[0].id, quantity_received: "4" }],
+        items: [{ item_id: po.items[0].id, quantity_received: "4", batch_number: "A14", expiry_date: "2028-08-21" }],
       });
       assert.equal(part.status, "partially_received");
+      const receivedMovement = (await ok("inventory/movements?movement_type=purchase_received"))[0];
+      assert.equal(receivedMovement.batch_number, "A14");
+      assert.equal(receivedMovement.expiry_date, "2028-08-21");
       const over = await call(`purchase-orders/${po.id}/receive`, "POST", {
         items: [{ item_id: po.items[0].id, quantity_received: "7" }],
       });

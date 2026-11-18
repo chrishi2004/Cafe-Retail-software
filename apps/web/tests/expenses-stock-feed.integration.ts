@@ -123,6 +123,22 @@ test(
 
       const inventory = await ok("inventory?branch_id=1");
       assert.equal(inventory.find((row: any) => row.product_id === product.id)?.quantity_on_hand, "5.00");
+      const transfer = { branch_id: 1, destination_id: secondBranch.id, product_id: product.id, quantity: "2", reason: "Branch replenishment" };
+      const count = { branch_id: 1, product_id: product.id, expected_quantity: "5", counted_quantity: "5", reason: "Physical count" };
+      await ok("inventory/adjustments", "POST", count, "physical-count-001");
+      const menuGroup = await ok("cafe/menu/categories", "POST", { name: "Drinks" });
+      const recipe = [{ product_id: product.id, quantity: "0.25" }];
+      const drink = await ok("cafe/menu/items", "POST", { name: "House drink", category_id: menuGroup.id, selling_price: "50", recipe });
+      assert.deepEqual(drink.recipe, recipe);
+      assert.ok((await call("cafe/menu/items/" + drink.id, "PUT", { recipe: [...recipe, ...recipe] })).status >= 400);
+      const first = await ok("inventory/transfer", "POST", transfer, "transfer-test-001");
+      assert.deepEqual(await ok("inventory/transfer", "POST", transfer, "transfer-test-001"), first);
+      assert.ok((await call("inventory/adjustments", "POST", count, "physical-count-002")).status >= 400);
+      const waste = { branch_id: secondBranch.id, product_id: product.id, quantity: "0.5", reason: "Damaged in storage" };
+      await ok("inventory/waste", "POST", waste, "waste-test-001");
+      assert.equal((await ok("inventory?branch_id=" + secondBranch.id)).find((row: any) => row.product_id === product.id)?.quantity_on_hand, "1.50");
+      assert.equal((await ok("inventory?branch_id=1")).find((row: any) => row.product_id === product.id)?.quantity_on_hand, "3.00");
+      assert.ok((await call("inventory/waste", "POST", { ...waste, quantity: "2" }, "waste-test-002")).status >= 400);
 
       await ok("expenses", "POST", {
         branch_id: 1,
