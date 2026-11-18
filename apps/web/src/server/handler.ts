@@ -4,7 +4,6 @@ import { operationalAudit } from "./operational-audit";
 import { inBusinessRange } from "../businessDates";
 import { invoiceHistory } from "./history";
 import { refundRoutes } from "./refunds";
-import { consistency } from "./consistency";
 import { assistant } from "./assistant";
 import { forecasts, recommendations } from "./planning";
 import { queryScope, requiredRow, transaction, signed, dateBounds } from "./query";
@@ -40,7 +39,7 @@ import {
 } from "./security";
 import { catalog, resourceNames } from "./catalog";
 import { checkout, quote, receipt, authorizedBranch } from "./billing";
-import { inventoryRows, adjust } from "./inventory";
+import { inventoryRows, adjust, moveStock } from "./inventory";
 import { cafeReport, range, consolidated } from "./reports";
 import { closing, readClosing } from "./closing";
 import { HttpError, requireValue } from "./errors";
@@ -86,14 +85,15 @@ export async function handle(request: Request, path: string[]) {
           environment: process.env.NODE_ENV,
           deployment_mode: "nextjs_atlas",
           database: "connected",
-          production_parity: false,
+          application: "kalpvriksh-web",
         });
       } catch {
         return json(
           {
             status: "unhealthy",
+            deployment_mode: "nextjs_atlas",
             database: "unavailable",
-            production_parity: false,
+            application: "kalpvriksh-web",
           },
           503,
         );
@@ -140,12 +140,6 @@ export async function handle(request: Request, path: string[]) {
       if (value !== undefined) return json(value);
     }
     // Public QR endpoints cannot fall through into financial/catalog handlers.
-    if (route.startsWith("cloud/"))
-      throw new HttpError(
-        410,
-        "local_hub_gateway_retired",
-        "The hosted Next.js application uses /api/public/cafe directly. Local Hub device, lease and synchronization APIs belong to the preserved original application.",
-      );
     if (route.startsWith("public/"))
       throw new HttpError(404, "not_found", "Public endpoint unavailable.");
     if (route === "auth/employee-password" && method === "POST")
@@ -208,8 +202,7 @@ export async function handle(request: Request, path: string[]) {
         business_group_id: user.business_group_id,
         ventures,
         combined_turnover: decimal(total),
-        review_notice:
-          "Recorded native web invoices only; legacy PostgreSQL history is not imported.",
+        review_notice: "Turnover is calculated from recorded web invoices.",
       });
     }
     if (
@@ -572,8 +565,6 @@ export async function handle(request: Request, path: string[]) {
           url,
         ),
       );
-    const consistencyResult = await consistency(db, scope, route, method);
-    if (consistencyResult !== undefined) return json(consistencyResult);
     const settingsResult = await settings(db, scope, route, method, body, url);
     if (settingsResult !== undefined) return json(settingsResult);
     if (route === "ventures/current" && method === "GET")
@@ -710,8 +701,11 @@ export async function handle(request: Request, path: string[]) {
         route.endsWith("low-stock") ? rows.filter((r) => r.is_low_stock) : rows,
       );
     }
+    if ((route === "inventory/transfer" || route === "inventory/waste") && method === "POST") {
+      return json(await moveStock(scope, body, request.headers.get("Idempotency-Key"), route === "inventory/transfer" ? "transfer" : "waste"));
+    }
     if (route === "inventory/adjustments" && method === "POST") {
-      const result = await adjust(scope, body);
+      const result = await adjust(scope, body, request.headers.get("Idempotency-Key"));
       let rows = await inventoryRows(db, scope, Number(body.branch_id));
       return json({
         ...result,

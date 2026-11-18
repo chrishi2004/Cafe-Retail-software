@@ -33,6 +33,7 @@ const resources: Record<
       "manufacturer",
       "item_type",
       "batch_tracking_enabled",
+      "enforce_lot_checkout",
       "serial_tracking_enabled",
       "expiry_tracking_enabled",
     ],
@@ -309,6 +310,31 @@ export async function catalog(
       );
       values[field] = Number(values[field]);
     }
+  if (resource === "cafe/menu/items" && body.consume_recipe_on_bill !== undefined) {
+    requireValue(typeof body.consume_recipe_on_bill === "boolean", "Choose whether to consume ingredients at billing.");
+    values.consume_recipe_on_bill = body.consume_recipe_on_bill;
+  }
+  if (resource === "cafe/menu/items" && body.recipe !== undefined) {
+    requireValue(Array.isArray(body.recipe) && body.recipe.length <= 50, "Use up to 50 ingredients.");
+    const ingredients = [];
+    const seen = new Set<number>();
+    for (const entry of body.recipe) {
+      requireValue(entry && Number.isSafeInteger(entry.product_id) && !seen.has(entry.product_id), "Select each ingredient once.");
+      const quantity = scaled(entry.quantity);
+      requireValue(quantity > 0, "Enter the ingredient quantity per serving.");
+      const ingredient = await db.collection<Row>("products").findOne({ company_id: scope.company.id, id: entry.product_id, is_active: true, item_type: { $ne: "service" } }, { session });
+      requireValue(ingredient, "Ingredient is unavailable.");
+      ingredients.push({ product_id: ingredient.id, quantity: decimal(quantity) });
+      seen.add(ingredient.id);
+    }
+    values.recipe = ingredients;
+  }
+  if (resource === "cafe/menu/items" && (values.consume_recipe_on_bill !== undefined || values.recipe !== undefined)) {
+    const current = id ? await collection.findOne(filter, { session }) : null;
+    const recipe = values.recipe ?? current?.recipe;
+    if (values.consume_recipe_on_bill ?? current?.consume_recipe_on_bill)
+      requireValue(Array.isArray(recipe) && recipe.length > 0, "Add an ingredient or turn off recipe deduction.");
+  }
   if (body.is_active !== undefined) {
     requireValue(
       typeof body.is_active === "boolean",
@@ -320,6 +346,7 @@ export async function catalog(
     "available",
     "requires_reference",
     "batch_tracking_enabled",
+    "enforce_lot_checkout",
     "serial_tracking_enabled",
     "expiry_tracking_enabled",
   ])

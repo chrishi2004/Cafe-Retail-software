@@ -101,9 +101,12 @@ test(
       await ok(`purchase-orders/${po.id}/mark-ordered`, "POST", {});
       assert.equal((await ok("inventory"))[0].quantity_on_order, "10.00");
       const part = await ok(`purchase-orders/${po.id}/receive`, "POST", {
-        items: [{ item_id: po.items[0].id, quantity_received: "4" }],
+        items: [{ item_id: po.items[0].id, quantity_received: "4", batch_number: "A14", expiry_date: "2028-08-21" }],
       });
       assert.equal(part.status, "partially_received");
+      const receivedMovement = (await ok("inventory/movements?movement_type=purchase_received"))[0];
+      assert.equal(receivedMovement.batch_number, "A14");
+      assert.equal(receivedMovement.expiry_date, "2028-08-21");
       const over = await call(`purchase-orders/${po.id}/receive`, "POST", {
         items: [{ item_id: po.items[0].id, quantity_received: "7" }],
       });
@@ -138,6 +141,18 @@ test(
         payments: [{ payment_mode_id: 4, amount: "50" }],
       };
       const sale = await ok("pos/checkout", "POST", cart, "credit-sale-key");
+      const allocated = await db.collection("stock_movements").findOne({ company_id: 2, reference_id: sale.id, movement_type: "sale" });
+      assert.deepEqual(allocated?.allocated_lots, [{ batch_number: "A14", expiry_date: "2028-08-21", quantity_scaled: 200 }]);
+      const classify = { branch_id: 2, product_id: product.id, classify_quantity: "2", batch_number: "OLDER", expiry_date: "2000-01-01", reason: "Label verified" };
+      await ok("inventory/adjustments", "POST", classify, "assign-opening-lot");
+      await ok("inventory/adjustments", "POST", classify, "assign-opening-lot");
+      assert.equal((await ok("inventory"))[0].lots.length, 2);
+      await ok(`products/${product.id}`, "PUT", { enforce_lot_checkout: true, expiry_tracking_enabled: true });
+      const unsafeCart = { ...cart, items: [{ product_id: product.id, quantity: "3" }], payments: [{ payment_mode_id: 4, amount: "300" }] };
+      const blocked = await call("pos/checkout", "POST", unsafeCart, "blocked-lot-sale");
+      assert.match(JSON.stringify(blocked.body), /eligible stock/);
+      assert.equal((await ok("inventory"))[0].quantity_on_hand, "8.00");
+      await ok(`products/${product.id}`, "PUT", { enforce_lot_checkout: false, expiry_tracking_enabled: false });
       assert.equal(sale.balance_due, "150.00");
       const storedInvoice = await db.collection("invoices").findOne({ id: sale.id, company_id: 2 });
       assert.equal(storedInvoice?.items[0].recorded_cogs, "80.00");

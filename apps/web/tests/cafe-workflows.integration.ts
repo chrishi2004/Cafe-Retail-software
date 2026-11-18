@@ -71,6 +71,9 @@ test(
       ).access_token;
       venture = 1;
       const ownerToken = token;
+      const ingredientCategory = await ok("categories", "POST", { name: "Ingredients" });
+      const supplier = await ok("suppliers", "POST", { name: "Ingredient supplier" });
+      const rice = await ok("products", "POST", { name: "Rice", sku: "RICE", category_id: ingredientCategory.id, supplier_id: supplier.id, unit_cost: "40", selling_price: "50", unit_of_measure: "kg" });
       const category = await ok("cafe/menu/categories", "POST", {
         name: "Meals",
         branch_id: 1,
@@ -81,12 +84,14 @@ test(
         branch_id: 1,
         selling_price: "100",
         preparation_area: "kitchen",
+        recipe: [{ product_id: rice.id, quantity: "0.25" }], consume_recipe_on_bill: true,
       });
       const table = await ok("cafe/tables", "POST", {
         branch_id: 1,
         table_code: "T1",
         display_name: "Table One",
       });
+      assert.equal((await call(`cafe/menu/items/${item.id}`, "PUT", { recipe: [] })).status, 422);
       const opened = await Promise.all([
         call("cafe/table-sessions", "POST", { table_id: table.id }),
         call("cafe/table-sessions", "POST", { table_id: table.id }),
@@ -184,7 +189,7 @@ test(
       await ok(`cafe/orders/${order.public_id}/serve`, "POST", {
         expected_version: ready.version,
       });
-      await ok(`cafe/menu/items/${item.id}`, "PUT", { selling_price: "150" });
+      await ok(`cafe/menu/items/${item.id}`, "PUT", { selling_price: "150", recipe: [] , consume_recipe_on_bill: false });
       const current = await ok(`cafe/table-sessions/${tableSession.public_id}`);
       const requested = await ok(
         `cafe/table-sessions/${tableSession.public_id}/request-bill`,
@@ -199,6 +204,9 @@ test(
         expected_version: requested.version,
         payments: [{ payment_mode_id: 1, amount: "100" }],
       };
+      const billPath = `cafe/billing/table-sessions/${tableSession.public_id}/bill`;
+      assert.equal((await call(billPath, "POST", billInput, "table-bill-key")).status, 409);
+      await ok("inventory/adjustments", "POST", { branch_id: 1, product_id: rice.id, quantity_change: "1", reason: "Opening stock" });
       const bills = await Promise.all([
         call(
           `cafe/billing/table-sessions/${tableSession.public_id}/bill`,
@@ -297,6 +305,9 @@ test(
       assert.equal((await call("auth/login", "POST", recovery)).status, 200);
       assert.equal((await call("auth/login", "POST", recovery)).status, 401);
       const { db } = await database();
+      const invoice = await db.collection("invoices").findOne({});
+      assert.equal(invoice?.items[0].recorded_cogs, "10.00");
+      assert.equal((await db.collection("inventory").findOne({ product_id: rice.id, company_id: 1 }))?.quantity_scaled, 75);
       assert.equal(await db.collection("invoices").countDocuments(), 1);
       assert.equal(await db.collection("cafe_orders").countDocuments(), 1);
       const beforeReset = await db

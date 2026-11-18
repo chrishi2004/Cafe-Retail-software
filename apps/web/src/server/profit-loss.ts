@@ -104,7 +104,7 @@ function addInvoice(report: Accumulator, invoice: Row, date: string, businessTyp
       if (cost.inferred) t.inferred_cost_lines++;
       else t.recorded_cost_lines++;
     }
-    if (businessType === "cafe") t.cafe_lines_without_recipe_cost++;
+    if (businessType === "cafe" && !(item?.recipe_cost_recorded && cost)) t.cafe_lines_without_recipe_cost++;
     if (!cost) t.missing_cost_lines++;
   }
 }
@@ -132,7 +132,7 @@ async function summarize(db: Db, scope: SnapshotScope, current: Range, prior: Ra
   const range = { start: prior.start, end: current.end };
   const target = (date: string) => date >= current.start ? currentData : priorData;
   const fields = "invoice_number,invoice_date,invoice_type,status,grand_total,balance_due,taxable_total,round_off," +
-    taxFields.join(",") + ",items.recorded_cogs,items.taxable_value,items.gross_profit";
+    taxFields.join(",") + ",items.recorded_cogs,items.taxable_value,items.gross_profit,items.recipe_cost_recorded";
   for await (const invoice of scan(db, scope, "invoices", fields, { dates: range, field: "invoice_date", instant: true })) {
     const date = day(invoice.invoice_date)!;
     addInvoice(target(date), invoice, date, scope.company.business_type, monthly);

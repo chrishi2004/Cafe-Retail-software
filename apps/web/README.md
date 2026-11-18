@@ -1,113 +1,61 @@
-# Kalpvriksh — Next.js + MongoDB Atlas
+# Kalpvriksh Next.js application
 
-The hosted Retail/Café website lives entirely in **`apps/web`**. Next.js serves the pages and TypeScript API handlers in one deployment. The root `frontend/` and `backend/` directories preserve the original local-first product; they are not deployed by this Vercel project.
+This directory is the complete hosted product: React pages, Next.js Route
+Handlers, TypeScript business services and MongoDB Atlas access.
 
-Native web workflows include inventory/sales/purchase dashboards, POS, customer credit/ledgers, GST calculations, purchase receiving, Café orders/kitchen/tables, restricted customer QR ordering, receipts, closing, forecasts, saved deterministic assistant chats and exports. Read the [implementation report](../../docs/nextjs/NATIVE_COMPLETION_REPORT.md) for evidence, intentional legacy-interface changes and production gates. This is not a claim of full legacy parity or physical acceptance.
+## Runtime
 
-## First setup — new database only
+- Node.js 24
+- Next.js and React
+- MongoDB Atlas with multi-document transaction support
+- Vercel Root Directory: `apps/web`
 
-Use Node 24 and an Atlas database named `kalpvriksh_web_*`. Never point at an old customer database. A standalone MongoDB server cannot support the multi-document financial transactions used here.
+## Required private environment variables
+
+- `MONGODB_URI`
+- `MONGODB_DB` (must match `kalpvriksh_web_*`)
+- `AUTH_SECRET` (at least 32 random characters)
+
+Bootstrap variables in `.env.example` are used only for a new, empty database.
+Never bootstrap an existing shop database and never rotate `AUTH_SECRET` during a
+normal deployment.
+
+## Commands
 
 ```bash
-cd apps/web
 npm ci
-cp -n .env.example .env.local
-```
-
-Privately edit `.env.local`:
-
-- `MONGODB_URI`: Atlas database username/password connection string; URL-encode special password characters.
-- `MONGODB_DB`: for example `kalpvriksh_web_staging`.
-- `AUTH_SECRET`: a random value of at least 32 characters, generated with `openssl rand -hex 32`. **Use exactly the same value in local setup and Vercel.** It protects sessions and encrypted MFA secrets.
-- Six `BOOTSTRAP_*` email/password fields: three distinct valid emails; passwords of at least 12 characters.
-
-```bash
-npm run bootstrap
-```
-
-Bootstrap refuses any database that already contains records. It creates only the group, Café/Retail companies/branches, non-GST business profiles, separate numbering, payment modes and owner/two cashier accounts. It does not seed products, customers, stock or sales. It prints the owner's **time-based authenticator setup key and recovery codes once**. Keep that output private. In Google Authenticator, choose **+ → Enter a setup key → Time based** and enter the printed key, not `AUTH_SECRET`.
-
-All users share `/login`. The owner uses email, password and authenticator/recovery code. The Café cashier opens Café POS; the Retail cashier opens Retail POS. Cashiers do not need TOTP unless MFA is intentionally enabled for those accounts.
-
-**Existing deployment:** keep its same database and `AUTH_SECRET`. Do not rerun bootstrap after a code update. New collections/indexes are additive; existing records are not reseeded.
-
-## Lost authenticator — trusted terminal only
-
-After configuring the same private database and `AUTH_SECRET` in `.env.local`:
-
-```bash
-npm run mfa -- begin --email YOUR_OWNER_EMAIL
-```
-
-Add the newly printed key to Authenticator and save the new recovery codes. Run `begin` only once for that enrollment. Existing MFA remains valid until the new key is confirmed.
-
-```bash
-npm run mfa -- confirm --email YOUR_OWNER_EMAIL
-```
-
-Enter the current six-digit code when prompted. Confirmation replaces the secret, revokes prior sessions and consumes that code. Wait for the next phone code before logging in. Enrollment expires after 15 minutes. Do not print or share `.env.local`.
-
-## Development and validation
-
-```bash
-npm run dev
 npm run typecheck
 npm test
 npm run test:integration
 npm run build
-npx playwright install chromium
 npm run test:browser
-npm start
 ```
 
-Tests use disposable local replica sets, never the configured customer Atlas database. `test:browser` starts the production Next build.
+Tests use disposable MongoDB replica sets and must never point at production.
 
-Date filters use inclusive `YYYY-MM-DD` business dates in `Asia/Kolkata`, regardless of the device or server timezone. Invoice sales use the invoice's business date, while collections and cash closing use the payment's business date. Timestamps are stored as UTC instants.
+## New database setup only
 
-## Invoice deletion and refunds
+```bash
+cp .env.example .env.local
+npm run bootstrap
+```
 
-An admin can permanently delete an eligible same-day non-GST invoice from Café Receipt History or Retail Sales. The bill and its line items disappear and cannot be reprinted. Stock stays unchanged. The POS keeps only the information needed to prevent a duplicated checkout and reconcile the money.
+Bootstrap creates the business group, Café/Retail ventures, branches, owner and
+cashier accounts. It prints the owner's TOTP setup key and recovery codes once.
 
-Deleting a paid bill has no effect on collections. In that shop's **Refunds** page, record the amount and date after returning money by the original payment method. For an electronic payment, enter the refund transaction reference. If the payment entry was a mistake and no money was ever received, use **No payment received**. Unpaid bills do not create a refund task. Corrections or refunds for a closed business day require that day to be reopened. Older cancellations are listed for verification; the POS does not assume they were refunded.
+## Trusted MFA recovery
 
-## Vercel
+```bash
+npm run mfa -- begin --email OWNER_EMAIL
+npm run mfa -- confirm --email OWNER_EMAIL
+```
 
-| Setting | Value |
-| --- | --- |
-| Repository branch | `main` |
-| Root Directory | **`apps/web`** |
-| Framework | Next.js |
-| Runtime | Node 24 |
-| Build | `npm run build` |
-| Output directory | Next.js default |
-| Private environment | `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET` |
+Run these only from a trusted terminal configured with the intended Atlas
+database and the matching `AUTH_SECRET`.
 
-Public API base URLs can stay `/api`. Do not put credentials in `NEXT_PUBLIC_*`, bootstrap during builds, or copy production credentials into previews. Bootstrap/MFA console tasks run from a trusted local terminal against the intended Atlas database. Accounts and old PostgreSQL MFA are not automatically imported.
+## Deployment
 
-Atlas connectivity is required for billing and QR ordering. Payments are recorded collection entries; automatic payment-provider charging/refunding is not implied. Physical receipt output, backups/restore, statutory GST documents and production acceptance require separate verification. `/api/health` deliberately retains `production_parity:false`.
-
-### 80 mm thermal receipts on Windows
-
-Use **Print receipt** (or **Reprint receipt**) to print the invoice alone. The browser page is sized to the receipt on an 80 mm roll, with a 72 mm content area.
-
-In the Kores Endura RP31U's Windows **Printing preferences**, select the 80 mm continuous receipt/roll form if offered. In Chrome or Edge, choose the RP31U, use portrait and 100% scale, set browser margins to **None** and turn off **Headers and footers**. Avoid A4, Letter, and fixed-length forms when the driver offers a continuous form.
-
-Check print preview with a short receipt from history before testing the printer. If preview shows one compact receipt but the printer still advances a long blank section or cuts twice, check the driver's paper length, end-of-job feed and cut options. The browser cannot set those driver options.
-
-### Correcting an accidental invoice
-
-As an owner or venture admin, use **Delete invoice** next to an eligible bill in **Café → Receipt history** or **Retail → Sales Summary**, then confirm once. The active admin login authorizes the action.
-
-The action supports today's non-GST counter and retail invoices while the branch's day is open. It retains the invoice as Cancelled and excludes its amounts from net sales, collections, and closing. Stock remains unchanged. If money was received, return it outside the POS before confirming.
-
-### Staff access
-
-The owner can manage employees in **Super Admin → Users**, including assigning employees to Café or Retail. Venture admins can manage non-admin employees in their own venture. Store managers can manage Cashier / Staff, Order Taker and Kitchen accounts in their assigned branch; the latter two roles are Café only. A Business Owner account is protected from staff-management edits.
-
-When adding an employee or resetting a password, share the private one-time setup link directly with that employee. It expires in one hour. The employee chooses their own password; a reset revokes existing sessions and keeps the employee's MFA enrollment. Employees can enroll an authenticator in **Account security**. The owner can promote an employee to Venture Admin after MFA enrollment. Ordinary logout signs out only that session; deactivation and access changes revoke all the employee's sessions.
-
-### Daily Closing
-
-Select an authorized branch and an IST business date in **Daily Closing**. Open the current business day with the drawer float, refresh the preview, count the drawer, and submit. The preview separates checkout receipts, credit repayments, and actual refunds by payment method. A cash stock purchase counts once through its posted expense; credit purchases and stock-only receipts do not count as cash outflows. Standalone customer repayments and later invoice repayments cannot post to a submitted or closed business day.
-
-Print the summary or download CSV. Before submission, the printout is a preview and the CSV has no official count. After submission, both use the stored count and totals. Older closings retain their saved totals; new preview breakdown fields may not be available for historical snapshots. Older invoice payments without a repayment marker appear as sales collections; standalone repayments are always separately identified. Reopening requires an administrator, credentials with MFA, and a reason; the prior closing snapshot is retained in the audit record.
+Deploy through a preview first. Validate the preview against a non-production
+database, stage the reviewed production build without assigning the shop domain,
+run acceptance checks, and then promote that exact build. See
+[`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).
